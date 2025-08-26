@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ib-trade"
+version = "0.1.0"
+description = "Interactive Brokers trading utilities"
+requires-python = ">=3.11"
+dependencies = [
+    "ib_async",
+    "pydantic",
+    "pandas",
+    "typer",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "hypothesis",
+    "freezegun",
+    "loguru",
+    "ruff",
+    "mypy",
+    "black",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
