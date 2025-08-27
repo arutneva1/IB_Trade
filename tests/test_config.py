@@ -4,11 +4,10 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-# Ensure project root on path for direct test execution
-sys.path.append(str(Path(__file__).resolve().parents[1]))
-
 from ibkr_etf_rebalancer.config import AppConfig
 
+# Ensure project root on path for direct test execution
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 def valid_config_dict():
     return {
