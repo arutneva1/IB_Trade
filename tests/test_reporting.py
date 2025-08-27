@@ -3,7 +3,10 @@ from pathlib import Path
 
 from freezegun import freeze_time
 
-from ibkr_etf_rebalancer.reporting import generate_pre_trade_report
+from ibkr_etf_rebalancer.reporting import (
+    generate_post_trade_report,
+    generate_pre_trade_report,
+)
 
 # Ensure project root on path for direct test execution
 sys.path.append(str(Path(__file__).resolve().parents[1]))
@@ -24,3 +27,38 @@ def test_pre_trade_report(tmp_path):
 
     assert csv_path.read_text() == golden_csv
     assert md_path.read_text() == golden_md
+
+
+def test_post_trade_report():
+    executions = [
+        {
+            "symbol": "AAA",
+            "side": "BUY",
+            "filled_shares": 100.0,
+            "avg_price": 10.0,
+        },
+        {
+            "symbol": "BBB",
+            "side": "SELL",
+            "filled_shares": -50.0,
+            "avg_price": 20.0,
+        },
+    ]
+
+    df = generate_post_trade_report(executions)
+
+    expected_cols = [
+        "symbol",
+        "side",
+        "filled_shares",
+        "avg_price",
+        "notional",
+    ]
+    assert list(df.columns) == expected_cols
+    assert df.loc[0, "notional"] == 1000.0
+    assert df.loc[1, "notional"] == -1000.0
+    assert df["filled_shares"].sum() == 50.0
+    assert df["notional"].sum() == 0.0
+
+    golden_csv = Path("tests/golden/post_trade_report.csv").read_text()
+    assert df.to_csv(index=False) == golden_csv
