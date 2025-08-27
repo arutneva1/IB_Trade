@@ -447,8 +447,10 @@ python app.py --csv portfolios.csv --ini settings.ini --dry-run
 ---
 
 ## 14) Example Outputs (pre‑trade report columns)
-- `symbol, target_pct, current_pct, drift_bps, price, dollar_delta, share_delta, side, est_notional`  
+- `symbol, target_pct, current_pct, drift_bps, price, dollar_delta, share_delta, side, est_notional`
 - Sorted by largest |drift_bps| first; totals at bottom.
+- Pre‑trade reports are emitted as both CSV and Markdown files.
+- Post‑trade reports will summarise fills with columns: `symbol, side, filled_shares, avg_price, notional`.
 
 ---
 
