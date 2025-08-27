@@ -1,7 +1,6 @@
 import sys
 from pathlib import Path
 
-import pytest
 from ibkr_etf_rebalancer.rebalance_engine import generate_orders
 
 # Ensure package root on path when running tests directly
