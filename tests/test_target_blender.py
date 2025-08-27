@@ -4,12 +4,11 @@ from pathlib import Path
 import pytest
 from hypothesis import given, strategies as st
 
-# Ensure the package root is on the import path when running tests directly
-sys.path.append(str(Path(__file__).resolve().parents[1]))
-
 from ibkr_etf_rebalancer.target_blender import blend_targets
 from ibkr_etf_rebalancer.config import ModelsConfig
 
+# Ensure the package root is on the import path when running tests directly
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 # Strategies -----------------------------------------------------------------
 
