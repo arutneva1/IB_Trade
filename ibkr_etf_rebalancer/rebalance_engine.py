@@ -37,6 +37,7 @@ other trades and the leverage constraints.
 
 from __future__ import annotations
 
+import math
 from typing import Dict, Mapping
 
 
@@ -158,9 +159,9 @@ def generate_orders(
             # Round towards zero would leave us short on buys or long on sells
             # so we round outwards instead.
             if shares > 0:
-                shares = int(shares)
+                shares = math.ceil(shares)
             else:
-                shares = int(shares) - (1 if shares != int(shares) else 0)
+                shares = math.floor(shares)
             if shares == 0:
                 continue
         orders_shares[symbol] = shares
