@@ -1,0 +1,90 @@
+import sys
+from pathlib import Path
+
+from ibkr_etf_rebalancer.rebalance_engine import generate_orders
+
+# Ensure package root on path when running tests directly
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
+
+PRICES = {"AAA": 100.0, "BBB": 100.0}
+EQUITY = 100_000.0
+
+
+def test_no_trade_when_within_band():
+    targets = {"AAA": 0.6, "BBB": 0.4, "CASH": 0.0}
+    current = {"AAA": 0.6, "BBB": 0.4, "CASH": 0.0}
+    orders = generate_orders(
+        targets,
+        current,
+        PRICES,
+        EQUITY,
+        bands=0.05,
+        min_order=500.0,
+        max_leverage=1.5,
+    )
+    assert orders == {}
+
+
+def test_overweight_positions_generate_sells():
+    targets = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    current = {"AAA": 0.6, "BBB": 0.4, "CASH": 0.0}
+    orders = generate_orders(
+        targets,
+        current,
+        PRICES,
+        EQUITY,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+        allow_fractional=False,
+    )
+    assert orders["AAA"] == -100
+
+
+def test_underweight_positions_generate_buys():
+    targets = {"AAA": 0.6, "BBB": 0.4, "CASH": 0.0}
+    current = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    orders = generate_orders(
+        targets,
+        current,
+        PRICES,
+        EQUITY,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+        allow_fractional=False,
+    )
+    assert orders["AAA"] == 100
+
+
+def test_min_order_filtering():
+    targets = {"AAA": 0.503, "BBB": 0.497, "CASH": 0.0}
+    current = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    orders = generate_orders(
+        targets,
+        current,
+        PRICES,
+        EQUITY,
+        bands=0.0,
+        min_order=500.0,
+        max_leverage=1.5,
+    )
+    assert orders == {}
+
+
+def test_margin_leverage_scaling():
+    targets = {"AAA": 1.3, "BBB": 0.3, "CASH": -0.6}
+    current = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    orders = generate_orders(
+        targets,
+        current,
+        PRICES,
+        EQUITY,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+        allow_fractional=False,
+    )
+    assert orders["AAA"] == 700
+    assert orders["BBB"] == -200
