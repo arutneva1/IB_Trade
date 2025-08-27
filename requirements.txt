@@ -1,12 +1,18 @@
-ib_async
-pydantic
-pandas
-typer
+# dev/test
+ruff
+black
+mypy
 pytest
 pytest-asyncio
 hypothesis
 freezegun
+
+# app libs
+pandas
+pandas-stubs         
+pydantic
+typer
+ib_async
 loguru
-ruff
-mypy
-black
+
+
