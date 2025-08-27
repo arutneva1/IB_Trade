@@ -49,7 +49,7 @@ ignore_missing_imports = true
 
 # So tests don't have to annotate every function/fixture
 [[tool.mypy.overrides]]
-module = ["tests.*"]
+module = ["tests/**/*.py", "tests/*.py"]
 disallow_untyped_defs = false
 check_untyped_defs = false
 disallow_incomplete_defs = false
