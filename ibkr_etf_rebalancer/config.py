@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class IBKRConfig(BaseModel):
@@ -57,9 +57,7 @@ class RebalanceConfig(BaseModel):
     allow_fractional: bool = Field(
         False, description="Set true only if account supports fractional shares"
     )
-    allow_margin: bool = Field(
-        False, description="Permit use of margin when CASH is negative"
-    )
+    allow_margin: bool = Field(False, description="Permit use of margin when CASH is negative")
     max_leverage: float = Field(
         1.5,
         gt=0,
@@ -68,9 +66,7 @@ class RebalanceConfig(BaseModel):
     maintenance_buffer_pct: float = Field(
         10, ge=0, le=100, description="Headroom against margin calls in percent"
     )
-    prefer_rth: bool = Field(
-        True, description="Place orders only during regular trading hours"
-    )
+    prefer_rth: bool = Field(True, description="Place orders only during regular trading hours")
     order_type: Literal["LMT", "MKT"] = Field(
         "LMT", description="Default order type for rebalancing trades"
     )
@@ -80,9 +76,7 @@ class FXConfig(BaseModel):
     """Foreign exchange settings following SRS ``[fx]`` rules."""
 
     enabled: bool = Field(False, description="Enable FX funding of USD trades")
-    base_currency: str = Field(
-        "USD", description="Portfolio/target currency"
-    )
+    base_currency: str = Field("USD", description="Portfolio/target currency")
     funding_currencies: list[str] = Field(
         default_factory=lambda: ["CAD"],
         description="Currencies available to convert from",
@@ -90,68 +84,42 @@ class FXConfig(BaseModel):
     convert_mode: Literal["just_in_time", "always_top_up"] = Field(
         "just_in_time", description="When to convert FX to fund buys"
     )
-    use_mid_for_planning: bool = Field(
-        True, description="Size FX conversions using the mid price"
-    )
-    min_fx_order_usd: float = Field(
-        1000, gt=0, description="Skip conversions smaller than this"
-    )
-    fx_buffer_bps: int = Field(
-        20, ge=0, description="Buy a small extra cushion when converting"
-    )
+    use_mid_for_planning: bool = Field(True, description="Size FX conversions using the mid price")
+    min_fx_order_usd: float = Field(1000, gt=0, description="Skip conversions smaller than this")
+    fx_buffer_bps: int = Field(20, ge=0, description="Buy a small extra cushion when converting")
     order_type: Literal["MKT", "LMT"] = Field(
         "MKT", description="Order type used for FX conversions"
     )
-    limit_slippage_bps: int = Field(
-        5, ge=0, description="Slippage when order_type='LMT'"
-    )
+    limit_slippage_bps: int = Field(5, ge=0, description="Slippage when order_type='LMT'")
     route: str = Field("IDEALPRO", description="IBKR FX venue")
     wait_for_fill_seconds: int = Field(
         5, ge=0, description="Pause before placing dependent ETF orders"
     )
-    prefer_market_hours: bool = Field(
-        False, description="Allow off-hours FX trading by default"
-    )
+    prefer_market_hours: bool = Field(False, description="Allow off-hours FX trading by default")
 
 
 class LimitsConfig(BaseModel):
     """Spread‑aware limit pricing settings from SRS ``[limits]``."""
 
-    smart_limit: bool = Field(
-        True, description="Enable dynamic spread-aware limit prices"
-    )
+    smart_limit: bool = Field(True, description="Enable dynamic spread-aware limit prices")
     style: Literal["spread_aware", "static_bps", "off"] = Field(
         "spread_aware", description="Pricing style"
     )
-    buy_offset_frac: float = Field(
-        0.25, ge=0, le=1, description="BUY at mid + frac*spread"
-    )
-    sell_offset_frac: float = Field(
-        0.25, ge=0, le=1, description="SELL at mid - frac*spread"
-    )
-    max_offset_bps: int = Field(
-        10, ge=0, description="Cap distance from mid in bps"
-    )
-    wide_spread_bps: int = Field(
-        50, ge=0, description="Treat spreads wider than this as wide"
-    )
+    buy_offset_frac: float = Field(0.25, ge=0, le=1, description="BUY at mid + frac*spread")
+    sell_offset_frac: float = Field(0.25, ge=0, le=1, description="SELL at mid - frac*spread")
+    max_offset_bps: int = Field(10, ge=0, description="Cap distance from mid in bps")
+    wide_spread_bps: int = Field(50, ge=0, description="Treat spreads wider than this as wide")
     escalate_action: Literal["cross", "market", "keep"] = Field(
         "cross", description="Action when spread is wide or quotes stale"
     )
-    stale_quote_seconds: int = Field(
-        10, ge=0, description="Quote age before considered stale"
-    )
-    use_ask_bid_cap: bool = Field(
-        True, description="Never bid above ask or offer below bid"
-    )
+    stale_quote_seconds: int = Field(10, ge=0, description="Quote age before considered stale")
+    use_ask_bid_cap: bool = Field(True, description="Never bid above ask or offer below bid")
 
 
 class SafetyConfig(BaseModel):
     """Safety related thresholds and flags from SRS ``[safety]``."""
 
-    max_drawdown: float = Field(
-        0.25, gt=0, le=1, description="Max allowable drawdown"
-    )
+    max_drawdown: float = Field(0.25, gt=0, le=1, description="Max allowable drawdown")
     paper_only: bool = Field(
         True, description="Hard gate: only run in paper mode unless overridden"
     )
