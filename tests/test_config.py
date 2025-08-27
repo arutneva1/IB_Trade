@@ -27,6 +27,7 @@ def test_valid_config():
     assert cfg.models.SMURF == 0.5
     assert cfg.rebalance.trigger_mode == "per_holding"
     assert cfg.limits.style == "spread_aware"
+    assert cfg.ibkr.read_only is True
 
 
 def test_missing_section():
@@ -53,6 +54,13 @@ def test_invalid_max_leverage():
 def test_invalid_allow_margin():
     data = valid_config_dict()
     data["rebalance"]["allow_margin"] = -1
+    with pytest.raises(ValidationError):
+        AppConfig(**data)
+
+
+def test_invalid_read_only():
+    data = valid_config_dict()
+    data["ibkr"]["read_only"] = "maybe"
     with pytest.raises(ValidationError):
         AppConfig(**data)
 
@@ -91,6 +99,7 @@ def test_load_config_success(tmp_path: Path):
         """
 [ibkr]
 account = DU123
+read_only = false
 
 [models]
 SMURF = 0.5
@@ -111,6 +120,7 @@ GLTR = 0.2
 
     cfg = load_config(ini)
     assert cfg.ibkr.account == "DU123"
+    assert cfg.ibkr.read_only is False
     assert cfg.models.SMURF == 0.5
 
 
