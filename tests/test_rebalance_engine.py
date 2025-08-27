@@ -88,3 +88,35 @@ def test_margin_leverage_scaling():
     )
     assert orders["AAA"] == 700
     assert orders["BBB"] == -200
+
+
+def test_fractional_buy_rounds_up():
+    targets = {"AAA": 0.0012}
+    current = {"AAA": 0.0}
+    orders = generate_orders(
+        targets,
+        current,
+        PRICES,
+        EQUITY,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+        allow_fractional=False,
+    )
+    assert orders["AAA"] == 2
+
+
+def test_fractional_sell_rounds_away_from_zero():
+    targets = {"AAA": 0.0}
+    current = {"AAA": 0.0012}
+    orders = generate_orders(
+        targets,
+        current,
+        PRICES,
+        EQUITY,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+        allow_fractional=False,
+    )
+    assert orders["AAA"] == -2
