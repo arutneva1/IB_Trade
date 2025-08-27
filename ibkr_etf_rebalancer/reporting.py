@@ -93,7 +93,14 @@ def _df_to_markdown(df: pd.DataFrame) -> str:
         for col, val in row.items():
             if pd.isna(val):
                 cells.append("")
-            elif col in {"target_pct", "current_pct", "drift_bps", "price", "dollar_delta", "est_notional"}:
+            elif col in {
+                "target_pct",
+                "current_pct",
+                "drift_bps",
+                "price",
+                "dollar_delta",
+                "est_notional",
+            }:
                 cells.append(f"{val:.2f}")
             elif col == "share_delta":
                 cells.append(f"{val:.4f}")
@@ -173,4 +180,3 @@ def generate_post_trade_report(executions: Iterable[Mapping[str, float]]) -> pd.
 
 
 __all__ = ["generate_pre_trade_report", "generate_post_trade_report"]
-
