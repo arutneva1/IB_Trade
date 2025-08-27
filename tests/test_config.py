@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from ibkr_etf_rebalancer.config import AppConfig
+from ibkr_etf_rebalancer.config import AppConfig, load_config
 
 # Ensure project root on path for direct test execution
 sys.path.append(str(Path(__file__).resolve().parents[1]))
@@ -69,3 +69,58 @@ def test_invalid_fx_buffer():
     data["fx"]["fx_buffer_bps"] = -1
     with pytest.raises(ValidationError):
         AppConfig(**data)
+
+
+def test_load_config_success(tmp_path: Path):
+    ini = tmp_path / "config.ini"
+    ini.write_text(
+        """
+[ibkr]
+account = DU123
+
+[models]
+SMURF = 0.5
+BADASS = 0.3
+GLTR = 0.2
+
+[rebalance]
+
+[fx]
+
+[limits]
+
+[safety]
+
+[io]
+"""
+    )
+
+    cfg = load_config(ini)
+    assert cfg.ibkr.account == "DU123"
+    assert cfg.models.SMURF == 0.5
+
+
+def test_load_config_missing_section(tmp_path: Path):
+    ini = tmp_path / "config.ini"
+    ini.write_text(
+        """
+[ibkr]
+account = DU123
+
+[models]
+SMURF = 0.5
+BADASS = 0.3
+GLTR = 0.2
+
+[rebalance]
+
+[limits]
+
+[safety]
+
+[io]
+"""
+    )
+
+    with pytest.raises(ValidationError):
+        load_config(ini)
