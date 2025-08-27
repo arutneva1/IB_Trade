@@ -49,11 +49,13 @@ ignore_missing_imports = true
 
 # So tests don't have to annotate every function/fixture
 [[tool.mypy.overrides]]
-module = ["tests/**/*.py", "tests/*.py"]
+# Relax typing requirements for test modules
+module = ["tests", "tests.*"]
 disallow_untyped_defs = false
 check_untyped_defs = false
 disallow_incomplete_defs = false
 warn_return_any = false
+disallow_untyped_calls = false
 
 [tool.pydantic-mypy]
 init_typed = true              # treat __init__ as typed
