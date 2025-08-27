@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from pathlib import Path
+from configparser import ConfigParser
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -151,6 +153,47 @@ class AppConfig(BaseModel):
     io: IOConfig
 
 
+def load_config(path: Path) -> AppConfig:
+    """Load configuration from an INI file.
+
+    Parameters
+    ----------
+    path:
+        Path to the configuration file.
+
+    Returns
+    -------
+    AppConfig
+        The parsed application configuration.
+    """
+
+    parser = ConfigParser()
+    parser.optionxform = lambda opt: opt  # type: ignore[assignment]
+    # preserve case of keys
+    with path.open() as handle:
+        parser.read_file(handle)
+
+    data: dict[str, Any] = {}
+    for section in [
+        "ibkr",
+        "models",
+        "rebalance",
+        "fx",
+        "limits",
+        "safety",
+        "io",
+    ]:
+        if parser.has_section(section):
+            items: dict[str, Any] = dict(parser.items(section))
+            if section == "fx" and "funding_currencies" in items:
+                items["funding_currencies"] = [
+                    s.strip() for s in items["funding_currencies"].split(",") if s.strip()
+                ]
+            data[section] = items
+
+    return AppConfig(**data)
+
+
 __all__ = [
     "IBKRConfig",
     "ModelsConfig",
@@ -160,4 +203,5 @@ __all__ = [
     "SafetyConfig",
     "IOConfig",
     "AppConfig",
+    "load_config",
 ]
