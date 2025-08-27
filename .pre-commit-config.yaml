@@ -13,7 +13,7 @@ repos:
     rev: v1.11.2
     hooks:
       - id: mypy
-        args: [--strict]
+        args: [--strict, --config-file=pyproject.toml
         additional_dependencies:
           - pandas-stubs         # pandas typing
           - pydantic>=2          # so BaseModel resolves & plugin activates
