@@ -15,4 +15,8 @@ repos:
       - id: mypy
         args: [--strict]
         additional_dependencies:
-          - pandas-stubs
+          - pandas-stubs         # pandas typing
+          - pydantic>=2          # so BaseModel resolves & plugin activates
+          - pytest               # so pytest imports resolve
+          - hypothesis           # tests use hypothesis
+          - freezegun            # tests import freezegun
