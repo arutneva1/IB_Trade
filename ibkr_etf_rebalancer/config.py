@@ -16,6 +16,7 @@ class IBKRConfig(BaseModel):
     host: str = Field("localhost", description="TWS/IB Gateway host")
     port: int = Field(7497, description="TWS/IB Gateway port")
     client_id: int = Field(1, description="Client id for the API connection")
+    read_only: bool = Field(True, description="Connect in read-only mode without submitting orders")
 
 
 class ModelsConfig(BaseModel):
@@ -207,6 +208,8 @@ def load_config(path: Path) -> AppConfig:
     ]:
         if parser.has_section(section):
             items: dict[str, Any] = dict(parser.items(section))
+            if section == "ibkr" and "read_only" in items:
+                items["read_only"] = parser.getboolean(section, "read_only")
             if section == "fx" and "funding_currencies" in items:
                 items["funding_currencies"] = [
                     s.strip() for s in items["funding_currencies"].split(",") if s.strip()
