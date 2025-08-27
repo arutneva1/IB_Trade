@@ -1,0 +1,28 @@
+name: Format with Black
+on:
+  workflow_dispatch:        # manual "Run workflow" button
+  pull_request:             # optional: also run on PRs from same repo
+
+permissions:
+  contents: write           # needed to push the commit
+
+jobs:
+  black:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install black
+      - name: Run Black
+        run: black .
+
+      # Commit the changes back to the branch
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: format with Black"
+          branch: ${{ github.head_ref || github.ref_name }}
