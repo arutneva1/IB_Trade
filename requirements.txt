@@ -14,5 +14,3 @@ pydantic
 typer
 ib_async
 loguru
-
-
