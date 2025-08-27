@@ -53,9 +53,7 @@ def load_portfolios(csv_path: Path, *, allow_margin: bool = False) -> Dict[str, 
         required = {"portfolio", "symbol", "target_pct"}
         if reader.fieldnames is None or not required.issubset(reader.fieldnames):
             missing = required - set(reader.fieldnames or [])
-            raise PortfolioError(
-                f"CSV missing required columns: {', '.join(sorted(missing))}"
-            )
+            raise PortfolioError(f"CSV missing required columns: {', '.join(sorted(missing))}")
         for raw in reader:
             portfolio = raw["portfolio"].strip().upper()
             symbol = raw["symbol"].strip().upper()
@@ -79,12 +77,8 @@ def load_portfolios(csv_path: Path, *, allow_margin: bool = False) -> Dict[str, 
         portfolios.setdefault(row.portfolio, {})
         if row.symbol in portfolios[row.portfolio]:
             if row.symbol == "CASH":
-                raise PortfolioError(
-                    f"Portfolio {row.portfolio}: multiple CASH rows found"
-                )
-            raise PortfolioError(
-                f"Duplicate symbol '{row.symbol}' in portfolio '{row.portfolio}'"
-            )
+                raise PortfolioError(f"Portfolio {row.portfolio}: multiple CASH rows found")
+            raise PortfolioError(f"Duplicate symbol '{row.symbol}' in portfolio '{row.portfolio}'")
         portfolios[row.portfolio][row.symbol] = row.target_pct
 
     # Validate each portfolio
@@ -97,9 +91,7 @@ def load_portfolios(csv_path: Path, *, allow_margin: bool = False) -> Dict[str, 
 
         if cash_values:
             if not allow_margin:
-                raise PortfolioError(
-                    f"Portfolio {name}: CSV contains CASH but margin is disabled"
-                )
+                raise PortfolioError(f"Portfolio {name}: CSV contains CASH but margin is disabled")
             if cash_pct >= 0:
                 raise PortfolioError(
                     f"Portfolio {name}: CASH row must be negative, got {cash_pct*100:.2f}%"
