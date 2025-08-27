@@ -6,7 +6,7 @@ from pathlib import Path
 from configparser import ConfigParser
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, field_validator
 
 
 class IBKRConfig(BaseModel):
@@ -60,6 +60,28 @@ class RebalanceConfig(BaseModel):
         False, description="Set true only if account supports fractional shares"
     )
     allow_margin: bool = Field(False, description="Permit use of margin when CASH is negative")
+
+    @field_validator("allow_margin", mode="before")
+    @classmethod
+    def _validate_allow_margin(cls, v: Any) -> bool:
+        """Ensure allow_margin receives a boolean value.
+
+        Accept typical string forms ("true"/"false"), integer 0/1 and bools; reject
+        anything else so negative numbers like ``-1`` do not silently coerce to
+        ``True``.
+        """
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, (int, float)) and v in (0, 1):
+            return bool(v)
+        if isinstance(v, str):
+            val = v.strip().lower()
+            if val in {"true", "1", "yes", "on"}:
+                return True
+            if val in {"false", "0", "no", "off"}:
+                return False
+        raise ValueError("allow_margin must be a boolean")
+
     max_leverage: float = Field(
         1.5,
         gt=0,
