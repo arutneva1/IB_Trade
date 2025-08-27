@@ -8,6 +8,7 @@ from ibkr_etf_rebalancer.portfolio_loader import load_portfolios, PortfolioError
 # Ensure the package root is on the import path when running tests directly
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
+
 @pytest.fixture(
     params=[
         (

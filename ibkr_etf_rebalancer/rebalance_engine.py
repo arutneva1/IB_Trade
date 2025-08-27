@@ -125,11 +125,7 @@ def generate_orders(
     # ------------------------------------------------------------------
     # Apply sells first to free up buying power
     cash = current.get("CASH", 0.0) * total_equity
-    gross = sum(
-        current.get(sym, 0.0) * total_equity
-        for sym in current
-        if sym != "CASH"
-    )
+    gross = sum(current.get(sym, 0.0) * total_equity for sym in current if sym != "CASH")
     sells = {sym: val for sym, val in orders_value.items() if val < 0}
     buys = {sym: val for sym, val in orders_value.items() if val > 0}
 
@@ -173,4 +169,3 @@ def generate_orders(
 
 
 __all__ = ["generate_orders"]
-
