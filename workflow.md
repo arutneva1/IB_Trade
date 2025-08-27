@@ -13,7 +13,7 @@ This guide summarizes how to use `srs.md` and `plan.md` with Codex to build the 
 - CI runs on every push/PR: `ruff`, `black --check`, `mypy`, `pytest`.
 - DoD per PR:
   - Tests ≥90% diff coverage
-  - CI green
+  - CI green; verify GitHub Actions shows a green check before merging
   - SRS/README updated if behavior changes
   - No secrets committed
   - Safety rails intact (paper_only, LMT default, RTH)
