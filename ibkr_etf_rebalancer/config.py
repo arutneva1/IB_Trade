@@ -81,6 +81,7 @@ class RebalanceConfig(BaseModel):
             if val in {"false", "0", "no", "off"}:
                 return False
         raise ValueError("allow_margin must be a boolean")
+
     max_leverage: float = Field(
         1.5,
         gt=0,
