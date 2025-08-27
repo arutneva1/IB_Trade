@@ -2,11 +2,10 @@ import sys
 from pathlib import Path
 
 import pytest
+from ibkr_etf_rebalancer.rebalance_engine import generate_orders
 
 # Ensure package root on path when running tests directly
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-
-from ibkr_etf_rebalancer.rebalance_engine import generate_orders
 
 
 PRICES = {"AAA": 100.0, "BBB": 100.0}
