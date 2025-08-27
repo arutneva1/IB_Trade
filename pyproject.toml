@@ -9,7 +9,7 @@ description = "Interactive Brokers trading utilities"
 requires-python = ">=3.11"
 dependencies = [
     "ib_async",
-    "pydantic",
+    "pydantic>=2",
     "pandas",
     "typer",
 ]
@@ -24,6 +24,7 @@ dev = [
     "ruff",
     "mypy",
     "black",
+    "pandas-stubs",        
 ]
 
 [tool.black]
@@ -36,5 +37,24 @@ target-version = "py311"
 
 [tool.mypy]
 python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
+# Keep app code strict
+strict = true
+# Teach mypy about Pydantic BaseModel/validators
+plugins = ["pydantic.mypy"]
+
+# Ignore missing types only for specific third-party modules used in tests
+[[tool.mypy.overrides]]
+module = ["pandas", "pandas.*", "pytest", "hypothesis", "freezegun"]
+ignore_missing_imports = true
+
+# So tests don't have to annotate every function/fixture
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+check_untyped_defs = false
+disallow_incomplete_defs = false
+warn_return_any = false
+
+[tool.pydantic-mypy]
+init_typed = true              # treat __init__ as typed
+warn_untyped_fields = true
