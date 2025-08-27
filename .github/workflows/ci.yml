@@ -21,6 +21,6 @@ jobs:
       - name: Format check
         run: black --check .
       - name: Type check
-        run: mypy .
+        run: mypy --install-types --non-interactive .
       - name: Tests
         run: pytest
