@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict
 import csv
+import math
 
 VALID_PORTFOLIOS = {"SMURF", "BADASS", "GLTR"}
 TOLERANCE = 1e-4  # 0.01%
@@ -67,6 +68,24 @@ def load_portfolios(csv_path: Path, *, allow_margin: bool = False) -> Dict[str, 
             if portfolio not in VALID_PORTFOLIOS:
                 raise PortfolioError(
                     f"Unknown portfolio '{portfolio}' (expected one of {sorted(VALID_PORTFOLIOS)})"
+                )
+
+            if symbol != "CASH":
+                if not math.isfinite(pct):
+                    raise PortfolioError(
+                        f"Portfolio {portfolio}: symbol {symbol} has non-finite target_pct {raw['target_pct']}"
+                    )
+                if pct < 0:
+                    raise PortfolioError(
+                        f"Portfolio {portfolio}: symbol {symbol} has negative target_pct {pct*100:.2f}%"
+                    )
+                if pct > 1:
+                    raise PortfolioError(
+                        f"Portfolio {portfolio}: symbol {symbol} target_pct {pct*100:.2f}% exceeds 100%"
+                    )
+            elif not math.isfinite(pct):
+                raise PortfolioError(
+                    f"Portfolio {portfolio}: CASH row has non-finite target_pct {raw['target_pct']}"
                 )
 
             rows.append(PortfolioRow(portfolio, symbol, pct))

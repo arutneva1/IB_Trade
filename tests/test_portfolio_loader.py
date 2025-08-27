@@ -85,6 +85,30 @@ def test_load_valid_csv(valid_csv):
             False,
             "Unknown portfolio",
         ),
+        (
+            "negative_pct",
+            """portfolio,symbol,target_pct\nSMURF,VTI,-10\n""",
+            False,
+            "negative target_pct",
+        ),
+        (
+            "pct_gt_100",
+            """portfolio,symbol,target_pct\nSMURF,VTI,150\n""",
+            False,
+            "exceeds 100%",
+        ),
+        (
+            "pct_nan",
+            """portfolio,symbol,target_pct\nSMURF,VTI,NaN\n""",
+            False,
+            "non-finite target_pct",
+        ),
+        (
+            "pct_inf",
+            """portfolio,symbol,target_pct\nSMURF,VTI,inf\n""",
+            False,
+            "non-finite target_pct",
+        ),
     ],
     ids=lambda p: p[0],
 )
