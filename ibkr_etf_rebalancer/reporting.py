@@ -119,7 +119,7 @@ def generate_pre_trade_report(
     *,
     output_dir: Path | None = None,
     as_of: datetime | None = None,
-):
+) -> pd.DataFrame | tuple[pd.DataFrame, Path, Path]:
     """Create the pre‑trade report and optionally persist it to ``output_dir``.
 
     Parameters
