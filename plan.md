@@ -79,7 +79,9 @@ ibkr_etf_rebalancer/
 - Valid CSV: each portfolio sums to 100% or `assets + CASH = 100%` when margin used.
 - Exactly one `CASH` row allowed (if present) and must be negative.
 - Error if a `CASH` row exists while `[rebalance].allow_margin` is false.
+- Reject portfolios whose asset totals exceed `[rebalance].max_leverage × 100%`.
 - Helpful error messages on violations.
+- Table-driven fixtures demonstrating valid/invalid gross leverage.
 - Table‑driven tests with small CSV fixtures.
 
 ### 2.2 `config.py`
