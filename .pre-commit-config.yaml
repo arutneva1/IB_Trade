@@ -20,3 +20,4 @@ repos:
           - pytest               # so pytest imports resolve
           - hypothesis           # tests use hypothesis
           - freezegun            # tests import freezegun
+          - typer                # CLI utilities
