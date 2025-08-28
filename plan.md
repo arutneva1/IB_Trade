@@ -96,6 +96,7 @@ ibkr_etf_rebalancer/
 - Overweight/underweight scenarios, min order filtering.
 - Margin via `CASH=-50` (gross 150%), leverage cap enforced.
 - Simulated scaling of buys after sells due to buying‑power limits, honoring `cash_buffer_pct` and `maintenance_buffer_pct`.
+- `trigger_mode=total_drift`: individual drifts inside band (e.g., A=+60 bps, B=-60 bps, band=75 bps) but Σ|drift|=120 bps > `portfolio_total_band_bps`=100 bps ⇒ expect SELL A and BUY B.
 
 ### 2.5 `reporting.py`
 **Goal:** Pre‑trade report (CSV/Markdown); post‑trade skeleton.  
