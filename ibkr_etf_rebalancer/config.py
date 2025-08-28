@@ -226,6 +226,8 @@ def load_config(path: Path) -> AppConfig:
     ]:
         if parser.has_section(section):
             items: dict[str, Any] = dict(parser.items(section))
+            if section == "models":
+                items = {k.upper(): v for k, v in items.items()}
             if section == "ibkr" and "read_only" in items:
                 items["read_only"] = parser.getboolean(section, "read_only")
             if section == "pricing" and "fallback_to_snapshot" in items:
