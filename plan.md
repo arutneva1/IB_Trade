@@ -98,9 +98,11 @@ ibkr_etf_rebalancer/
 - Margin via `CASH=-50` (gross 150%), leverage cap enforced.
 - Simulated scaling of buys after sells due to buying‑power limits, honoring `cash_buffer_pct` and `maintenance_buffer_pct`.
 - `trigger_mode=total_drift`: individual drifts inside band (e.g., A=+60 bps, B=-60 bps, band=75 bps) but Σ|drift|=120 bps > `portfolio_total_band_bps`=100 bps ⇒ expect SELL A and BUY B.
+- Whole-share rounding when `allow_fractional=false` (SRS §5.7).
+- Validate that no symbol results in a negative position (SRS §5.7).
 
 ### 2.5 `reporting.py`
-**Goal:** Pre‑trade report (CSV/Markdown); post‑trade skeleton.  
+**Goal:** Pre‑trade report (CSV/Markdown); post‑trade skeleton.
 **Tests:**
 - Golden‑file comparisons for stable formatting.
 
