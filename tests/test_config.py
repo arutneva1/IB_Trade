@@ -30,6 +30,7 @@ def test_valid_config():
     assert cfg.ibkr.read_only is True
     assert cfg.pricing.price_source == "last"
     assert cfg.pricing.fallback_to_snapshot is True
+    assert not hasattr(cfg.safety, "max_drawdown")
 
 
 def test_missing_section():
