@@ -61,6 +61,8 @@ ibkr_etf_rebalancer/
 | Phase 6 — Order Builder & Executor (Dry‑Run First) | AC5, AC6, AC7, AC8, AC9, AC10 |
 | Phase 7 — End‑to‑End Scenarios | AC1–AC13 |
 | Phase 8 — CLI, Logging, DX polish | AC7, AC10 |
+| Phase 9 — Live Adapter Integration | AC3, AC6, AC7, AC9, AC10 |
+| Phase 10 — Production Hardening | AC7, AC8, AC9, AC10 |
 
 ---
 
@@ -307,7 +309,44 @@ python app.py --csv portfolios.csv --ini settings.ini --live --yes
 
 ---
 
-## 10) Test Pyramid & Debugging Tactics
+## 10) Phase 9 — Live Adapter Integration
+
+See `phase9_checklist.md` for the complete review checklist.
+
+**Goal:** Wire a `LiveIB` adapter using `ib_async` behind the existing provider interface while keeping higher layers unchanged.
+
+**Scope:**
+- Live adapter wiring, ops tooling, and documentation; interface for executor and pricing stays stable.
+- Feature flags keep runs in paper mode by default; live mode requires `--live --yes` and `[ibkr].paper_only=false`.
+- Credentials pulled from environment/secrets; no secrets committed.
+
+**Tests (offline):**
+- Contract mapping parity tests between FakeIB and LiveIB.
+- DTO → IB order serialization and backoff policy unit tests.
+- Executor integration continues to run against FakeIB; LiveIB covered by manual smoke tests.
+
+---
+
+## 11) Phase 10 — Production Hardening
+
+See `phase10_checklist.md` for detailed tasks.
+
+**Goal:** Prepare for limited production rollout with final safety rails and observability.
+
+**Safety & observability:**
+- Enforce configurable caps per order, instrument, and run; verify kill switch before any placement.
+- Paper remains default; market orders stay gated behind explicit flags.
+- Structured logs and metrics with redaction; dashboards and alert thresholds documented.
+- Resilience features include backoff/jitter, circuit breakers, and idempotent reruns.
+- Configuration precedence documented; runbook, on-call notes, and release notes updated.
+
+**Exit criteria:**
+- Tests cover cap violations, kill switch behavior, retry/backoff limits, idempotency, and event log schema stability.
+- Manual examples: cap exceed aborts with detailed messages; missing kill switch exits with code 3; retries recover then abort; reruns avoid duplicate orders.
+
+---
+
+## 12) Test Pyramid & Debugging Tactics
 
 - **Unit (~70%)**: pure functions (loader, blender, pricer, FX sizing).
 - **Component (~20%)**: executor with FakeIB; failure injection (stale quotes, pacing, BP limits, FX delay).
@@ -318,7 +357,7 @@ python app.py --csv portfolios.csv --ini settings.ini --live --yes
 
 ---
 
-## 11) Codex Prompt Templates (per module)
+## 13) Codex Prompt Templates (per module)
 
 > Copy one module per PR; paste its spec excerpt + these prompts.
 
@@ -333,7 +372,7 @@ python app.py --csv portfolios.csv --ini settings.ini --live --yes
 
 ---
 
-## 12) Roll‑Out Order (usable early)
+## 14) Roll‑Out Order (usable early)
 
 1. **Report‑only dry‑run** (no IB): drift + proposed trades + **limit prices** visible.
 2. **Paper trading with FakeIB** (sim fills) to validate sequencing.
@@ -343,7 +382,7 @@ python app.py --csv portfolios.csv --ini settings.ini --live --yes
 
 ---
 
-## 13) Deliverables Checklist (per phase)
+## 15) Deliverables Checklist (per phase)
 
 - [ ] Code with docstrings.
 - [ ] Tests (unit/component/E2E) + coverage ≥90% on diff.
@@ -354,7 +393,7 @@ python app.py --csv portfolios.csv --ini settings.ini --live --yes
 
 ---
 
-## 14) Example Commands
+## 16) Example Commands
 
 ```bash
 # Lint + type-check + tests locally
