@@ -174,6 +174,34 @@ def test_calc_limit_price_invalid_side():
         calc_limit_price("HOLD", "SYM", 0.01, provider, now, cfg)
 
 
+def test_calc_limit_price_smart_limit_disabled():
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider({"SYM": Quote(100, 100.1, now)})
+    cfg = LimitsConfig(smart_limit=False)
+    price, t = calc_limit_price("BUY", "SYM", 0.01, provider, now, cfg)
+    assert t == "LMT" and price == 100.1
+    price, t = calc_limit_price("SELL", "SYM", 0.01, provider, now, cfg)
+    assert t == "LMT" and price == 100
+
+
+def test_calc_limit_price_style_off():
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider({"SYM": Quote(100, 100.1, now)})
+    cfg = LimitsConfig(style="off")
+    price, t = calc_limit_price("BUY", "SYM", 0.01, provider, now, cfg)
+    assert t == "LMT" and price == 100.1
+    price, t = calc_limit_price("SELL", "SYM", 0.01, provider, now, cfg)
+    assert t == "LMT" and price == 100
+
+
+def test_calc_limit_price_style_not_supported():
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider({"SYM": Quote(100, 100.1, now)})
+    cfg = LimitsConfig(style="static_bps")
+    with pytest.raises(ValueError, match="Unsupported limit pricing style"):
+        calc_limit_price("BUY", "SYM", 0.01, provider, now, cfg)
+
+
 @pytest.mark.parametrize(
     "func,bid,ask",
     [
