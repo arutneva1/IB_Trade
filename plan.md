@@ -49,6 +49,11 @@ ibkr_etf_rebalancer/
 - Create repo, `requirements.txt`, `pyproject.toml`/`setup.cfg`.
 - Add `pre-commit` with `ruff`, `black`.
 - Add GitHub Actions workflow for lint/type/test.
+- Create `Makefile` or `invoke` tasks wrapping `ruff`, `mypy`, `pytest`, and sample run commands.
+  Example:
+  ```bash
+  make lint test run
+  ```
 - Add empty modules with docstrings and TODOs.
 
 **No external calls** yet.
