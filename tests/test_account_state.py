@@ -1,5 +1,6 @@
 import math
 import pytest
+from hypothesis import given, strategies as st
 
 from ibkr_etf_rebalancer.account_state import compute_account_state
 
@@ -78,3 +79,63 @@ def test_no_positions_raises():
     cash = {"USD": 0.0}
     with pytest.raises(ValueError):
         compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
+
+
+# ---------------------------------------------------------------------------
+# Hypothesis based tests
+
+
+@st.composite
+def portfolios(draw):
+    symbols = draw(
+        st.lists(
+            st.sampled_from(["AAA", "BBB", "CCC", "DDD", "EEE"]),
+            min_size=1,
+            max_size=5,
+            unique=True,
+        )
+    )
+    positions = {}
+    prices = {}
+    for sym in symbols:
+        positions[sym] = draw(
+            st.floats(min_value=1.0, max_value=1_000.0, allow_nan=False, allow_infinity=False)
+        )
+        prices[sym] = draw(
+            st.floats(min_value=0.01, max_value=1_000.0, allow_nan=False, allow_infinity=False)
+        )
+    usd_cash = draw(
+        st.floats(min_value=0.0, max_value=10_000.0, allow_nan=False, allow_infinity=False)
+    )
+    cad_cash = draw(
+        st.floats(min_value=0.0, max_value=10_000.0, allow_nan=False, allow_infinity=False)
+    )
+    return positions, prices, {"USD": usd_cash, "CAD": cad_cash}
+
+
+@given(portfolios())
+def test_weights_sum_to_unity_excluding_cash(portfolio):
+    positions, prices, cash = portfolio
+    snapshot = compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
+    cash_weight = snapshot.weights["CASH"]
+    asset_weight_sum = sum(w for s, w in snapshot.weights.items() if s != "CASH")
+    assert math.isclose(asset_weight_sum / (1.0 - cash_weight), 1.0, rel_tol=1e-6)
+
+
+@given(portfolios())
+def test_market_values_non_negative(portfolio):
+    positions, prices, cash = portfolio
+    snapshot = compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
+    assert all(v >= 0.0 for v in snapshot.market_values.values())
+
+
+def test_negative_usd_cash_reflects_leverage():
+    positions = {"SPY": 200}
+    prices = {"SPY": 100.0}
+    cash = {"USD": -10_000.0, "CAD": 0.0}
+
+    snapshot = compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
+    assert snapshot.weights["SPY"] > 1.0
+    assert snapshot.weights["CASH"] < 0.0
+    assert pytest.approx(2.0, rel=1e-6) == snapshot.gross_exposure
+    assert pytest.approx(1.0, rel=1e-6) == snapshot.net_exposure
