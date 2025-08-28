@@ -130,7 +130,9 @@ def calc_limit_price(
     side_u = side.upper()
     if side_u == "BUY":
         price, order_type = price_limit_buy(quote, tick, cfg, now)
-    else:
+    elif side_u == "SELL":
         price, order_type = price_limit_sell(quote, tick, cfg, now)
+    else:
+        raise ValueError("Side must be 'BUY' or 'SELL'")
 
     return (price if order_type == "LMT" else None), order_type
