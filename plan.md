@@ -20,6 +20,13 @@ This is a concrete, test‑first roadmap for building the **IBKR ETF Portfolio R
 3. Clear docstrings + README/SRS section updated if behavior changes.
 4. Deterministic tests (use `freezegun` for timestamps).
 
+### Performance constraints
+- Full rebalance run should complete in under 30 s.
+- Limit concurrent quote fetches to a safe 4–6 range.
+- Apply retries with backoff on transient IBKR errors.
+
+> See SRS §10 for detailed performance & reliability requirements.
+
 **Repo layout (target):**
 ```
 ibkr_etf_rebalancer/
