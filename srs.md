@@ -147,11 +147,15 @@ report_dir = reports
 log_level = INFO
 
 ```
+### 3.3 `[pricing]` & `[fx]` configuration
+- `[pricing]` selects the quote source (`last`, `midpoint`, or `bidask`) and whether to fall back to snapshot data.
+- `[fx]` enables optional CAD→USD conversions, defining base/funding currencies, conversion timing, and order controls.
+
 ### 3.4 `[limits]` — Spread‑aware limit pricing (default)
 - Default order type is **LMT** with a **spread‑aware** strategy.
-- For each symbol, fetch **bid/ask**, compute **mid** and **spread**.  
-- BUY limit = `min(ask, round_to_tick(mid + buy_offset_frac*spread), mid*(1+max_offset_bps/10000))`.  
-- SELL limit = `max(bid, round_to_tick(mid - sell_offset_frac*spread), mid*(1-max_offset_bps/10000))`.  
+- For each symbol, fetch **bid/ask**, compute **mid** and **spread**.
+- BUY limit = `min(ask, round_to_tick(mid + buy_offset_frac*spread), mid*(1+max_offset_bps/10000))`.
+- SELL limit = `max(bid, round_to_tick(mid - sell_offset_frac*spread), mid*(1-max_offset_bps/10000))`.
 - If `spread_bps > wide_spread_bps` or quotes are stale: apply `escalate_action` (`cross`: set BUY=ask/SELL=bid; `market`: send MKT; `keep`: place conservative limit at mid ± max_offset).
 - Limits are **never** set beyond the NBBO (respect `use_ask_bid_cap`).
 - Tick rounding uses contract minTick; fallback to $0.01 if unavailable.
