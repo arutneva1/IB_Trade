@@ -8,9 +8,8 @@ Copy/paste into your PR or keep this file in `.github/` to guide reviews for **P
 - [ ] **Scope is Phase 1 only** (pure core; no broker/`ib_async`, no network I/O)
 - [ ] Only expected files changed (e.g., `portfolio_loader.py`, `tests/test_portfolio_loader.py`)
 - [ ] No new dependencies added to `requirements.txt`
-- [ ] PR references relevant SRS acceptance criteria in description
-- [ ] CHANGELOG.md updated under latest release
-- [ ] PR description references relevant SRS acceptance criteria
+- [ ] PR description references relevant SRS acceptance criteria (AC#)
+- [ ] CHANGELOG.md updated under the latest release heading
 
 ## CI & local checks
 - [ ] CI is green (ruff, black, mypy, pytest)

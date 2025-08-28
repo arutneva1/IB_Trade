@@ -9,8 +9,8 @@
 - [ ] No edits to order execution or broker adapter beyond **adding an FX intent type**
 - [ ] No live connectivity; quotes are **fakes/mocks** only
 - [ ] No new production deps beyond SRS/plan
-- [ ] PR references relevant SRS acceptance criteria in description
-- [ ] CHANGELOG.md updated under latest release
+- [ ] PR description references relevant SRS acceptance criteria (AC#)
+- [ ] CHANGELOG.md updated under the latest release heading
 
 ## CI & local checks
 - [ ] CI green: `ruff`, `black --check`, `mypy`, `pytest`

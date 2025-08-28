@@ -8,8 +8,8 @@
 - [ ] PR contents match Phase 10 scope (ops/safety/observability/rollout); no new trading features
 - [ ] Feature flags guard any behavior that could affect live runs
 - [ ] No secrets in code or logs; `.env` remains git‑ignored; secrets pulled from env/secret store
-- [ ] PR references relevant SRS acceptance criteria in description
-- [ ] CHANGELOG.md updated under latest release
+- [ ] PR description references relevant SRS acceptance criteria (AC#)
+- [ ] CHANGELOG.md updated under the latest release heading
 
 ## CI, QA & quality bars
 - [ ] CI green: `ruff`, `black --check`, `mypy`, `pytest`

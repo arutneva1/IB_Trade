@@ -9,8 +9,8 @@
 - [ ] **Do not** import `ib_insync`; **must** use `ib_async` (or interface-only for this phase)
 - [ ] No edits to order executor beyond wiring to the provider interface and fakes
 - [ ] No live credentials, tokens, or endpoints; tests run completely offline
-- [ ] PR references relevant SRS acceptance criteria in description
-- [ ] CHANGELOG.md updated under latest release
+- [ ] PR description references relevant SRS acceptance criteria (AC#)
+- [ ] CHANGELOG.md updated under the latest release heading
 
 ## CI & local checks
 - [ ] CI green: `ruff`, `black --check`, `mypy`, `pytest`

@@ -9,8 +9,8 @@
 - [ ] **Interface unchanged** for higher layers (executor/pricing do not change logic)
 - [ ] No secrets committed; credentials pulled from **ENV/Secrets** (GitHub Actions, `.env` local ignored)
 - [ ] Live behavior fully **feature‑flagged**; paper/dry‑run are the default modes
-- [ ] PR references relevant SRS acceptance criteria in description
-- [ ] CHANGELOG.md updated under latest release
+- [ ] PR description references relevant SRS acceptance criteria (AC#)
+- [ ] CHANGELOG.md updated under the latest release heading
 
 ## CI & local checks
 - [ ] CI green: `ruff`, `black --check`, `mypy`, `pytest`

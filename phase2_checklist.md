@@ -8,8 +8,8 @@
 - [ ] Changes limited to pricing layer (e.g., `limit_pricer.py`, `pricing.py`, related tests)
 - [ ] No edits to order execution or IBKR adapter
 - [ ] No new production deps beyond SRS/plan
-- [ ] PR references relevant SRS acceptance criteria in description
-- [ ] CHANGELOG.md updated under latest release
+- [ ] PR description references relevant SRS acceptance criteria (AC#)
+- [ ] CHANGELOG.md updated under the latest release heading
 
 ## CI & local checks
 - [ ] CI green: `ruff`, `black --check`, `mypy`, `pytest`
