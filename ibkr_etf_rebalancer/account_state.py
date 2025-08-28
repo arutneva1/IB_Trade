@@ -77,7 +77,7 @@ def compute_account_state(
     Parameters
     ----------
     positions:
-        Mapping of symbol to quantity.  Zero quantities are rejected.
+        Mapping of symbol to quantity.  Zero or negative quantities are rejected.
     prices:
         Mapping of symbol to last trade price.  Prices must be positive and not
         NaN.
@@ -97,6 +97,8 @@ def compute_account_state(
     net_pos_val = 0.0
     gross_pos_val = 0.0
     for symbol, qty in positions.items():
+        if qty < 0:
+            raise ValueError("Negative quantity not allowed")
         if qty == 0:
             raise ValueError("Zero quantity not allowed")
         if symbol not in prices:

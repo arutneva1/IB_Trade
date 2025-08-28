@@ -97,6 +97,14 @@ def test_zero_quantity_raises():
         compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
 
 
+def test_negative_quantity_raises():
+    positions = {"SPY": -10}
+    prices = {"SPY": 100.0}
+    cash = {"USD": 0.0}
+    with pytest.raises(ValueError):
+        compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
+
+
 def test_no_positions_raises():
     positions: dict[str, float] = {}
     prices: dict[str, float] = {}
