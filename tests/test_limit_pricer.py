@@ -102,6 +102,8 @@ def test_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
         assert p is None
     else:
         assert p == pytest.approx(exp)
+        if action == "cross":
+            assert p >= ask - 1e-9
 
 
 @pytest.mark.parametrize(
@@ -133,6 +135,8 @@ def test_sell_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
         assert p is None
     else:
         assert p == pytest.approx(exp)
+        if action == "cross":
+            assert p <= bid + 1e-9
 
 
 @pytest.mark.parametrize(
@@ -143,28 +147,28 @@ def test_sell_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
             99.9,
             100.013,
             0.005,
-            math.floor(100.013 / 0.005 + 0.5) * 0.005,
+            math.ceil(100.013 / 0.005) * 0.005,
         ),
         (
             price_limit_sell,
             99.987,
             100.1,
             0.005,
-            math.floor(99.987 / 0.005 + 0.5) * 0.005,
+            math.floor(99.987 / 0.005) * 0.005,
         ),
         (
             price_limit_buy,
             99.9,
             100.025,
             0.01,
-            math.floor(100.025 / 0.01 + 0.5) * 0.01,
+            math.ceil(100.025 / 0.01) * 0.01,
         ),
         (
             price_limit_sell,
             99.975,
             100.1,
             0.01,
-            math.floor(99.975 / 0.01 + 0.5) * 0.01,
+            math.floor(99.975 / 0.01) * 0.01,
         ),
     ],
 )
@@ -175,6 +179,10 @@ def test_cross_rounds_non_tick_aligned(func, bid, ask, tick, exp):
     cfg = LimitsConfig(wide_spread_bps=0, escalate_action="cross")
     p, t = func(q, tick, cfg, now)
     assert t == "LMT" and p == pytest.approx(exp)
+    if func is price_limit_buy:
+        assert p >= ask - 1e-9
+    else:
+        assert p <= bid + 1e-9
 
 
 @pytest.mark.parametrize(
