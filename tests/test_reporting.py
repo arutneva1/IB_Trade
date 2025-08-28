@@ -26,6 +26,18 @@ def test_pre_trade_report(tmp_path):
     assert md_path.read_text() == golden_md
 
 
+def test_pre_trade_report_respects_min_order():
+    targets = {"AAA": 0.6, "BBB": 0.4, "CASH": 0.0}
+    current = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    prices = {"AAA": 100.0, "BBB": 80.0}
+
+    # With a large min_order the drift should be reported but no trades made
+    df = generate_pre_trade_report(targets, current, prices, 100_000.0, min_order=15_000.0)
+
+    assert (df.loc[df["symbol"] != "TOTAL", "share_delta"] == 0).all()
+    assert (df.loc[df["symbol"] != "TOTAL", "est_notional"] == 0).all()
+
+
 def test_post_trade_report():
     executions = [
         {
