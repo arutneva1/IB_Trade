@@ -74,6 +74,8 @@ Use the provided wrappers to keep linting, testing, and running consistent acros
 ruff check . && black --check . && mypy . && pytest -q
 python app.py --csv portfolios.csv --ini settings.ini --report-only
 python app.py --csv portfolios.csv --ini settings.ini --dry-run
+python app.py --csv portfolios.csv --ini settings.ini --paper       # confirm when prompted
+python app.py --csv portfolios.csv --ini settings.ini --live --yes  # gated by config
 
 # or via Make helpers
 make lint
