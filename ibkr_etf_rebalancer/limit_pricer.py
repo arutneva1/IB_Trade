@@ -19,11 +19,7 @@ __all__ = ["price_limit_buy", "price_limit_sell", "calc_limit_price"]
 
 
 def _round_to_tick(price: float, tick: float) -> float:
-    """Round ``price`` to the nearest multiple of ``tick``.
-
-    IBKR contracts define a minimum tick size; if ``tick`` is non‑positive the
-    function falls back to a $0.01 increment.
-    """
+    """Round ``price`` to the nearest multiple of ``tick``."""
 
     if tick <= 0 or not math.isfinite(tick):
         tick = 0.01
@@ -34,6 +30,34 @@ def _round_to_tick(price: float, tick: float) -> float:
         ratio = price / tick
 
     return math.floor(ratio + 0.5) * tick
+
+
+def _round_down_to_tick(price: float, tick: float) -> float:
+    """Round ``price`` down to the nearest multiple of ``tick``."""
+
+    if tick <= 0 or not math.isfinite(tick):
+        tick = 0.01
+
+    ratio = price / tick
+    if not math.isfinite(ratio):
+        tick = 0.01
+        ratio = price / tick
+
+    return math.floor(ratio) * tick
+
+
+def _round_up_to_tick(price: float, tick: float) -> float:
+    """Round ``price`` up to the nearest multiple of ``tick``."""
+
+    if tick <= 0 or not math.isfinite(tick):
+        tick = 0.01
+
+    ratio = price / tick
+    if not math.isfinite(ratio):
+        tick = 0.01
+        ratio = price / tick
+
+    return math.ceil(ratio) * tick
 
 
 def price_limit_buy(
@@ -65,6 +89,8 @@ def price_limit_buy(
     if cfg.use_ask_bid_cap:
         price = min(price, ask)
     price = _round_to_tick(price, min_tick)
+    if cfg.use_ask_bid_cap and price > ask:
+        price = _round_down_to_tick(ask, min_tick)
 
     wide_or_stale = spread_bps > cfg.wide_spread_bps or is_stale(
         quote, now, cfg.stale_quote_seconds
@@ -106,6 +132,8 @@ def price_limit_sell(
     if cfg.use_ask_bid_cap:
         price = max(price, bid)
     price = _round_to_tick(price, min_tick)
+    if cfg.use_ask_bid_cap and price < bid:
+        price = _round_up_to_tick(bid, min_tick)
 
     wide_or_stale = spread_bps > cfg.wide_spread_bps or is_stale(
         quote, now, cfg.stale_quote_seconds

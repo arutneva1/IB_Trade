@@ -178,26 +178,14 @@ def test_cross_rounds_non_tick_aligned(func, bid, ask, tick, exp):
 
 
 @pytest.mark.parametrize(
-    "func,bid,ask,tick,exp",
+    "func,bid,ask,tick",
     [
-        (
-            price_limit_buy,
-            99.98,
-            100.006,
-            0.01,
-            math.floor(100.006 / 0.01 + 0.5) * 0.01,
-        ),
-        (
-            price_limit_sell,
-            99.994,
-            100.02,
-            0.01,
-            math.floor(99.994 / 0.01 + 0.5) * 0.01,
-        ),
+        (price_limit_buy, 99.98, 100.006, 0.01),
+        (price_limit_sell, 99.994, 100.02, 0.01),
     ],
 )
-def test_nbbo_cap_rounds_to_tick(func, bid, ask, tick, exp):
-    """NBBO cap is applied before tick rounding."""
+def test_nbbo_cap_respected_after_rounding(func, bid, ask, tick):
+    """Post-rounding price remains within the NBBO."""
     now = datetime.now(timezone.utc)
     q = Quote(bid, ask, now)
     cfg = LimitsConfig(
@@ -210,7 +198,49 @@ def test_nbbo_cap_rounds_to_tick(func, bid, ask, tick, exp):
         use_ask_bid_cap=True,
     )
     p, t = func(q, tick, cfg, now)
-    assert t == "LMT" and p == pytest.approx(exp)
+    assert t == "LMT"
+    if func is price_limit_buy:
+        assert p <= ask
+    else:
+        assert p >= bid
+
+
+@pytest.mark.parametrize("tick", [0.05, 0.125])
+def test_buy_price_with_large_tick_stays_within_nbbo(tick):
+    now = datetime.now(timezone.utc)
+    ask = 100 + tick * 0.6  # non tick-aligned ask to force rounding
+    bid = ask - 0.2
+    q = Quote(bid, ask, now)
+    cfg = LimitsConfig(
+        buy_offset_frac=1.0,
+        sell_offset_frac=1.0,
+        max_offset_bps=1000,
+        wide_spread_bps=200,
+        escalate_action="keep",
+        stale_quote_seconds=10,
+        use_ask_bid_cap=True,
+    )
+    p, t = price_limit_buy(q, tick, cfg, now)
+    assert t == "LMT" and p <= ask
+
+
+@pytest.mark.parametrize("tick", [0.05, 0.125])
+def test_sell_price_with_large_tick_stays_within_nbbo(tick):
+    now = datetime.now(timezone.utc)
+    bid = 100 - tick * 0.6  # non tick-aligned bid to force rounding
+    ask = bid + 0.2
+    q = Quote(bid, ask, now)
+    cfg = LimitsConfig(
+        buy_offset_frac=1.0,
+        sell_offset_frac=1.0,
+        max_offset_bps=1000,
+        wide_spread_bps=200,
+        escalate_action="keep",
+        stale_quote_seconds=10,
+        use_ask_bid_cap=True,
+    )
+    p, t = price_limit_sell(q, tick, cfg, now)
+    assert t == "LMT" and p >= bid
 
 
 def test_tick_fallback_rounding():
