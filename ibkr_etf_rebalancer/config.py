@@ -6,6 +6,9 @@ from pathlib import Path
 from configparser import ConfigParser
 from typing import Any, Literal
 
+
+SymbolOverrides = dict[str, str | int]
+
 from pydantic import BaseModel, Field, model_validator, field_validator
 
 
@@ -187,6 +190,7 @@ class AppConfig(BaseModel):
     pricing: PricingConfig = Field(default_factory=PricingConfig)
     safety: SafetyConfig
     io: IOConfig
+    symbol_overrides: SymbolOverrides = Field(default_factory=dict)
 
 
 def load_config(path: Path) -> AppConfig:
@@ -219,6 +223,7 @@ def load_config(path: Path) -> AppConfig:
         "limits",
         "safety",
         "io",
+        "symbol_overrides",
     ]:
         if parser.has_section(section):
             items: dict[str, Any] = dict(parser.items(section))
@@ -230,6 +235,15 @@ def load_config(path: Path) -> AppConfig:
                 items["funding_currencies"] = [
                     s.strip() for s in items["funding_currencies"].split(",") if s.strip()
                 ]
+            if section == "symbol_overrides":
+                converted: dict[str, Any] = {}
+                for k, v in items.items():
+                    v_str = v.strip()
+                    try:
+                        converted[k] = int(v_str)
+                    except ValueError:
+                        converted[k] = v_str
+                items = converted
             data[section] = items
 
     return AppConfig(**data)
@@ -244,6 +258,7 @@ __all__ = [
     "PricingConfig",
     "SafetyConfig",
     "IOConfig",
+    "SymbolOverrides",
     "AppConfig",
     "load_config",
 ]
