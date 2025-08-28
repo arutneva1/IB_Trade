@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+import pytest
 from freezegun import freeze_time
 
 from ibkr_etf_rebalancer.reporting import (
@@ -55,10 +56,10 @@ def test_post_trade_report():
         "notional",
     ]
     assert list(df.columns) == expected_cols
-    assert df.loc[0, "notional"] == 1000.0
-    assert df.loc[1, "notional"] == -1000.0
-    assert df["filled_shares"].sum() == 50.0
-    assert df["notional"].sum() == 0.0
+    assert df.loc[0, "notional"] == pytest.approx(1000.0)
+    assert df.loc[1, "notional"] == pytest.approx(-1000.0)
+    assert df["filled_shares"].sum() == pytest.approx(50.0)
+    assert df["notional"].sum() == pytest.approx(0.0)
 
     golden_csv = Path("tests/golden/post_trade_report.csv").read_text()
     assert df.to_csv(index=False) == golden_csv
