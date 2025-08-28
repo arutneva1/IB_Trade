@@ -1,4 +1,9 @@
-"""Pricing helpers and quote data structures."""
+"""Pricing helpers and quote data structures.
+
+The spread-aware limit pricing logic defined in the SRS ``[limits]`` section
+relies on these simple quote primitives.  They provide the minimal information
+required for the algorithms in :mod:`limit_pricer` and its tests.
+"""
 
 from __future__ import annotations
 

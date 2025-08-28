@@ -34,10 +34,10 @@ def price_limit_buy(
 ) -> tuple[float, Literal["LMT", "MKT"]]:
     """Return a conservative BUY price and order type.
 
-    The algorithm applies an offset from the mid price, caps the result by
-    ``max_offset_bps`` and optionally the current ask, then rounds to the
-    contract's minimum tick.  Wide or stale markets may escalate according to
-    ``escalate_action``.
+    The algorithm follows the spread-aware specification in SRS ``[limits]``:
+    apply an offset from the mid price, cap the result by ``max_offset_bps`` and
+    optionally the current ask, then round to the contract's minimum tick.  Wide
+    or stale markets may escalate according to ``escalate_action``.
     """
 
     bid, ask = quote.bid, quote.ask
@@ -76,7 +76,8 @@ def price_limit_sell(
 ) -> tuple[float, Literal["LMT", "MKT"]]:
     """Return a conservative SELL price and order type.
 
-    Behaviour mirrors :func:`price_limit_buy` but for the SELL side.
+    Behaviour mirrors :func:`price_limit_buy` but for the SELL side as described
+    in SRS ``[limits]``.
     """
 
     bid, ask = quote.bid, quote.ask
@@ -119,9 +120,10 @@ def calc_limit_price(
 ) -> tuple[float | None, Literal["LMT", "MKT"]]:
     """Return a limit price and order type for *side* on *symbol*.
 
-    This wrapper exists for backward compatibility and delegates to the pure
-    ``price_limit_buy`` or ``price_limit_sell`` functions.  ``price`` is
-    ``None`` when a market order is returned.
+    This thin wrapper exists for backward compatibility and delegates to the
+    pure ``price_limit_buy`` or ``price_limit_sell`` functions defined by the
+    SRS ``[limits]`` section.  ``price`` is ``None`` when a market order is
+    returned.
     """
 
     quote = provider.get_quote(symbol)
