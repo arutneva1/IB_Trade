@@ -234,6 +234,12 @@ ibkr_etf_rebalancer/
 - Insufficient buying power → FakeIB account shortfall; tests assert exit.
 **Surfacing:** Map each to dedicated non-zero exit codes.
 
+### 7.4 `report_post` completion
+**Goal:** Finalize post-trade reporting. `report_post` writes CSV and Markdown outputs summarizing fills and residual drift.
+**Tests:**
+- Golden-file snapshots verifying fill summaries and residual drift columns.
+- Integration test confirms post-trade reports are generated in `reports/` and include target vs current vs residual drift (SRS AC8).
+
 ---
 
 ## 8) Phase 7 — End‑to‑End Scenarios
