@@ -5,6 +5,7 @@
 ---
 
 ## Quick gates
+- [ ] No API credentials or other secrets committed (see SRS §11)
 - [ ] PR contents match Phase 10 scope (ops/safety/observability/rollout); no new trading features
 - [ ] Feature flags guard any behavior that could affect live runs
 - [ ] No secrets in code or logs; `.env` remains git‑ignored; secrets pulled from env/secret store

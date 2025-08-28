@@ -5,6 +5,7 @@
 ---
 
 ## Quick gates
+- [ ] No API credentials or other secrets committed (see SRS §11)
 - [ ] Changes limited to CLI & polish (e.g., `app.py`, `__main__.py`, `README.md`, docs/examples, packaging metadata)
 - [ ] No behavior changes to pricing/math or provider beyond wiring CLI options
 - [ ] Live trading remains fully gated (paper default; explicit `--live --yes` required, and KILL_SWITCH checked)

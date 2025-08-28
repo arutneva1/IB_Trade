@@ -22,6 +22,10 @@ This is a concrete, test‑first roadmap for building the **IBKR ETF Portfolio R
 5. Add an entry to `CHANGELOG.md` under the latest release heading.
 6. Reference relevant SRS acceptance criteria in the PR description.
 
+- See [SRS §11](srs.md#11-security--safety):
+  - API credentials must be kept out of the repository (use environment variables or local files in `.gitignore`).
+  - Dry-run is the default; real trading requires `--live --yes` and `[ibkr].paper_only=false`.
+
 ### Performance constraints
 - Full rebalance run should complete in under 30 s.
 - Limit concurrent quote fetches to a safe 4–6 range.

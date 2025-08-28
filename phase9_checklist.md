@@ -5,6 +5,7 @@
 ---
 
 ## Quick gates
+- [ ] No API credentials or other secrets committed (see SRS §11)
 - [ ] PR limited to **Live adapter wiring** (`LiveIB` in `ibkr_provider.py` or separate module), ops tooling, and docs
 - [ ] **Interface unchanged** for higher layers (executor/pricing do not change logic)
 - [ ] No secrets committed; credentials pulled from **ENV/Secrets** (GitHub Actions, `.env` local ignored)
