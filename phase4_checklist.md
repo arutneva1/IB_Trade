@@ -19,6 +19,7 @@
 
 ## Alignment with SRS `[fx]`
 - [ ] Respects config switches: `enabled`, `pair="USD.CAD"`, `fx_buffer_bps`, `min_fx_order_usd`, `max_fx_order_usd` (optional), `allow_market`, `limit_offset_pips` (or reuse spread-aware knobs)
+- [ ] Supports and tests config keys: `base_currency`, `funding_currencies`, `convert_mode`, `use_mid_for_planning`, `wait_for_fill_seconds`, `prefer_market_hours`
 - [ ] Treats **CAD cash as available** to fund **USD ETF buys**
 - [ ] Computes **USD shortfall** from planned USD‑denominated BUYs and current cash (after any sell proceeds if planner models that)
 - [ ] Applies **buffer**: shortfall × (1 + buffer_bps/10_000)
