@@ -263,13 +263,21 @@ def plan_rebalance_with_fx(
         qty=0.0,
         order_type=fx_cfg.order_type,
         limit_price=None,
+        route=fx_cfg.route,
+        wait_for_fill_seconds=fx_cfg.wait_for_fill_seconds,
         reason="fx disabled" if not fx_cfg.enabled else "sufficient USD cash",
     )
 
-    if fx_cfg.enabled and usd_buy_notional > usd_cash:
+    need_fx = fx_cfg.enabled and (
+        usd_buy_notional > usd_cash or fx_cfg.convert_mode == "always_top_up"
+    )
+    if need_fx:
         fx_quote = quote_provider.get_quote("USD.CAD")
+        usd_needed = usd_buy_notional
+        if fx_cfg.convert_mode == "always_top_up":
+            usd_needed = max(usd_buy_notional, fx_cfg.min_fx_order_usd)
         fx_plan = plan_fx_if_needed(
-            usd_needed=usd_buy_notional,
+            usd_needed=usd_needed,
             usd_cash=usd_cash,
             cad_cash=cad_cash,
             fx_quote=fx_quote,
