@@ -61,13 +61,21 @@ def blend_targets(
         Normalised weights plus gross and net exposure figures.
     """
 
-    # Accumulate contributions from each model
-    contributions: Dict[str, float] = defaultdict(float)
-    for model_name, model_weight in [
+    # Ensure all required model portfolios are present
+    model_weights = [
         ("SMURF", models.SMURF),
         ("BADASS", models.BADASS),
         ("GLTR", models.GLTR),
-    ]:
+    ]
+    missing = [name for name, weight in model_weights if weight > 0 and name not in portfolios]
+    if missing:
+        raise ValueError(
+            "Missing portfolios for models with weight > 0: " + ", ".join(missing)
+        )
+
+    # Accumulate contributions from each model
+    contributions: Dict[str, float] = defaultdict(float)
+    for model_name, model_weight in model_weights:
         for symbol, weight in portfolios.get(model_name, {}).items():
             contributions[symbol] += weight * model_weight
 
