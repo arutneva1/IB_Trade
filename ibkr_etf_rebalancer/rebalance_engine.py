@@ -120,6 +120,10 @@ def generate_orders(
         (negative).  Symbols for which no trade is required are omitted.
     """
 
+    valid_modes = {"per_holding", "total_drift"}
+    if trigger_mode not in valid_modes:
+        raise ValueError(f"Unsupported trigger_mode: {trigger_mode}")
+
     # ------------------------------------------------------------------
     # Determine raw desired order sizes in dollars
     orders_value: Dict[str, float] = {}

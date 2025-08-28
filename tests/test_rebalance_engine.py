@@ -246,3 +246,16 @@ def test_total_drift_trigger_mixed_sign(current, expected):
         portfolio_total_band_bps=100,
     )
     assert orders == expected
+
+
+def test_invalid_trigger_mode():
+    targets = {"AAA": 0.5}
+    current = {"AAA": 0.5}
+    with pytest.raises(ValueError):
+        generate_orders(
+            targets,
+            current,
+            PRICES,
+            EQUITY,
+            trigger_mode="invalid",
+        )
