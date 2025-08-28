@@ -53,6 +53,9 @@ class AccountSnapshot:
     total_equity: float
     """Net asset value including USD cash before any buffer adjustment."""
 
+    effective_equity: float
+    """Equity available for allocation after applying any cash buffer."""
+
 
 def compute_account_state(
     positions: Mapping[str, float],
@@ -130,6 +133,7 @@ def compute_account_state(
         gross_exposure=gross,
         net_exposure=net,
         total_equity=total_equity,
+        effective_equity=effective_equity,
     )
 
 

@@ -23,6 +23,7 @@ def test_weights_and_exposure_with_and_without_cash_buffer():
     assert "CAD" not in no_buf.weights
     assert pytest.approx(500.0, rel=1e-6) == no_buf.cad_cash
     assert pytest.approx(3_000.0, rel=1e-6) == no_buf.total_equity
+    assert pytest.approx(3_000.0, rel=1e-6) == no_buf.effective_equity
 
     # With 10% buffer --------------------------------------------------------
     assert pytest.approx(1_000 / 2_900, rel=1e-6) == buf.weights["SPY"]
@@ -32,6 +33,7 @@ def test_weights_and_exposure_with_and_without_cash_buffer():
     assert pytest.approx(1.0, rel=1e-6) == buf.net_exposure
     assert pytest.approx(500.0, rel=1e-6) == buf.cad_cash
     assert pytest.approx(3_000.0, rel=1e-6) == buf.total_equity
+    assert pytest.approx(2_900.0, rel=1e-6) == buf.effective_equity
 
     # weights sum to unity within tolerance
     assert abs(sum(buf.weights.values()) - 1.0) < 1e-6
@@ -49,6 +51,7 @@ def test_cash_only_account():
     assert pytest.approx(1.0, rel=1e-6) == result.net_exposure
     assert pytest.approx(2500.0, rel=1e-6) == result.usd_cash
     assert pytest.approx(2_500.0, rel=1e-6) == result.total_equity
+    assert pytest.approx(2_500.0, rel=1e-6) == result.effective_equity
 
 
 @pytest.mark.parametrize(
@@ -68,6 +71,7 @@ def test_cad_cash_is_ignored_in_weights(positions, prices, cad_cash):
     assert pytest.approx(cad_cash, rel=1e-6) == snapshot.cad_cash
     total_mv = sum(qty * prices[sym] for sym, qty in positions.items())
     assert pytest.approx(total_mv, rel=1e-6) == snapshot.total_equity
+    assert pytest.approx(total_mv, rel=1e-6) == snapshot.effective_equity
 
 
 @pytest.mark.parametrize(
