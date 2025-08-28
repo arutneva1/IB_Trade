@@ -10,6 +10,7 @@ This guide summarizes how to use `srs.md` and `plan.md` with Codex to build the 
 - Conventional commits (e.g., `feat(loader): add CASH row validation`).
 
 ## 2) CI & Guardrails
+- Keep planning logic pure; isolate IBKR/IO interactions.
 - CI runs on every push/PR: `ruff`, `black --check`, `mypy`, `pytest`.
 - DoD per PR:
   - Tests ≥90% diff coverage
