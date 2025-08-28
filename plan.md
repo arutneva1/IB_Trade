@@ -88,6 +88,7 @@ ibkr_etf_rebalancer/
 **Tests:**
 - Overlapping symbols combined properly.
 - Normalization invariants (Hypothesis property tests).
+- Gross exposure (sum of asset weights) and net exposure (after CASH) meet SRS constraints.
 
 ### 2.4 `rebalance_engine.py` (math only)
 **Goal:** Given targets, current weights (passed in), tolerance bands, leverage, min order USD, fractional flag, and account buffers (`cash_buffer_pct`, `maintenance_buffer_pct`) → **trade plan** (no orders yet).
