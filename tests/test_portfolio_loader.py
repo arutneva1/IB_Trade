@@ -64,6 +64,7 @@ def test_load_ignores_extra_columns(extra_columns_csv):
     result = load_portfolios(path)
     assert result == expected
 
+
 @pytest.fixture(
     params=[
         (
