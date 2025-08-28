@@ -19,6 +19,8 @@ This is a concrete, test‑first roadmap for building the **IBKR ETF Portfolio R
 2. Lints (`ruff`), formats (`black`), and type‑checks (`mypy`) pass locally and in CI.
 3. Clear docstrings + README/SRS section updated if behavior changes.
 4. Deterministic tests (use `freezegun` for timestamps).
+5. Add an entry to `CHANGELOG.md` under the latest release heading.
+6. Reference relevant SRS acceptance criteria in the PR description.
 
 ### Performance constraints
 - Full rebalance run should complete in under 30 s.
