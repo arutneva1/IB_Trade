@@ -187,9 +187,7 @@ def test_always_top_up_converts(fresh_quote: Quote) -> None:
     assert plan.usd_notional >= cfg.min_fx_order_usd
 
 
-def test_prefer_market_hours_blocks_off_hours(
-    fresh_quote: Quote, fx_cfg: FXConfig
-) -> None:
+def test_prefer_market_hours_blocks_off_hours(fresh_quote: Quote, fx_cfg: FXConfig) -> None:
     cfg = fx_cfg.model_copy(update={"prefer_market_hours": True})
     saturday = datetime(2024, 1, 6, tzinfo=timezone.utc)
     plan = plan_fx_if_needed(
