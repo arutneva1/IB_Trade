@@ -91,10 +91,18 @@ def test_invalid_fx_buffer():
     with pytest.raises(ValidationError):
         AppConfig(**data)
 
-
-def test_invalid_price_source():
+@pytest.mark.parametrize("price_source", ["last", "midpoint", "bidask"])
+def test_price_source_values(price_source: str) -> None:
     data = valid_config_dict()
-    data["pricing"] = {"price_source": "bogus"}
+    data["pricing"] = {"price_source": price_source}
+    cfg = AppConfig(**data)
+    assert cfg.pricing.price_source == price_source
+
+
+@pytest.mark.parametrize("price_source", ["bogus", ""])
+def test_price_source_invalid(price_source: str) -> None:
+    data = valid_config_dict()
+    data["pricing"] = {"price_source": price_source}
     with pytest.raises(ValidationError):
         AppConfig(**data)
 
@@ -108,6 +116,42 @@ def test_fallback_to_snapshot_coercion():
     data["pricing"] = {"fallback_to_snapshot": "1"}
     cfg2 = AppConfig(**data)
     assert cfg2.pricing.fallback_to_snapshot is True
+
+
+@pytest.mark.parametrize(
+    "funding,expected",
+    [
+        ("CAD", ["CAD"]),
+        ("CAD,USD", ["CAD", "USD"]),
+        ("CAD, USD,EUR", ["CAD", "USD", "EUR"]),
+    ],
+)
+def test_funding_currencies_parsing(tmp_path: Path, funding: str, expected: list[str]) -> None:
+    ini = tmp_path / "config.ini"
+    ini.write_text(
+        f"""
+[ibkr]
+account = DU123
+
+[models]
+SMURF = 0.5
+BADASS = 0.3
+GLTR = 0.2
+
+[rebalance]
+
+[fx]
+funding_currencies = {funding}
+
+[limits]
+
+[safety]
+
+[io]
+"""
+    )
+    cfg = load_config(ini)
+    assert cfg.fx.funding_currencies == expected
 
 
 def test_symbol_overrides_parsing(tmp_path: Path):
