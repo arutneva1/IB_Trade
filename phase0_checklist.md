@@ -8,6 +8,8 @@ Copy/paste into your PR or keep this file in `.github/` to guide reviews for **P
 - [ ] Scope is Phase 0 only (repo scaffolding; no app logic yet)
 - [ ] Only expected scaffolding files touched (`requirements*.txt`, `pyproject.toml`, `.pre-commit-config.yaml`, `.github/workflows/*`, `Makefile`, placeholders)
 - [ ] No external network or broker dependencies introduced
+- [ ] PR description references relevant SRS acceptance criteria (AC#)
+- [ ] CHANGELOG.md updated under the latest release heading
 
 ## Repo scaffolding
 - [ ] `requirements.txt` and `pyproject.toml` exist with core tooling deps

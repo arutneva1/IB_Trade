@@ -9,8 +9,8 @@
 - [ ] Uses provider **interface** + `FakeIB` only; *no* live `ib_async` calls
 - [ ] No edits to pricing math except calling `limit_pricer`
 - [ ] No credentials or endpoints touched
-- [ ] PR references relevant SRS acceptance criteria in description
-- [ ] CHANGELOG.md updated under latest release
+- [ ] PR description references relevant SRS acceptance criteria (AC#)
+- [ ] CHANGELOG.md updated under the latest release heading
 
 ## CI & local checks
 - [ ] CI green: `ruff`, `black --check`, `mypy`, `pytest`
