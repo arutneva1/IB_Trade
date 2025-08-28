@@ -110,6 +110,8 @@ def test_limit_order_rounding(fx_cfg: FXConfig) -> None:
         cfg=cfg,
     )
     assert plan.limit_price == pytest.approx(1.2353)
+    assert plan.limit_price is not None
+    assert quote.ask is not None
     assert plan.limit_price >= quote.ask
     assert plan.order_type == "LMT"
 
