@@ -2,8 +2,8 @@ import pytest
 from datetime import datetime, timedelta, timezone
 
 from ibkr_etf_rebalancer.config import LimitsConfig
-from ibkr_etf_rebalancer.pricing import Quote, FakeQuoteProvider
-from ibkr_etf_rebalancer.limit_pricer import calc_limit_price
+from ibkr_etf_rebalancer.pricing import Quote
+from ibkr_etf_rebalancer.limit_pricer import price_limit_buy, price_limit_sell
 
 
 @pytest.mark.parametrize(
@@ -18,7 +18,6 @@ from ibkr_etf_rebalancer.limit_pricer import calc_limit_price
 def test_offset_rounding(side, bid, ask, tick, exp):
     now = datetime.now(timezone.utc)
     q = Quote(bid, ask, now)
-    prov = FakeQuoteProvider({"T": q})
     cfg = LimitsConfig(
         buy_offset_frac=0.25,
         sell_offset_frac=0.25,
@@ -28,7 +27,10 @@ def test_offset_rounding(side, bid, ask, tick, exp):
         stale_quote_seconds=10,
         use_ask_bid_cap=True,
     )
-    p, t = calc_limit_price(side, "T", tick, prov, now, cfg)
+    if side == "BUY":
+        p, t = price_limit_buy(q, tick, cfg, now)
+    else:
+        p, t = price_limit_sell(q, tick, cfg, now)
     assert t == "LMT" and p == pytest.approx(exp)
 
 
@@ -37,13 +39,13 @@ def test_offset_rounding(side, bid, ask, tick, exp):
     [
         ("BUY", 100, 100.1, 1000, 100.1),
         ("SELL", 99.9, 100, 1000, 99.9),
-        ("BUY", 99.9, 101, 5, 100.05),
+        ("BUY", 99.9, 101, 5, 100.5),
         ("SELL", 99.9, 100.1, 5, 99.95),
     ],
 )
 def test_nbbo_maxoffset(side, bid, ask, maxbps, exp):
     now = datetime.now(timezone.utc)
-    prov = FakeQuoteProvider({"T": Quote(bid, ask, now)})
+    q = Quote(bid, ask, now)
     cfg = LimitsConfig(
         buy_offset_frac=1.0,
         sell_offset_frac=1.0,
@@ -53,7 +55,10 @@ def test_nbbo_maxoffset(side, bid, ask, maxbps, exp):
         stale_quote_seconds=10,
         use_ask_bid_cap=True,
     )
-    p, t = calc_limit_price(side, "T", 0.01, prov, now, cfg)
+    if side == "BUY":
+        p, t = price_limit_buy(q, 0.01, cfg, now)
+    else:
+        p, t = price_limit_sell(q, 0.01, cfg, now)
     assert t == "LMT" and p == pytest.approx(exp)
 
 
@@ -65,12 +70,12 @@ def test_nbbo_maxoffset(side, bid, ask, maxbps, exp):
         (99, 101, 0, "keep", 100.1, "LMT"),
         (99.85, 100.15, 20, "cross", 100.15, "LMT"),
         (99.85, 100.15, 20, "market", None, "MKT"),
-        (99.85, 100.15, 20, "keep", 100.1, "LMT"),
+        (99.85, 100.15, 20, "keep", 100.08, "LMT"),
     ],
 )
 def test_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
     ts = datetime.now(timezone.utc) - timedelta(seconds=delta)
-    prov = FakeQuoteProvider({"T": Quote(bid, ask, ts)})
+    q = Quote(bid, ask, ts)
     cfg = LimitsConfig(
         buy_offset_frac=0.25,
         sell_offset_frac=0.25,
@@ -80,10 +85,10 @@ def test_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
         stale_quote_seconds=10,
         use_ask_bid_cap=True,
     )
-    p, ot = calc_limit_price("BUY", "T", 0.01, prov, datetime.now(timezone.utc), cfg)
+    p, ot = price_limit_buy(q, 0.01, cfg, datetime.now(timezone.utc))
     assert ot == t
-    if exp is None:
-        assert p is None
+    if t == "MKT":
+        assert p == 0
     else:
         assert p == pytest.approx(exp)
 
@@ -91,6 +96,6 @@ def test_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
 @pytest.mark.parametrize("bid,ask", [(100, 100), (101, 100)])
 def test_bad_spread(bid, ask):
     now = datetime.now(timezone.utc)
-    prov = FakeQuoteProvider({"T": Quote(bid, ask, now)})
+    q = Quote(bid, ask, now)
     with pytest.raises(ValueError):
-        calc_limit_price("BUY", "T", 0.01, prov, now, LimitsConfig())
+        price_limit_buy(q, 0.01, LimitsConfig(), now)
