@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 from ibkr_etf_rebalancer.rebalance_engine import generate_orders
 
 # Ensure package root on path when running tests directly
@@ -187,3 +189,28 @@ def test_maintenance_buffer_limits_leverage():
     )
     assert orders["BBB"] == -200
     assert orders["AAA"] == 600
+
+
+@pytest.mark.parametrize(
+    "current,expected",
+    [
+        ({"AAA": 0.51, "BBB": 0.49, "CASH": 0.0}, {"AAA": -10, "BBB": 10}),
+        ({"AAA": 0.49, "BBB": 0.51, "CASH": 0.0}, {"AAA": 10, "BBB": -10}),
+        ({"AAA": 0.505, "BBB": 0.495, "CASH": 0.0}, {}),
+    ],
+)
+def test_total_drift_trigger_mixed_sign(current, expected):
+    targets = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    orders = generate_orders(
+        targets,
+        current,
+        PRICES,
+        EQUITY,
+        bands=0.02,
+        min_order=0.0,
+        max_leverage=1.5,
+        allow_fractional=False,
+        trigger_mode="total_drift",
+        portfolio_total_band_bps=100,
+    )
+    assert orders == expected
