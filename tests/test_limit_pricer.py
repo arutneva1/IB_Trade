@@ -1,5 +1,6 @@
 import pytest
 from datetime import datetime, timedelta, timezone
+from hypothesis import given, settings, strategies as st, seed
 
 from ibkr_etf_rebalancer.config import LimitsConfig
 from ibkr_etf_rebalancer.pricing import Quote, FakeQuoteProvider
@@ -8,6 +9,9 @@ from ibkr_etf_rebalancer.limit_pricer import (
     price_limit_sell,
     calc_limit_price,
 )
+
+
+FIXED_NOW = datetime(2020, 1, 1, tzinfo=timezone.utc)
 
 
 @pytest.mark.parametrize(
@@ -184,3 +188,40 @@ def test_bad_spread(func, bid, ask):
     q = Quote(bid, ask, now)
     with pytest.raises(ValueError):
         func(q, 0.01, LimitsConfig(), now)
+
+
+@seed(0)
+@settings(max_examples=100, deadline=None)
+@given(
+    mid=st.floats(min_value=10, max_value=1000, allow_nan=False, allow_infinity=False),
+    spread=st.floats(min_value=0.01, max_value=5, allow_nan=False, allow_infinity=False),
+    extra=st.floats(min_value=0.0, max_value=5, allow_nan=False, allow_infinity=False),
+    tick=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
+)
+def test_spread_monotonic_and_bounds(mid, spread, extra, tick):
+    wider_spread = spread + extra
+    bid1 = mid - spread / 2
+    ask1 = mid + spread / 2
+    bid2 = mid - wider_spread / 2
+    ask2 = mid + wider_spread / 2
+    q1 = Quote(bid1, ask1, FIXED_NOW)
+    q2 = Quote(bid2, ask2, FIXED_NOW)
+    cfg = LimitsConfig(
+        buy_offset_frac=0.25,
+        sell_offset_frac=0.25,
+        max_offset_bps=10000,
+        wide_spread_bps=100000,
+        escalate_action="keep",
+        stale_quote_seconds=100000,
+        use_ask_bid_cap=True,
+    )
+    p_buy1, _ = price_limit_buy(q1, tick, cfg, FIXED_NOW)
+    p_buy2, _ = price_limit_buy(q2, tick, cfg, FIXED_NOW)
+    assert p_buy2 >= p_buy1
+    p_sell1, _ = price_limit_sell(q1, tick, cfg, FIXED_NOW)
+    p_sell2, _ = price_limit_sell(q2, tick, cfg, FIXED_NOW)
+    assert p_sell2 <= p_sell1
+    assert p_buy1 <= ask1
+    assert p_buy2 <= ask2
+    assert p_sell1 >= bid1
+    assert p_sell2 >= bid2
