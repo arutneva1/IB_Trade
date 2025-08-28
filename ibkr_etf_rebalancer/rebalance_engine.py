@@ -62,6 +62,8 @@ def generate_orders(
     bands: float | Mapping[str, float] = 0.0,
     min_order: float = 0.0,
     max_leverage: float = 1.0,
+    cash_buffer_pct: float = 0.0,
+    maintenance_buffer_pct: float = 0.0,
     allow_fractional: bool = True,
 ) -> Dict[str, float]:
     """Create rebalance orders for the supplied portfolio.
@@ -92,6 +94,14 @@ def generate_orders(
         Maximum allowed gross exposure expressed as a multiple of
         ``total_equity``.  A value of ``1.5`` corresponds to ``150%`` gross
         and ``CASH=-0.50``.
+    cash_buffer_pct:
+        Percentage of ``total_equity`` that must remain as cash after
+        rebalancing.  Buys are scaled down if necessary to leave this
+        cushion unspent.
+    maintenance_buffer_pct:
+        Additional headroom against the leverage cap expressed as a
+        percentage of ``total_equity``.  Buys are scaled to keep gross
+        exposure plus this buffer within ``max_leverage``.
     allow_fractional:
         When ``False`` orders are rounded to whole shares.
 
@@ -136,12 +146,18 @@ def generate_orders(
         orders_value[symbol] = value
 
     # ------------------------------------------------------------------
-    # Scale buys if they would exceed the leverage limit
-    available = max_leverage * total_equity - gross
+    # Scale buys if they would exceed cash or leverage limits
+    cash_buffer = total_equity * cash_buffer_pct / 100.0
+    maint_buffer = total_equity * maintenance_buffer_pct / 100.0
+    available_leverage = max_leverage * total_equity - gross - maint_buffer
+    available_cash = (
+        cash - cash_buffer if cash_buffer_pct > 0 else float("inf")
+    )
+    available = min(available_leverage, available_cash)
     total_buy_value = sum(buys.values())
     scale = 1.0
     if total_buy_value > available and total_buy_value > 0:
-        scale = available / total_buy_value
+        scale = max(available, 0.0) / total_buy_value
 
     for symbol, value in buys.items():
         scaled_value = value * scale

@@ -120,3 +120,39 @@ def test_fractional_sell_rounds_away_from_zero():
         allow_fractional=False,
     )
     assert orders["AAA"] == -2
+
+
+def test_cash_buffer_limits_buys():
+    targets = {"AAA": 0.6, "BBB": 0.4, "CASH": 0.0}
+    current = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    orders = generate_orders(
+        targets,
+        current,
+        PRICES,
+        EQUITY,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+        cash_buffer_pct=5.0,
+        allow_fractional=False,
+    )
+    assert orders["BBB"] == -100
+    assert orders["AAA"] == 50
+
+
+def test_maintenance_buffer_limits_leverage():
+    targets = {"AAA": 1.3, "BBB": 0.3, "CASH": -0.6}
+    current = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    orders = generate_orders(
+        targets,
+        current,
+        PRICES,
+        EQUITY,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+        maintenance_buffer_pct=10.0,
+        allow_fractional=False,
+    )
+    assert orders["BBB"] == -200
+    assert orders["AAA"] == 600
