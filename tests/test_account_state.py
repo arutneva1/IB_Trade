@@ -52,6 +52,25 @@ def test_cash_only_account():
 
 
 @pytest.mark.parametrize(
+    "positions, prices, cad_cash",
+    [
+        ({"SPY": 10}, {"SPY": 100.0}, 1_000.0),
+        ({"SPY": 10, "GLD": 5}, {"SPY": 100.0, "GLD": 200.0}, 2_500.0),
+    ],
+)
+def test_cad_cash_is_ignored_in_weights(positions, prices, cad_cash):
+    cash = {"USD": 0.0, "CAD": cad_cash}
+    snapshot = compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
+
+    assert "CAD" not in snapshot.weights
+    assert pytest.approx(0.0, abs=1e-6) == snapshot.weights["CASH"]
+    assert abs(sum(snapshot.weights.values()) - 1.0) < 1e-6
+    assert pytest.approx(cad_cash, rel=1e-6) == snapshot.cad_cash
+    total_mv = sum(qty * prices[sym] for sym, qty in positions.items())
+    assert pytest.approx(total_mv, rel=1e-6) == snapshot.total_equity
+
+
+@pytest.mark.parametrize(
     "prices",
     [
         {},
