@@ -150,9 +150,7 @@ def generate_orders(
     cash_buffer = total_equity * cash_buffer_pct / 100.0
     maint_buffer = total_equity * maintenance_buffer_pct / 100.0
     available_leverage = max_leverage * total_equity - gross - maint_buffer
-    available_cash = (
-        cash - cash_buffer if cash_buffer_pct > 0 else float("inf")
-    )
+    available_cash = cash - cash_buffer if cash_buffer_pct > 0 else float("inf")
     available = min(available_leverage, available_cash)
     total_buy_value = sum(buys.values())
     scale = 1.0
