@@ -1,13 +1,9 @@
-import sys
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
 from ibkr_etf_rebalancer.config import AppConfig, load_config
-
-# Ensure project root on path for direct test execution
-sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 
 def valid_config_dict():

@@ -1,4 +1,3 @@
-import sys
 from pathlib import Path
 
 import pytest
@@ -8,9 +7,6 @@ from ibkr_etf_rebalancer.reporting import (
     generate_post_trade_report,
     generate_pre_trade_report,
 )
-
-# Ensure project root on path for direct test execution
-sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 
 def test_pre_trade_report(tmp_path):
