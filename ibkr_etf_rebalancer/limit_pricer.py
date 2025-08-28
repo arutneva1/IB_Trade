@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Literal
+import math
 
 from .config import LimitsConfig
 from .pricing import Quote, QuoteProvider, is_stale
@@ -24,9 +25,15 @@ def _round_to_tick(price: float, tick: float) -> float:
     function falls back to a $0.01 increment.
     """
 
-    if tick <= 0:
+    if tick <= 0 or not math.isfinite(tick):
         tick = 0.01
-    return round(price / tick) * tick
+
+    ratio = price / tick
+    if not math.isfinite(ratio):
+        tick = 0.01
+        ratio = price / tick
+
+    return round(ratio) * tick
 
 
 def price_limit_buy(
