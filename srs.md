@@ -169,6 +169,7 @@ ibkr_etf_rebalancer/
 ├─ target_blender.py      # combine models with [models] weights
 ├─ account_state.py       # holdings snapshot, valuation, current weights
 ├─ rebalance_engine.py    # drift calc, trade list, rounding, constraints
+├─ fx_engine.py           # handles CAD→USD funding calculations and FX order sizing
 ├─ limit_pricer.py        # spread‑aware limit price calculator (default)
 ├─ order_builder.py       # build Order objects using calculated limits
 ├─ order_executor.py      # dry-run, paper, live; batching & pacing
