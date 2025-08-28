@@ -92,7 +92,7 @@ def test_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
     p, ot = price_limit_buy(q, 0.01, cfg, datetime.now(timezone.utc))
     assert ot == t
     if t == "MKT":
-        assert p == 0
+        assert p is None
     else:
         assert p == pytest.approx(exp)
 
@@ -121,7 +121,7 @@ def test_sell_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
     p, ot = price_limit_sell(q, 0.01, cfg, datetime.now(timezone.utc))
     assert ot == t
     if t == "MKT":
-        assert p == 0
+        assert p is None
     else:
         assert p == pytest.approx(exp)
 
