@@ -85,12 +85,12 @@ ibkr_etf_rebalancer/
 - Normalization invariants (Hypothesis property tests).
 
 ### 2.4 `rebalance_engine.py` (math only)
-**Goal:** Given targets, current weights (passed in), tolerance bands, leverage, min order USD, fractional flag → **trade plan** (no orders yet).  
+**Goal:** Given targets, current weights (passed in), tolerance bands, leverage, min order USD, fractional flag, and account buffers (`cash_buffer_pct`, `maintenance_buffer_pct`) → **trade plan** (no orders yet).
 **Tests:**
 - No trades when |drift| ≤ band.
 - Overweight/underweight scenarios, min order filtering.
 - Margin via `CASH=-50` (gross 150%), leverage cap enforced.
-- Simulated scaling of buys after sells due to buying‑power limits (logic only).
+- Simulated scaling of buys after sells due to buying‑power limits, honoring `cash_buffer_pct` and `maintenance_buffer_pct`.
 
 ### 2.5 `reporting.py`
 **Goal:** Pre‑trade report (CSV/Markdown); post‑trade skeleton.  
