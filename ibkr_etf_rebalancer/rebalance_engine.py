@@ -38,7 +38,6 @@ other trades and the leverage constraints.
 from __future__ import annotations
 
 import math
-from datetime import datetime, timezone
 from typing import Any, Dict, Mapping
 
 from .config import FXConfig, PricingConfig
@@ -283,13 +282,7 @@ def plan_rebalance_with_fx(
         usd_buy_notional > usd_cash_after_sells or fx_cfg.convert_mode == "always_top_up"
     )
     if need_fx:
-        rate = quote_provider.get_price(
-            pair,
-            pricing_cfg.price_source,
-            fallback_to_snapshot=pricing_cfg.fallback_to_snapshot,
-        )
-        now = datetime.now(timezone.utc)
-        fx_quote = Quote(bid=rate, ask=rate, ts=now, last=rate)
+        fx_quote = quote_provider.get_quote(pair)
         usd_needed = usd_buy_notional
         if fx_cfg.convert_mode == "always_top_up":
             usd_needed = max(usd_buy_notional, fx_cfg.min_fx_order_usd)
