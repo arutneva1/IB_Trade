@@ -31,13 +31,15 @@ def _round_to_tick(price: float, tick: float) -> float:
 
 def price_limit_buy(
     quote: Quote, min_tick: float, cfg: LimitsConfig, now: datetime
-) -> tuple[float, Literal["LMT", "MKT"]]:
+) -> tuple[float | None, Literal["LMT", "MKT"]]:
     """Return a conservative BUY price and order type.
 
     The algorithm follows the spread-aware specification in SRS ``[limits]``:
     apply an offset from the mid price, cap the result by ``max_offset_bps`` and
     optionally the current ask, then round to the contract's minimum tick.  Wide
-    or stale markets may escalate according to ``escalate_action``.
+    or stale markets may escalate according to ``escalate_action``.  When
+    ``escalate_action`` is ``"market"`` this function returns ``None`` and the
+    ``"MKT"`` order type.
     """
 
     bid, ask = quote.bid, quote.ask
@@ -65,7 +67,7 @@ def price_limit_buy(
         if action == "cross":
             return ask, "LMT"
         if action == "market":
-            return 0.0, "MKT"
+            return None, "MKT"
         # action == "keep" simply keeps the capped price
 
     return price, "LMT"
@@ -73,11 +75,12 @@ def price_limit_buy(
 
 def price_limit_sell(
     quote: Quote, min_tick: float, cfg: LimitsConfig, now: datetime
-) -> tuple[float, Literal["LMT", "MKT"]]:
+) -> tuple[float | None, Literal["LMT", "MKT"]]:
     """Return a conservative SELL price and order type.
 
     Behaviour mirrors :func:`price_limit_buy` but for the SELL side as described
-    in SRS ``[limits]``.
+    in SRS ``[limits]``.  When ``escalate_action`` is ``"market"`` the function
+    returns ``None`` and the ``"MKT"`` order type.
     """
 
     bid, ask = quote.bid, quote.ask
@@ -105,7 +108,7 @@ def price_limit_sell(
         if action == "cross":
             return bid, "LMT"
         if action == "market":
-            return 0.0, "MKT"
+            return None, "MKT"
 
     return price, "LMT"
 
@@ -122,17 +125,14 @@ def calc_limit_price(
 
     This thin wrapper exists for backward compatibility and delegates to the
     pure ``price_limit_buy`` or ``price_limit_sell`` functions defined by the
-    SRS ``[limits]`` section.  ``price`` is ``None`` when a market order is
-    returned.
+    SRS ``[limits]`` section.  The helper functions already return ``None`` when
+    a market order is requested.
     """
 
     quote = provider.get_quote(symbol)
     side_u = side.upper()
     if side_u == "BUY":
-        price, order_type = price_limit_buy(quote, tick, cfg, now)
-    elif side_u == "SELL":
-        price, order_type = price_limit_sell(quote, tick, cfg, now)
-    else:
-        raise ValueError("Side must be 'BUY' or 'SELL'")
-
-    return (price if order_type == "LMT" else None), order_type
+        return price_limit_buy(quote, tick, cfg, now)
+    if side_u == "SELL":
+        return price_limit_sell(quote, tick, cfg, now)
+    raise ValueError("Side must be 'BUY' or 'SELL'")
