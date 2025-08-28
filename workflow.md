@@ -56,13 +56,14 @@ Use the provided wrappers to keep linting, testing, and running consistent acros
 ```bash
 # direct commands
 ruff check . && black --check . && mypy . && pytest -q
+python app.py --csv portfolios.csv --ini settings.ini --report-only
 python app.py --csv portfolios.csv --ini settings.ini --dry-run
 
 # or via Make helpers
 make lint
 make type
 make test
-make run ARGS="--csv portfolios.csv --ini settings.ini --dry-run"
+make run ARGS="--csv portfolios.csv --ini settings.ini --report-only"
 ```
 
 These wrappers centralize the lint/test/run commands so the same checks run everywhere.
