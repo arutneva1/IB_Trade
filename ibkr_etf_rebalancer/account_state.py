@@ -84,8 +84,8 @@ def compute_account_state(
     cash_balances:
         Mapping of currency code (e.g. ``"USD"``/``"CAD"``) to amount.
     cash_buffer_pct:
-        Fraction of the USD cash balance to exclude from exposure/weight
-        calculations.
+        Percentage of the USD cash balance to exclude from exposure/weight
+        calculations (e.g. ``5`` for ``5%``).
     """
 
     cash_by_currency = {ccy: float(amount) for ccy, amount in cash_balances.items()}
@@ -112,7 +112,7 @@ def compute_account_state(
         gross_pos_val += abs(value)
 
     total_equity = net_pos_val + usd_cash
-    effective_usd_cash = usd_cash * (1.0 - cash_buffer_pct)
+    effective_usd_cash = usd_cash * (1.0 - cash_buffer_pct / 100.0)
     effective_equity = net_pos_val + effective_usd_cash
     if effective_equity <= 0.0:
         raise ValueError("Account has zero equity")

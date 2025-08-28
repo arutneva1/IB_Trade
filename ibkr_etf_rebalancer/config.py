@@ -57,7 +57,10 @@ class RebalanceConfig(BaseModel):
         500, gt=0, description="Ignore trades smaller than this notional value"
     )
     cash_buffer_pct: float = Field(
-        1.0, ge=0, le=100, description="Hold back this percent of equity as cash"
+        1.0,
+        ge=0,
+        le=100,
+        description="Hold back this percentage of equity as cash (e.g. 5 for 5%)",
     )
     allow_fractional: bool = Field(
         False, description="Set true only if account supports fractional shares"
