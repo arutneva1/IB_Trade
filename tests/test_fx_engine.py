@@ -71,17 +71,31 @@ def test_missing_fx_quote_skips_plan(fx_cfg: FXConfig) -> None:
 
 
 def test_stale_fx_quote_skips_plan(fresh_quote: Quote, fx_cfg: FXConfig) -> None:
-    old_ts = fresh_quote.ts - timedelta(seconds=11)
-    stale = Quote(bid=fresh_quote.bid, ask=fresh_quote.ask, ts=old_ts)
+    now = fresh_quote.ts + timedelta(seconds=fx_cfg.stale_quote_seconds + 1)
     plan = plan_fx_if_needed(
         usd_needed=1_000,
         usd_cash=0,
         funding_cash=5_000,
-        fx_quote=stale,
+        fx_quote=fresh_quote,
         cfg=fx_cfg,
+        now=now,
     )
     assert plan.need_fx is False
     assert "stale" in plan.reason
+
+
+def test_fx_quote_at_threshold_trades(fresh_quote: Quote, fx_cfg: FXConfig) -> None:
+    now = fresh_quote.ts + timedelta(seconds=fx_cfg.stale_quote_seconds)
+    plan = plan_fx_if_needed(
+        usd_needed=1_000,
+        usd_cash=0,
+        funding_cash=5_000,
+        fx_quote=fresh_quote,
+        cfg=fx_cfg,
+        now=now,
+    )
+    assert plan.need_fx is True
+    assert "stale" not in plan.reason
 
 
 def test_market_rounding(fx_cfg: FXConfig) -> None:

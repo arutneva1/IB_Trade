@@ -124,6 +124,7 @@ class FXConfig(BaseModel):
         "MKT", description="Order type used for FX conversions"
     )
     limit_slippage_bps: int = Field(5, ge=0, description="Slippage when order_type='LMT'")
+    stale_quote_seconds: int = Field(10, ge=0, description="Quote age before considered stale")
     route: str = Field("IDEALPRO", description="IBKR FX venue")
     wait_for_fill_seconds: int = Field(
         5, ge=0, description="Pause before placing dependent ETF orders"
