@@ -280,6 +280,34 @@ def test_fx_top_up_generates_plan_and_feasible_orders():
     assert orders["BBB"] == pytest.approx(500)
 
 
+def test_sells_partially_fund_buys_reducing_fx():
+    targets = {"AAA": 0.55, "BBB": 0.55}
+    current = {"AAA": 0.6, "BBB": 0.4, "CASH": 0.0}
+    prices = {"AAA": 100.0, "BBB": 100.0}
+    fx_cfg = FXConfig(enabled=True)
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider({"USD.CAD": Quote(1.25, 1.26, now)})
+
+    orders, fx_plan = plan_rebalance_with_fx(
+        targets,
+        current,
+        prices,
+        EQUITY,
+        fx_cfg=fx_cfg,
+        quote_provider=provider,
+        cad_cash=10_000.0,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+    )
+
+    expected_fx = 10_000 * (1 + fx_cfg.fx_buffer_bps / 10_000)
+    assert fx_plan.need_fx is True
+    assert fx_plan.usd_notional == pytest.approx(expected_fx)
+    assert orders["AAA"] == pytest.approx(-50)
+    assert orders["BBB"] == pytest.approx(150)
+
+
 def test_invalid_trigger_mode():
     targets = {"AAA": 0.5}
     current = {"AAA": 0.5}

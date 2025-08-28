@@ -159,6 +159,7 @@ def test_use_ask_when_mid_disabled(fresh_quote: Quote, fx_cfg: FXConfig) -> None
         fx_quote=fresh_quote,
         cfg=cfg,
     )
+    assert fresh_quote.ask is not None
     assert plan.est_rate == pytest.approx(round(fresh_quote.ask, 4))
 
 
@@ -169,6 +170,14 @@ class DummyProvider:
     def get_quote(self, pair: str) -> Quote:
         assert pair == "USD.CAD"
         return self.quote
+
+    def get_price(
+        self,
+        symbol: str,
+        price_source: str,
+        fallback_to_snapshot: bool = False,
+    ) -> float:
+        raise NotImplementedError
 
 
 def test_always_top_up_converts(fresh_quote: Quote) -> None:
