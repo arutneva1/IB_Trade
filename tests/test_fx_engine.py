@@ -4,6 +4,7 @@ import pytest
 
 from ibkr_etf_rebalancer.config import FXConfig
 from ibkr_etf_rebalancer.fx_engine import plan_fx_if_needed
+from ibkr_etf_rebalancer.rebalance_engine import plan_rebalance_with_fx
 from ibkr_etf_rebalancer.pricing import Quote
 
 
@@ -147,3 +148,55 @@ def test_no_cad_cash_skips_plan(fresh_quote: Quote, fx_cfg: FXConfig) -> None:
     )
     assert plan.need_fx is False
     assert "no CAD cash" in plan.reason
+
+
+def test_use_ask_when_mid_disabled(fresh_quote: Quote, fx_cfg: FXConfig) -> None:
+    cfg = fx_cfg.model_copy(update={"use_mid_for_planning": False})
+    plan = plan_fx_if_needed(
+        usd_needed=1_000,
+        usd_cash=0,
+        cad_cash=5_000,
+        fx_quote=fresh_quote,
+        cfg=cfg,
+    )
+    assert plan.est_rate == pytest.approx(round(fresh_quote.ask, 4))
+
+
+class DummyProvider:
+    def __init__(self, quote: Quote) -> None:
+        self.quote = quote
+
+    def get_quote(self, pair: str) -> Quote:
+        assert pair == "USD.CAD"
+        return self.quote
+
+
+def test_always_top_up_converts(fresh_quote: Quote) -> None:
+    cfg = FXConfig(enabled=True, convert_mode="always_top_up")
+    provider = DummyProvider(fresh_quote)
+    _, plan = plan_rebalance_with_fx(
+        targets={},
+        current={"CASH": 0.0},
+        prices={},
+        total_equity=1.0,
+        fx_cfg=cfg,
+        quote_provider=provider,
+        cad_cash=20_000,
+    )
+    assert plan.need_fx is True
+    assert plan.usd_notional >= cfg.min_fx_order_usd
+
+
+def test_prefer_market_hours_blocks_off_hours(fresh_quote: Quote, fx_cfg: FXConfig) -> None:
+    cfg = fx_cfg.model_copy(update={"prefer_market_hours": True})
+    saturday = datetime(2024, 1, 6, tzinfo=timezone.utc)
+    plan = plan_fx_if_needed(
+        usd_needed=5_000,
+        usd_cash=0,
+        cad_cash=20_000,
+        fx_quote=fresh_quote,
+        cfg=cfg,
+        now=saturday,
+    )
+    assert plan.need_fx is False
+    assert "outside market hours" in plan.reason

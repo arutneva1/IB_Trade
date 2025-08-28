@@ -46,6 +46,10 @@ class FxPlan:
         Order type to use (``"MKT"`` or ``"LMT"``).
     limit_price:
         Limit price when ``order_type`` is ``"LMT"``; otherwise ``None``.
+    route:
+        IBKR venue for the FX order (e.g. ``"IDEALPRO"``).
+    wait_for_fill_seconds:
+        Seconds to pause before placing dependent ETF orders.
     reason:
         Human readable explanation of the decision.
     """
@@ -58,6 +62,8 @@ class FxPlan:
     qty: float
     order_type: Literal["MKT", "LMT"]
     limit_price: float | None
+    route: str
+    wait_for_fill_seconds: int
     reason: str
 
 
@@ -79,6 +85,8 @@ def plan_fx_if_needed(
     cad_cash: float,
     fx_quote: pricing.Quote | None,
     cfg: FXConfig,
+    *,
+    now: datetime | None = None,
 ) -> FxPlan:
     """Return an :class:`FxPlan` describing any required FX conversion.
 
@@ -100,6 +108,22 @@ def plan_fx_if_needed(
 
     pair = f"{cfg.base_currency}.CAD"
     side: Literal["BUY", "SELL"] = "BUY"
+    now = now or datetime.now(timezone.utc)
+
+    if cfg.prefer_market_hours and now.weekday() >= 5:
+        return FxPlan(
+            need_fx=False,
+            pair=pair,
+            side=side,
+            usd_notional=0.0,
+            est_rate=0.0,
+            qty=0.0,
+            order_type=cfg.order_type,
+            limit_price=None,
+            route=cfg.route,
+            wait_for_fill_seconds=cfg.wait_for_fill_seconds,
+            reason="outside market hours",
+        )
 
     # Calculate the USD shortfall and apply the buffer.
     shortfall = max(0.0, usd_needed - usd_cash)
@@ -113,6 +137,8 @@ def plan_fx_if_needed(
             qty=0.0,
             order_type=cfg.order_type,
             limit_price=None,
+            route=cfg.route,
+            wait_for_fill_seconds=cfg.wait_for_fill_seconds,
             reason="no USD shortfall",
         )
 
@@ -126,6 +152,8 @@ def plan_fx_if_needed(
             qty=0.0,
             order_type=cfg.order_type,
             limit_price=None,
+            route=cfg.route,
+            wait_for_fill_seconds=cfg.wait_for_fill_seconds,
             reason="no CAD cash available",
         )
 
@@ -142,6 +170,8 @@ def plan_fx_if_needed(
             qty=0.0,
             order_type=cfg.order_type,
             limit_price=None,
+            route=cfg.route,
+            wait_for_fill_seconds=cfg.wait_for_fill_seconds,
             reason=reason,
         )
 
@@ -159,10 +189,11 @@ def plan_fx_if_needed(
             qty=0.0,
             order_type=cfg.order_type,
             limit_price=None,
+            route=cfg.route,
+            wait_for_fill_seconds=cfg.wait_for_fill_seconds,
             reason="no FX quote",
         )
 
-    now = datetime.now(timezone.utc)
     if pricing.is_stale(fx_quote, now, stale_quote_seconds=10):
         return FxPlan(
             need_fx=False,
@@ -173,6 +204,8 @@ def plan_fx_if_needed(
             qty=0.0,
             order_type=cfg.order_type,
             limit_price=None,
+            route=cfg.route,
+            wait_for_fill_seconds=cfg.wait_for_fill_seconds,
             reason="stale FX quote",
         )
 
@@ -188,6 +221,8 @@ def plan_fx_if_needed(
             qty=0.0,
             order_type=cfg.order_type,
             limit_price=None,
+            route=cfg.route,
+            wait_for_fill_seconds=cfg.wait_for_fill_seconds,
             reason="incomplete FX quote",
         )
 
@@ -222,5 +257,7 @@ def plan_fx_if_needed(
         qty=qty,
         order_type=cfg.order_type,
         limit_price=limit_price,
+        route=cfg.route,
+        wait_for_fill_seconds=cfg.wait_for_fill_seconds,
         reason=reason,
     )
