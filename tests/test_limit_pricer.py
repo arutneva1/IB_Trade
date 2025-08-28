@@ -1,3 +1,4 @@
+import math
 import pytest
 from datetime import datetime, timedelta, timezone
 from hypothesis import given, settings, strategies as st, seed
@@ -21,6 +22,8 @@ FIXED_NOW = datetime(2020, 1, 1, tzinfo=timezone.utc)
         ("BUY", 99.974, 100.026, 0.005, 100.015),
         ("SELL", 99.974, 100.026, 0.01, 99.99),
         ("SELL", 99.974, 100.026, 0.005, 99.985),
+        ("BUY", 99.95, 100.05, 0.01, 100.03),
+        ("SELL", 99.95, 100.05, 0.01, 99.98),
     ],
 )
 def test_offset_rounding(side, bid, ask, tick, exp):
@@ -109,7 +112,7 @@ def test_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
         (99, 101, 0, "keep", 99.9, "LMT"),
         (99.85, 100.15, 20, "cross", 99.85, "LMT"),
         (99.85, 100.15, 20, "market", None, "MKT"),
-        (99.85, 100.15, 20, "keep", 99.92, "LMT"),
+        (99.85, 100.15, 20, "keep", 99.93, "LMT"),
     ],
 )
 def test_sell_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
@@ -140,14 +143,28 @@ def test_sell_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
             99.9,
             100.013,
             0.005,
-            round(100.013 / 0.005) * 0.005,
+            math.floor(100.013 / 0.005 + 0.5) * 0.005,
         ),
         (
             price_limit_sell,
             99.987,
             100.1,
             0.005,
-            round(99.987 / 0.005) * 0.005,
+            math.floor(99.987 / 0.005 + 0.5) * 0.005,
+        ),
+        (
+            price_limit_buy,
+            99.9,
+            100.025,
+            0.01,
+            math.floor(100.025 / 0.01 + 0.5) * 0.01,
+        ),
+        (
+            price_limit_sell,
+            99.975,
+            100.1,
+            0.01,
+            math.floor(99.975 / 0.01 + 0.5) * 0.01,
         ),
     ],
 )
