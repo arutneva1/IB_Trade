@@ -185,9 +185,11 @@ ibkr_etf_rebalancer/
 **Goal:** Define an adapter interface; provide **FakeIB** (deterministic, in‑memory fills) and `LiveIB` stubs.  
 **Interface covers:**
 - connect/disconnect; contract resolution; quotes; account values (NetLiq, ExcessLiquidity, cash by currency); positions; place/cancel orders; await fills; pacing hooks.
+- contract resolution must apply `[symbol_overrides]` from `settings.ini`.
 **Tests:**
 - FakeIB lifecycle and fill simulation (configurable delays).
 - Pacing hook calls (no real sleeps in unit tests).
+- Verify a symbol listed in `[symbol_overrides]` resolves using the overridden contract or exchange.
 
 > Live tests are deferred; unit tests use FakeIB exclusively.
 
