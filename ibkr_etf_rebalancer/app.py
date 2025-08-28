@@ -72,9 +72,7 @@ def main(
     report_only: bool = typer.Option(
         False, "--report-only", help="Generate reports without placing orders"
     ),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Simulate actions without side effects"
-    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Simulate actions without side effects"),
     paper: bool = typer.Option(False, "--paper", help="Use the paper trading environment"),
     live: bool = typer.Option(False, "--live", help="Use the live trading environment"),
     yes: bool = typer.Option(False, "--yes", help="Assume yes for all confirmations"),
