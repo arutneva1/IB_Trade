@@ -86,3 +86,12 @@ def test_overlapping_symbols_are_combined(portfolios, weights):
     assert pytest.approx(expected_spy, rel=1e-9, abs=1e-9) == result.weights["SPY"]
     # Only one SPY entry after blending
     assert list(result.weights.keys()).count("SPY") == 1
+
+
+def test_missing_model_portfolios_raise_error():
+    portfolios = {"SMURF": {"AAA": 1.0}}
+    weights = ModelsConfig(SMURF=0.2, BADASS=0.3, GLTR=0.5)
+    with pytest.raises(ValueError) as exc:
+        blend_targets(portfolios, weights)
+    msg = str(exc.value)
+    assert "BADASS" in msg and "GLTR" in msg
