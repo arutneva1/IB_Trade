@@ -206,9 +206,11 @@ ibkr_etf_rebalancer/
 - `prefer_rth` prevents orders outside regular hours.
 
 ### 7.1 `order_builder.py`
-**Goal:** Map plan lines to broker orders using `limit_pricer` (default LMT), TIF=DAY, SMART route, RTH.
+**Goal:** Map plan lines to broker orders honoring `[rebalance].order_type`. Use `limit_pricer` for limit orders (default `LMT`) with TIF=DAY, SMART route, and RTH. When `order_type=MKT`, generate market orders without limit pricing.
 **Tests:**
 - Mapping correctness for BUY/SELL; FX vs equity orders; tick rounding applied.
+- `[rebalance].order_type` respected: limit path uses `limit_pricer`; market path emits `MKT` orders.
+- Escalation: when `limit_pricer` returns `escalate_action=market`, builder outputs market orders.
 
 ### 7.2 `order_executor.py`
 **Goal:** Two‑stage sequencing with safety and pacing.
