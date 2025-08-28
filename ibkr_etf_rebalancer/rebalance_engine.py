@@ -42,7 +42,7 @@ from typing import Any, Dict, Mapping
 
 from .config import FXConfig, PricingConfig
 from .fx_engine import FxPlan, plan_fx_if_needed
-from .pricing import Quote, QuoteProvider
+from .pricing import QuoteProvider
 
 
 def _get_band(bands: float | Mapping[str, float], symbol: str) -> float:
