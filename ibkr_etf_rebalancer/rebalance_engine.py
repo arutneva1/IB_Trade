@@ -163,6 +163,11 @@ def generate_orders(
         gross += scaled_value
         orders_value[symbol] = scaled_value
 
+    # Drop any orders that fell below ``min_order`` after scaling
+    orders_value = {sym: val for sym, val in orders_value.items() if abs(val) >= min_order}
+    if not orders_value:
+        return {}
+
     # ------------------------------------------------------------------
     # Convert notional values to share counts
     orders_shares: Dict[str, float] = {}
