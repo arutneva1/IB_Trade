@@ -371,9 +371,7 @@ def test_fx_snapshot_fallback():
     fx_cfg = FXConfig(enabled=True)
     pricing_cfg = PricingConfig(fallback_to_snapshot=True)
     now = datetime.now(timezone.utc)
-    provider = FakeQuoteProvider(
-        {"USD.CAD": Quote(None, None, now)}, snapshots={"USD.CAD": 1.2}
-    )
+    provider = FakeQuoteProvider({"USD.CAD": Quote(None, None, now)}, snapshots={"USD.CAD": 1.2})
 
     _, fx_plan = plan_rebalance_with_fx(
         targets,
