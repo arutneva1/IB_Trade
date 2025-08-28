@@ -240,16 +240,21 @@ def plan_rebalance_with_fx(
     fx_cfg: FXConfig,
     quote_provider: QuoteProvider,
     pricing_cfg: PricingConfig,
+    funding_currency: str = "CAD",
     **kwargs: Any,
 ) -> tuple[Dict[str, float], FxPlan]:
     """Plan equity trades and any required FX conversion."""
 
-    cad_cash = float(kwargs.pop("cad_cash", 0.0))
+    funding_cash = float(kwargs.pop("funding_cash", kwargs.pop("cad_cash", 0.0)))
+    if funding_currency not in fx_cfg.funding_currencies:
+        raise ValueError(f"unsupported funding currency: {funding_currency}")
     usd_cash = current.get("CASH", 0.0) * total_equity
 
-    # First pass: assume CAD cash is converted to size desired equity orders
+    pair = f"{fx_cfg.base_currency}.{funding_currency}"
+
+    # First pass: assume funding cash is converted to size desired equity orders
     planning_current = dict(current)
-    planning_current["CASH"] = (usd_cash + cad_cash) / total_equity
+    planning_current["CASH"] = (usd_cash + funding_cash) / total_equity
     orders = generate_orders(targets, planning_current, prices, total_equity, **kwargs)
 
     usd_buy_notional = sum(
@@ -262,7 +267,7 @@ def plan_rebalance_with_fx(
 
     fx_plan = FxPlan(
         need_fx=False,
-        pair=f"{fx_cfg.base_currency}.CAD",
+        pair=pair,
         side="BUY",
         usd_notional=0.0,
         est_rate=0.0,
@@ -279,7 +284,7 @@ def plan_rebalance_with_fx(
     )
     if need_fx:
         rate = quote_provider.get_price(
-            "USD.CAD",
+            pair,
             pricing_cfg.price_source,
             fallback_to_snapshot=pricing_cfg.fallback_to_snapshot,
         )
@@ -291,9 +296,10 @@ def plan_rebalance_with_fx(
         fx_plan = plan_fx_if_needed(
             usd_needed=usd_needed,
             usd_cash=usd_cash_after_sells,
-            cad_cash=cad_cash,
+            funding_cash=funding_cash,
             fx_quote=fx_quote,
             cfg=fx_cfg,
+            funding_currency=funding_currency,
         )
 
     final_cash = usd_cash + fx_plan.usd_notional

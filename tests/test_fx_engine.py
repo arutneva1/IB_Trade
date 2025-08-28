@@ -23,7 +23,7 @@ def test_cad_only_cash_needs_fx(fresh_quote: Quote, fx_cfg: FXConfig) -> None:
     plan = plan_fx_if_needed(
         usd_needed=5_000,
         usd_cash=0,
-        cad_cash=20_000,
+        funding_cash=20_000,
         fx_quote=fresh_quote,
         cfg=fx_cfg,
     )
@@ -37,7 +37,7 @@ def test_shortfall_below_min_skips_fx(fresh_quote: Quote, fx_cfg: FXConfig) -> N
     plan = plan_fx_if_needed(
         usd_needed=500,
         usd_cash=0,
-        cad_cash=20_000,
+        funding_cash=20_000,
         fx_quote=fresh_quote,
         cfg=fx_cfg,
     )
@@ -50,7 +50,7 @@ def test_buffer_applied_to_notional(fresh_quote: Quote, fx_cfg: FXConfig) -> Non
     plan = plan_fx_if_needed(
         usd_needed=shortfall,
         usd_cash=0,
-        cad_cash=20_000,
+        funding_cash=20_000,
         fx_quote=fresh_quote,
         cfg=fx_cfg,
     )
@@ -62,7 +62,7 @@ def test_missing_fx_quote_skips_plan(fx_cfg: FXConfig) -> None:
     plan = plan_fx_if_needed(
         usd_needed=1_000,
         usd_cash=0,
-        cad_cash=5_000,
+        funding_cash=5_000,
         fx_quote=None,
         cfg=fx_cfg,
     )
@@ -76,7 +76,7 @@ def test_stale_fx_quote_skips_plan(fresh_quote: Quote, fx_cfg: FXConfig) -> None
     plan = plan_fx_if_needed(
         usd_needed=1_000,
         usd_cash=0,
-        cad_cash=5_000,
+        funding_cash=5_000,
         fx_quote=stale,
         cfg=fx_cfg,
     )
@@ -89,7 +89,7 @@ def test_market_rounding(fx_cfg: FXConfig) -> None:
     plan = plan_fx_if_needed(
         usd_needed=1_234.56,
         usd_cash=0,
-        cad_cash=10_000,
+        funding_cash=10_000,
         fx_quote=quote,
         cfg=fx_cfg,
     )
@@ -105,7 +105,7 @@ def test_limit_order_rounding(fx_cfg: FXConfig) -> None:
     plan = plan_fx_if_needed(
         usd_needed=1_000,
         usd_cash=0,
-        cad_cash=10_000,
+        funding_cash=10_000,
         fx_quote=quote,
         cfg=cfg,
     )
@@ -118,7 +118,7 @@ def test_max_order_cap_applied(fresh_quote: Quote) -> None:
     plan = plan_fx_if_needed(
         usd_needed=10_000,
         usd_cash=100,
-        cad_cash=20_000,
+        funding_cash=20_000,
         fx_quote=fresh_quote,
         cfg=cfg,
     )
@@ -130,7 +130,7 @@ def test_no_usd_shortfall_skips_plan(fresh_quote: Quote, fx_cfg: FXConfig) -> No
     plan = plan_fx_if_needed(
         usd_needed=1_000,
         usd_cash=1_200,
-        cad_cash=5_000,
+        funding_cash=5_000,
         fx_quote=fresh_quote,
         cfg=fx_cfg,
     )
@@ -142,7 +142,7 @@ def test_no_cad_cash_skips_plan(fresh_quote: Quote, fx_cfg: FXConfig) -> None:
     plan = plan_fx_if_needed(
         usd_needed=1_000,
         usd_cash=0,
-        cad_cash=0,
+        funding_cash=0,
         fx_quote=fresh_quote,
         cfg=fx_cfg,
     )
@@ -155,7 +155,7 @@ def test_use_ask_when_mid_disabled(fresh_quote: Quote, fx_cfg: FXConfig) -> None
     plan = plan_fx_if_needed(
         usd_needed=1_000,
         usd_cash=0,
-        cad_cash=5_000,
+        funding_cash=5_000,
         fx_quote=fresh_quote,
         cfg=cfg,
     )
@@ -202,7 +202,7 @@ def test_always_top_up_converts(fresh_quote: Quote) -> None:
         fx_cfg=cfg,
         quote_provider=provider,
         pricing_cfg=pricing_cfg,
-        cad_cash=20_000,
+        funding_cash=20_000,
     )
     assert plan.need_fx is True
     assert plan.usd_notional >= cfg.min_fx_order_usd
@@ -214,7 +214,7 @@ def test_prefer_market_hours_blocks_off_hours(fresh_quote: Quote, fx_cfg: FXConf
     plan = plan_fx_if_needed(
         usd_needed=5_000,
         usd_cash=0,
-        cad_cash=20_000,
+        funding_cash=20_000,
         fx_quote=fresh_quote,
         cfg=cfg,
         now=saturday,
