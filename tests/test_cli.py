@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pytest
 from freezegun import freeze_time
 from typer.testing import CliRunner
 
@@ -70,3 +71,34 @@ def test_pre_trade_cli(tmp_path: Path) -> None:
     md = tmp_path / "pre_trade_report_20240101T120000.md"
     assert csv.exists()
     assert md.exists()
+
+
+@pytest.mark.parametrize(
+    "flag",
+    ["--report-only", "--dry-run", "--paper", "--live", "--yes"],
+)
+def test_pre_trade_cli_global_flags(tmp_path: Path, flag: str) -> None:
+    """Ensure top-level flags are accepted by the CLI."""
+
+    config, portfolios, positions = _write_basic_files(tmp_path)
+
+    with freeze_time("2024-01-01 12:00:00"):
+        result = runner.invoke(
+            app,
+            [
+                flag,
+                "pre-trade",
+                "--config",
+                str(config),
+                "--portfolios",
+                str(portfolios),
+                "--positions",
+                str(positions),
+                "--cash",
+                "USD=0",
+                "--output-dir",
+                str(tmp_path),
+            ],
+        )
+
+    assert result.exit_code == 0
