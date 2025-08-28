@@ -33,6 +33,9 @@ def load_portfolios(
 ) -> Dict[str, Dict[str, float]]:
     """Read a portfolio CSV and return a mapping of model -> weights.
 
+    Columns ``note``, ``min_lot``, and ``exchange`` are silently ignored if
+    present.
+
     Parameters
     ----------
     csv_path:

@@ -45,6 +45,26 @@ def test_load_valid_csv(valid_csv):
     assert result == expected
 
 
+@pytest.fixture
+def extra_columns_csv(tmp_path: Path):
+    """CSV containing optional columns that should be ignored."""
+    csv_content = (
+        "portfolio,symbol,target_pct,note,min_lot,exchange\n"
+        "SMURF,VTI,50,some note,10,NYSE\n"
+        "SMURF,VEA,50,other note,5,ARCA\n"
+    )
+    path = tmp_path / "extra.csv"
+    path.write_text(csv_content)
+    expected = {"SMURF": {"VTI": 0.50, "VEA": 0.50}}
+    return path, expected
+
+
+def test_load_ignores_extra_columns(extra_columns_csv):
+    path, expected = extra_columns_csv
+    result = load_portfolios(path)
+    assert result == expected
+
+
 @pytest.fixture(
     params=[
         (
