@@ -93,6 +93,76 @@ def test_invalid_fx_buffer():
         AppConfig(**data)
 
 
+def test_symbol_overrides_parsing(tmp_path: Path):
+    ini = tmp_path / "config.ini"
+    ini.write_text(
+        """
+[ibkr]
+account = DU123
+
+[models]
+SMURF = 0.5
+BADASS = 0.3
+GLTR = 0.2
+
+[rebalance]
+
+[fx]
+
+[limits]
+
+[safety]
+
+[io]
+
+[symbol_overrides]
+GBTC = BTC
+FUND = 1234
+"""
+    )
+
+    cfg = load_config(ini)
+    assert cfg.symbol_overrides == {"GBTC": "BTC", "FUND": 1234}
+
+
+def test_symbol_overrides_validation():
+    data = valid_config_dict()
+    data["symbol_overrides"] = {"GBTC": 1.23}
+    with pytest.raises(ValidationError):
+        AppConfig(**data)
+
+
+def test_symbol_overrides_absent(tmp_path: Path):
+    cfg = AppConfig(**valid_config_dict())
+    assert cfg.symbol_overrides == {}
+
+    ini = tmp_path / "config.ini"
+    ini.write_text(
+        """
+[ibkr]
+account = DU123
+
+[models]
+SMURF = 0.5
+BADASS = 0.3
+GLTR = 0.2
+
+[rebalance]
+
+[fx]
+
+[limits]
+
+[safety]
+
+[io]
+"""
+    )
+
+    cfg2 = load_config(ini)
+    assert cfg2.symbol_overrides == {}
+
+
 def test_load_config_success(tmp_path: Path):
     ini = tmp_path / "config.ini"
     ini.write_text(
