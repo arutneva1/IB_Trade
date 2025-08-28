@@ -158,7 +158,6 @@ class PricingConfig(BaseModel):
 class SafetyConfig(BaseModel):
     """Safety related thresholds and flags from SRS ``[safety]``."""
 
-    max_drawdown: float = Field(0.25, gt=0, le=1, description="Max allowable drawdown")
     paper_only: bool = Field(
         True, description="Hard gate: only run in paper mode unless overridden"
     )
