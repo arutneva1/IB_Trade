@@ -5,6 +5,7 @@
 ---
 
 ## Quick gates
+- [ ] No API credentials or other secrets committed (see SRS §11)
 - [ ] Changes limited to pricing layer (e.g., `limit_pricer.py`, `pricing.py`, related tests)
 - [ ] No edits to order execution or IBKR adapter
 - [ ] No new production deps beyond SRS/plan

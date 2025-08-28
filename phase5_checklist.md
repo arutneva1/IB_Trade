@@ -5,6 +5,7 @@
 ---
 
 ## Quick gates
+- [ ] No API credentials or other secrets committed (see SRS §11)
 - [ ] Changes limited to broker-provider layer (e.g., `ibkr_provider.py`, `tests/test_ibkr_provider_*.py`)
 - [ ] **Do not** import `ib_insync`; **must** use `ib_async` (or interface-only for this phase)
 - [ ] No edits to order executor beyond wiring to the provider interface and fakes

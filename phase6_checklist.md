@@ -5,6 +5,7 @@
 ---
 
 ## Quick gates
+- [ ] No API credentials or other secrets committed (see SRS §11)
 - [ ] Changes limited to order layer (e.g., `order_builder.py`, `order_executor.py`, `safety.py`, tests)
 - [ ] Uses provider **interface** + `FakeIB` only; *no* live `ib_async` calls
 - [ ] No edits to pricing math except calling `limit_pricer`

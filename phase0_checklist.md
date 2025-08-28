@@ -5,6 +5,7 @@ Copy/paste into your PR or keep this file in `.github/` to guide reviews for **P
 ---
 
 ## Quick gates
+- [ ] No API credentials or other secrets committed (see SRS §11)
 - [ ] Scope is Phase 0 only (repo scaffolding; no app logic yet)
 - [ ] Only expected scaffolding files touched (`requirements*.txt`, `pyproject.toml`, `.pre-commit-config.yaml`, `.github/workflows/*`, `Makefile`, placeholders)
 - [ ] No external network or broker dependencies introduced

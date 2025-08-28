@@ -5,6 +5,7 @@
 ---
 
 ## Quick gates
+- [ ] No API credentials or other secrets committed (see SRS §11)
 - [ ] Changes limited to FX planning layer (e.g., `fx_engine.py`, minor wiring in planner + tests)
 - [ ] No edits to order execution or broker adapter beyond **adding an FX intent type**
 - [ ] No live connectivity; quotes are **fakes/mocks** only

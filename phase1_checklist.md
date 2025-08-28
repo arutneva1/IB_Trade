@@ -5,6 +5,7 @@ Copy/paste into your PR or keep this file in `.github/` to guide reviews for **P
 ---
 
 ## Quick gates
+- [ ] No API credentials or other secrets committed (see SRS §11)
 - [ ] **Scope is Phase 1 only** (pure core; no broker/`ib_async`, no network I/O)
 - [ ] Only expected files changed (e.g., `portfolio_loader.py`, `tests/test_portfolio_loader.py`)
 - [ ] No new dependencies added to `requirements.txt`

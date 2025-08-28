@@ -5,6 +5,7 @@
 ---
 
 ## Quick gates
+- [ ] No API credentials or other secrets committed (see SRS §11)
 - [ ] Changes limited to account-state layer (e.g., `account_state.py`, related helpers/tests)
 - [ ] No edits to order execution, IBKR adapter, or live connectivity
 - [ ] No new production deps beyond SRS/plan

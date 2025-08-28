@@ -5,6 +5,7 @@
 ---
 
 ## Quick gates
+- [ ] No API credentials or other secrets committed (see SRS §11)
 - [ ] Changes limited to **E2E harness & scenarios** (e.g., `tests/e2e/`, scenario loader, reporting glue)
 - [ ] No functional changes to pricing math or provider beyond **wiring**
 - [ ] No new production deps; dev/test deps only (e.g., `pyyaml`, `freezegun`)
