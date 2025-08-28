@@ -230,6 +230,7 @@ ibkr_etf_rebalancer/
 4. Margin via `CASH=-50` (gross 150%), leverage guard.
 5. FX funding from CAD to USD first.
 6. Spread‑aware limits, wide/stale escalation.
+7. Disable `allow_fractional`, verify shares are rounded and residual drift ≤10 bps (SRS scenario test #4).
 
 **Assertions:**
 - Acceptance criteria from the SRS (margin, FX funding, spread‑aware limits, safety).
