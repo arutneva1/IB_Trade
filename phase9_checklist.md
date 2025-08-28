@@ -9,11 +9,17 @@
 - [ ] **Interface unchanged** for higher layers (executor/pricing do not change logic)
 - [ ] No secrets committed; credentials pulled from **ENV/Secrets** (GitHub Actions, `.env` local ignored)
 - [ ] Live behavior fully **feature‑flagged**; paper/dry‑run are the default modes
+- [ ] PR references relevant SRS acceptance criteria in description
+- [ ] CHANGELOG.md updated under latest release
 
 ## CI & local checks
 - [ ] CI green: `ruff`, `black --check`, `mypy`, `pytest`
 - [ ] Unit/component tests remain **offline**; no network in CI
 - [ ] A **manual** workflow (workflow_dispatch) provided for pilot smoke checks (disabled by default)
+
+## Alignment with SRS
+- [ ] `price_source` fallback chain: `last` → `midpoint` → `bid/ask` → `snapshot`
+- [ ] Optional snapshot mode controlled by config
 
 ## Safety & gating
 - [ ] Live path requires **both**: CLI `--live --yes` **and** INI `paper_only=false`

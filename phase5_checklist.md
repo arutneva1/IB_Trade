@@ -9,6 +9,8 @@
 - [ ] **Do not** import `ib_insync`; **must** use `ib_async` (or interface-only for this phase)
 - [ ] No edits to order executor beyond wiring to the provider interface and fakes
 - [ ] No live credentials, tokens, or endpoints; tests run completely offline
+- [ ] PR references relevant SRS acceptance criteria in description
+- [ ] CHANGELOG.md updated under latest release
 
 ## CI & local checks
 - [ ] CI green: `ruff`, `black --check`, `mypy`, `pytest`
@@ -20,6 +22,8 @@
 - [ ] **FakeIB** (deterministic, in-memory) implements the interface and simulates fills/timestamps/IDs
 - [ ] Live adapter `LiveIB` is **stubbed** behind the same interface, not exercised by tests
 - [ ] Safety rails present even in fake: paper semantics, max concurrent orders, kill switch plumbing
+- [ ] `price_source` fallback chain: `last` → `midpoint` → `bid/ask` → `snapshot`
+- [ ] Optional snapshot mode controlled by config
 
 ## `ibkr_provider.py` — design
 - [ ] Clear `Protocol`/ABC for the provider interface with typed DTOs (contracts, quotes, orders, fills)

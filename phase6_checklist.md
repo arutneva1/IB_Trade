@@ -9,6 +9,8 @@
 - [ ] Uses provider **interface** + `FakeIB` only; *no* live `ib_async` calls
 - [ ] No edits to pricing math except calling `limit_pricer`
 - [ ] No credentials or endpoints touched
+- [ ] PR references relevant SRS acceptance criteria in description
+- [ ] CHANGELOG.md updated under latest release
 
 ## CI & local checks
 - [ ] CI green: `ruff`, `black --check`, `mypy`, `pytest`
@@ -23,6 +25,8 @@
 - [ ] Sequencing: **FX → SELLS → BUYS**; buys may be scaled by realized sell proceeds/buying power
 - [ ] Safety rails: `paper_only` default; `--live --yes` required for live (not in this phase), KILL_SWITCH, concurrency cap
 - [ ] Dry‑run prints pre‑trade report + order plan; paper mode places orders only on `FakeIB`
+- [ ] `price_source` fallback chain: `last` → `midpoint` → `bid/ask` → `snapshot`
+- [ ] Optional snapshot mode controlled by config
 
 ## `order_builder.py`
 - [ ] Pure mapping of plan → broker orders (no side effects)

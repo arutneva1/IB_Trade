@@ -8,6 +8,8 @@
 - [ ] Changes limited to account-state layer (e.g., `account_state.py`, related helpers/tests)
 - [ ] No edits to order execution, IBKR adapter, or live connectivity
 - [ ] No new production deps beyond SRS/plan
+- [ ] PR references relevant SRS acceptance criteria in description
+- [ ] CHANGELOG.md updated under latest release
 
 ## CI & local checks
 - [ ] CI green: `ruff`, `black --check`, `mypy`, `pytest`
@@ -21,6 +23,8 @@
 - [ ] Excludes `CASH` from tradable symbols; retains for net/gross math
 - [ ] Outputs both **gross** and **net** exposure figures
 - [ ] No FX execution yet—only **read/compute** balances needed by Phase 4
+- [ ] `price_source` fallback chain: `last` → `midpoint` → `bid/ask` → `snapshot`
+- [ ] Optional snapshot mode controlled by config
 
 ## `account_state.py`
 - [ ] Pure, deterministic functions (no I/O)

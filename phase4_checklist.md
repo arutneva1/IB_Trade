@@ -9,6 +9,8 @@
 - [ ] No edits to order execution or broker adapter beyond **adding an FX intent type**
 - [ ] No live connectivity; quotes are **fakes/mocks** only
 - [ ] No new production deps beyond SRS/plan
+- [ ] PR references relevant SRS acceptance criteria in description
+- [ ] CHANGELOG.md updated under latest release
 
 ## CI & local checks
 - [ ] CI green: `ruff`, `black --check`, `mypy`, `pytest`
@@ -23,6 +25,8 @@
 - [ ] Enforces **minimum FX order** in USD notionals; ignores tiny shortfalls below threshold
 - [ ] Produces an **FX plan/intent** object (no placement): side=`BUY USD.CAD`, qty notionals, indicative price, reasoning
 - [ ] No position side effects; returns data used later by executor in Phase 6
+- [ ] `price_source` fallback chain: `last` → `midpoint` → `bid/ask` → `snapshot`
+- [ ] Optional snapshot mode controlled by config
 
 ## `fx_engine.py` (core API)
 - [ ] Pure function(s), e.g.:
