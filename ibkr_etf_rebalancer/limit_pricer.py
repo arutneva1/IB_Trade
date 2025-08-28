@@ -98,9 +98,14 @@ def price_limit_buy(
     if wide_or_stale:
         action = cfg.escalate_action
         if action == "cross":
-            # Use a price that is guaranteed to cross the spread
-            # by rounding the ask up to the next tick.
-            return _round_up_to_tick(ask, min_tick), "LMT"
+            # Start with a price that crosses the spread by rounding the ask
+            # up to the next tick.  When ``use_ask_bid_cap`` is enabled clamp
+            # the result so the final limit never exceeds the current ask
+            # after tick alignment.
+            price = _round_up_to_tick(ask, min_tick)
+            if cfg.use_ask_bid_cap:
+                price = min(price, _round_down_to_tick(ask, min_tick))
+            return price, "LMT"
         if action == "market":
             return None, "MKT"
         # action == "keep" simply keeps the capped price
@@ -143,9 +148,14 @@ def price_limit_sell(
     if wide_or_stale:
         action = cfg.escalate_action
         if action == "cross":
-            # Use a price that is guaranteed to cross the spread
-            # by rounding the bid down to the previous tick.
-            return _round_down_to_tick(bid, min_tick), "LMT"
+            # Start with a price that crosses the spread by rounding the bid
+            # down to the previous tick.  When ``use_ask_bid_cap`` is enabled
+            # clamp so the final limit never falls below the current bid after
+            # tick alignment.
+            price = _round_down_to_tick(bid, min_tick)
+            if cfg.use_ask_bid_cap:
+                price = max(price, _round_up_to_tick(bid, min_tick))
+            return price, "LMT"
         if action == "market":
             return None, "MKT"
 
