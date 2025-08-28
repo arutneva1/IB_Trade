@@ -53,6 +53,8 @@ This guide summarizes how to use `srs.md` and `plan.md` with Codex to build the 
 - Phase 7: E2E offline scenarios
 - Phase 8: CLI, logging, polish
 
+Consult `phase1_checklist.md`, `phase2_checklist.md`, `phase3_checklist.md`, etc., for detailed tasks. Refer to the appropriate checklist when working on each phase.
+
 ## 6) Example Prompt (module)
 > Implement `limit_pricer.py` per SRS `[limits]`: NBBO caps, mid ± offset*spread, tick rounding, `max_offset_bps`, stale/wide escalation. Write exhaustive pytest for spreads (1–100 bps), minTick grid, NBBO caps, stale quotes, escalation (`cross|market|keep`). Then implement the module. Keep tests green and code typed.
 
