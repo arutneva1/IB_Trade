@@ -50,7 +50,7 @@ def price_limit_buy(
         raise ValueError("Quote ask must be greater than bid")
 
     mid = (bid + ask) / 2
-    spread_bps = spread / (bid + ask) * 10000
+    spread_bps = (spread / mid) * 10000
 
     price = mid + cfg.buy_offset_frac * spread
     cap = mid * (1 + cfg.max_offset_bps / 10000)
@@ -91,7 +91,7 @@ def price_limit_sell(
         raise ValueError("Quote ask must be greater than bid")
 
     mid = (bid + ask) / 2
-    spread_bps = spread / (bid + ask) * 10000
+    spread_bps = (spread / mid) * 10000
 
     price = mid - cfg.sell_offset_frac * spread
     cap = mid * (1 - cfg.max_offset_bps / 10000)
