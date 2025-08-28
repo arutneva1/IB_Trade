@@ -37,6 +37,7 @@ timestamped filename and echo a textual summary to standard output.
 from __future__ import annotations
 
 import csv
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
@@ -44,6 +45,8 @@ import typer
 
 from .account_state import compute_account_state
 from .config import load_config
+from .ibkr_provider import IBKRProviderOptions
+from .order_executor import OrderExecutionOptions
 from .portfolio_loader import load_portfolios
 from .reporting import generate_pre_trade_report
 from .target_blender import blend_targets
@@ -52,12 +55,37 @@ from .target_blender import blend_targets
 app = typer.Typer(help="Utilities for running pre-trade reports")
 
 
+@dataclass
+class CLIOptions:
+    """Global command line flags routed to downstream components."""
+
+    report_only: bool = False
+    dry_run: bool = False
+    paper: bool = False
+    live: bool = False
+    yes: bool = False
+
+
 @app.callback()
-def main() -> None:
+def main(
+    ctx: typer.Context,
+    report_only: bool = typer.Option(
+        False, "--report-only", help="Generate reports without placing orders"
+    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Simulate actions without side effects"),
+    paper: bool = typer.Option(False, "--paper", help="Use the paper trading environment"),
+    live: bool = typer.Option(False, "--live", help="Use the live trading environment"),
+    yes: bool = typer.Option(False, "--yes", help="Assume yes for all confirmations"),
+) -> None:
     """IBKR ETF rebalancer command line utilities."""
-    # The callback keeps the application in multi-command mode even if only
-    # one subcommand is defined.
-    pass
+    # Store the options on the Typer context so subcommands can access them.
+    ctx.obj = CLIOptions(
+        report_only=report_only,
+        dry_run=dry_run,
+        paper=paper,
+        live=live,
+        yes=yes,
+    )
 
 
 def _parse_cash(values: Iterable[str]) -> dict[str, float]:
@@ -74,6 +102,7 @@ def _parse_cash(values: Iterable[str]) -> dict[str, float]:
 
 @app.command("pre-trade")
 def pre_trade(
+    ctx: typer.Context,
     config: Path = typer.Option(..., exists=True, readable=True, help="Path to INI config file"),
     portfolios: Path = typer.Option(
         ..., exists=True, readable=True, help="CSV describing model portfolios"
@@ -92,6 +121,15 @@ def pre_trade(
     ),
 ) -> None:
     """Generate a pre‑trade report using the supplied inputs."""
+
+    # Access global CLI options for future routing to downstream components.
+    options: CLIOptions = ctx.obj if isinstance(ctx.obj, CLIOptions) else CLIOptions()
+    _ibkr_opts = IBKRProviderOptions(
+        paper=options.paper, live=options.live, dry_run=options.dry_run
+    )
+    _exec_opts = OrderExecutionOptions(
+        report_only=options.report_only, dry_run=options.dry_run, yes=options.yes
+    )
 
     cfg = load_config(config)
 
