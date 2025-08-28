@@ -54,6 +54,35 @@ def test_cash_only_account():
     assert pytest.approx(2_500.0, rel=1e-6) == result.effective_equity
 
 
+def test_snapshot_only_includes_targets_and_existing_positions():
+    positions = {"SPY": 10, "XYZ": 5}
+    prices = {"SPY": 100.0, "GLD": 200.0, "XYZ": 50.0, "ABC": 75.0}
+    cash = {"USD": 0.0}
+    _final_targets = {"SPY", "GLD"}
+
+    snapshot = compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
+
+    assert "SPY" in snapshot.weights
+    assert "XYZ" in snapshot.weights  # existing position not in final targets
+    assert "GLD" not in snapshot.weights  # targeted but no position
+    assert "ABC" not in snapshot.weights  # neither targeted nor held
+
+
+def test_weights_use_netliq_minus_cash_buffer_amount():
+    positions = {"SPY": 10}
+    prices = {"SPY": 100.0}
+    cash = {"USD": 100.0}
+
+    snapshot = compute_account_state(positions, prices, cash, cash_buffer_pct=0.2)
+
+    netliq = 1_000 + 100
+    buffer_amount = 100 * 0.2
+    denom = netliq - buffer_amount
+
+    assert pytest.approx(1_000 / denom, rel=1e-6) == snapshot.weights["SPY"]
+    assert pytest.approx((100 - buffer_amount) / denom, rel=1e-6) == snapshot.weights["CASH"]
+
+
 @pytest.mark.parametrize(
     "positions, prices, cad_cash",
     [

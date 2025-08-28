@@ -156,9 +156,15 @@ ibkr_etf_rebalancer/
 
 ### `account_state.py`
 **Goal:** Compute current weights from positions + prices; apply `cash_buffer_pct`; read per‑currency cash (USD/CAD).
+
+- Restrict snapshot holdings to ETFs present in the final target set plus any existing ETF positions.
+- Compute weights using `NetLiq - cash_buffer_amount` as the denominator.
+
 **Tests:**
 - Correct weight math with/without cash buffer.
 - USD and CAD balances kept separate and reported.
+- Holdings exclude symbols outside the final targets unless an existing position exists.
+- Weight denominator equals `NetLiq - cash_buffer_amount`.
 
 **Usage:**
 ```python
