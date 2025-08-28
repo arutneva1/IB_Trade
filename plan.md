@@ -238,6 +238,7 @@ ibkr_etf_rebalancer/
 
 **`app.py` with `typer`:**
 ```
+python app.py --csv portfolios.csv --ini settings.ini --report-only
 python app.py --csv portfolios.csv --ini settings.ini --dry-run
 python app.py --csv portfolios.csv --ini settings.ini --paper
 python app.py --csv portfolios_margin.csv --ini settings.ini --paper --yes
@@ -301,7 +302,10 @@ python app.py --csv portfolios.csv --ini settings.ini --live --yes
 # Lint + type-check + tests locally
 ruff check . && mypy . && pytest -q
 
-# Dry-run (report only)
+# Report-only (no IB order connection)
+python app.py --csv portfolios.csv --ini settings.ini --report-only
+
+# Dry-run (reads account, no orders)
 python app.py --csv portfolios.csv --ini settings.ini --dry-run
 
 # Paper trading (with confirmation)
