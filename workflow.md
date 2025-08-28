@@ -13,6 +13,7 @@ This guide summarizes how to use `srs.md` and `plan.md` with Codex to build the 
 - Keep planning logic pure; isolate IBKR/IO interactions.
 - CI runs on every push/PR: `ruff`, `black --check`, `mypy`, `pytest`.
 - Run `pre-commit install` after cloning to enable linting hooks.
+- Consult SRS §9 ("Test Plan") and ensure unit and scenario tests cover the listed cases.
 - DoD per PR:
   - Tests ≥90% diff coverage
   - CI green; verify GitHub Actions shows a green check before merging
