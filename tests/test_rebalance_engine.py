@@ -364,6 +364,93 @@ def test_unsupported_funding_currency_rejected():
         )
 
 
+def test_fx_snapshot_fallback():
+    targets = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    current = {"AAA": 0.0, "BBB": 0.0, "CASH": 0.0}
+    prices = {"AAA": 100.0, "BBB": 100.0}
+    fx_cfg = FXConfig(enabled=True)
+    pricing_cfg = PricingConfig(fallback_to_snapshot=True)
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider(
+        {"USD.CAD": Quote(None, None, now)}, snapshots={"USD.CAD": 1.2}
+    )
+
+    _, fx_plan = plan_rebalance_with_fx(
+        targets,
+        current,
+        prices,
+        EQUITY,
+        fx_cfg=fx_cfg,
+        quote_provider=provider,
+        pricing_cfg=pricing_cfg,
+        funding_cash=150_000.0,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+    )
+
+    assert fx_plan.need_fx is True
+    assert fx_plan.est_rate == pytest.approx(1.2)
+
+
+def test_fx_price_source_precedence():
+    targets = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    current = {"AAA": 0.0, "BBB": 0.0, "CASH": 0.0}
+    prices = {"AAA": 100.0, "BBB": 100.0}
+    now = datetime.now(timezone.utc)
+    quote = Quote(1.2, 1.3, now, last=1.1)
+    provider = FakeQuoteProvider({"USD.CAD": quote})
+    fx_cfg = FXConfig(enabled=True)
+
+    cfg_last = PricingConfig(price_source="last")
+    _, plan_last = plan_rebalance_with_fx(
+        targets,
+        current,
+        prices,
+        EQUITY,
+        fx_cfg=fx_cfg,
+        quote_provider=provider,
+        pricing_cfg=cfg_last,
+        funding_cash=150_000.0,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+    )
+    assert plan_last.est_rate == pytest.approx(1.1)
+
+    cfg_mid = PricingConfig(price_source="midpoint")
+    _, plan_mid = plan_rebalance_with_fx(
+        targets,
+        current,
+        prices,
+        EQUITY,
+        fx_cfg=fx_cfg,
+        quote_provider=provider,
+        pricing_cfg=cfg_mid,
+        funding_cash=150_000.0,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+    )
+    assert plan_mid.est_rate == pytest.approx((quote.bid + quote.ask) / 2)
+
+    cfg_bid = PricingConfig(price_source="bidask")
+    _, plan_bid = plan_rebalance_with_fx(
+        targets,
+        current,
+        prices,
+        EQUITY,
+        fx_cfg=fx_cfg,
+        quote_provider=provider,
+        pricing_cfg=cfg_bid,
+        funding_cash=150_000.0,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+    )
+    assert plan_bid.est_rate == pytest.approx(quote.bid)
+
+
 def test_invalid_trigger_mode():
     targets = {"AAA": 0.5}
     current = {"AAA": 0.5}

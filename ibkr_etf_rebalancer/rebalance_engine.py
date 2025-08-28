@@ -282,18 +282,43 @@ def plan_rebalance_with_fx(
         usd_buy_notional > usd_cash_after_sells or fx_cfg.convert_mode == "always_top_up"
     )
     if need_fx:
-        fx_quote = quote_provider.get_quote(pair)
-        usd_needed = usd_buy_notional
-        if fx_cfg.convert_mode == "always_top_up":
-            usd_needed = max(usd_buy_notional, fx_cfg.min_fx_order_usd)
-        fx_plan = plan_fx_if_needed(
-            usd_needed=usd_needed,
-            usd_cash=usd_cash_after_sells,
-            funding_cash=funding_cash,
-            fx_quote=fx_quote,
-            cfg=fx_cfg,
-            funding_currency=funding_currency,
-        )
+        try:
+            fx_rate = quote_provider.get_price(
+                pair,
+                pricing_cfg.price_source,
+                pricing_cfg.fallback_to_snapshot,
+            )
+        except Exception as exc:
+            fx_plan = FxPlan(
+                need_fx=False,
+                pair=pair,
+                side="BUY",
+                usd_notional=0.0,
+                est_rate=0.0,
+                qty=0.0,
+                order_type=fx_cfg.order_type,
+                limit_price=None,
+                route=fx_cfg.route,
+                wait_for_fill_seconds=fx_cfg.wait_for_fill_seconds,
+                reason=f"fx price unavailable: {exc}",
+            )
+        else:
+            try:
+                fx_quote = quote_provider.get_quote(pair)
+            except Exception:
+                fx_quote = None
+            usd_needed = usd_buy_notional
+            if fx_cfg.convert_mode == "always_top_up":
+                usd_needed = max(usd_buy_notional, fx_cfg.min_fx_order_usd)
+            fx_plan = plan_fx_if_needed(
+                usd_needed=usd_needed,
+                usd_cash=usd_cash_after_sells,
+                funding_cash=funding_cash,
+                fx_quote=fx_quote,
+                cfg=fx_cfg,
+                fx_price=fx_rate,
+                funding_currency=funding_currency,
+            )
 
     final_cash = usd_cash + fx_plan.usd_notional
     final_current = dict(current)

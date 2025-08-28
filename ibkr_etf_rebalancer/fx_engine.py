@@ -86,6 +86,7 @@ def plan_fx_if_needed(
     fx_quote: pricing.Quote | None,
     cfg: FXConfig,
     *,
+    fx_price: float | None = None,
     funding_currency: str = "CAD",
     now: datetime | None = None,
 ) -> FxPlan:
@@ -103,9 +104,14 @@ def plan_fx_if_needed(
         convert.
     fx_quote:
         A :class:`pricing.Quote` for the relevant currency pair.  When ``None``
-        or stale the function returns ``need_fx=False`` with a reason.
+        or stale the function returns ``need_fx=False`` with a reason unless
+        ``fx_price`` is provided.
     cfg:
         FX configuration settings.
+    fx_price:
+        Optional explicit FX rate to use when sizing the conversion.  This
+        overrides any price derived from ``fx_quote`` and allows planning when
+        only a snapshot price is available.
     funding_currency:
         Currency used to fund USD purchases. Defaults to ``"CAD"``.
     """
@@ -183,62 +189,76 @@ def plan_fx_if_needed(
     if cfg.max_fx_order_usd is not None:
         usd_notional = min(usd_notional, cfg.max_fx_order_usd)
 
-    if fx_quote is None:
-        return FxPlan(
-            need_fx=False,
-            pair=pair,
-            side=side,
-            usd_notional=0.0,
-            est_rate=0.0,
-            qty=0.0,
-            order_type=cfg.order_type,
-            limit_price=None,
-            route=cfg.route,
-            wait_for_fill_seconds=cfg.wait_for_fill_seconds,
-            reason="no FX quote",
-        )
+    mid: float | None = None
+    est_rate: float
 
-    if pricing.is_stale(fx_quote, now, stale_quote_seconds=cfg.stale_quote_seconds):
-        return FxPlan(
-            need_fx=False,
-            pair=pair,
-            side=side,
-            usd_notional=0.0,
-            est_rate=0.0,
-            qty=0.0,
-            order_type=cfg.order_type,
-            limit_price=None,
-            route=cfg.route,
-            wait_for_fill_seconds=cfg.wait_for_fill_seconds,
-            reason="stale FX quote",
-        )
+    if fx_price is None:
+        if fx_quote is None:
+            return FxPlan(
+                need_fx=False,
+                pair=pair,
+                side=side,
+                usd_notional=0.0,
+                est_rate=0.0,
+                qty=0.0,
+                order_type=cfg.order_type,
+                limit_price=None,
+                route=cfg.route,
+                wait_for_fill_seconds=cfg.wait_for_fill_seconds,
+                reason="no FX quote",
+            )
 
-    try:
-        mid = fx_quote.mid()
-    except ValueError:
-        return FxPlan(
-            need_fx=False,
-            pair=pair,
-            side=side,
-            usd_notional=0.0,
-            est_rate=0.0,
-            qty=0.0,
-            order_type=cfg.order_type,
-            limit_price=None,
-            route=cfg.route,
-            wait_for_fill_seconds=cfg.wait_for_fill_seconds,
-            reason="incomplete FX quote",
-        )
+        if pricing.is_stale(fx_quote, now, stale_quote_seconds=cfg.stale_quote_seconds):
+            return FxPlan(
+                need_fx=False,
+                pair=pair,
+                side=side,
+                usd_notional=0.0,
+                est_rate=0.0,
+                qty=0.0,
+                order_type=cfg.order_type,
+                limit_price=None,
+                route=cfg.route,
+                wait_for_fill_seconds=cfg.wait_for_fill_seconds,
+                reason="stale FX quote",
+            )
 
-    if cfg.use_mid_for_planning:
-        est_rate = fx_quote.mid()
-    else:
-        if side == "BUY":
-            assert fx_quote.ask is not None
-            est_rate = fx_quote.ask
+        try:
+            mid = fx_quote.mid()
+        except ValueError:
+            return FxPlan(
+                need_fx=False,
+                pair=pair,
+                side=side,
+                usd_notional=0.0,
+                est_rate=0.0,
+                qty=0.0,
+                order_type=cfg.order_type,
+                limit_price=None,
+                route=cfg.route,
+                wait_for_fill_seconds=cfg.wait_for_fill_seconds,
+                reason="incomplete FX quote",
+            )
+
+        if cfg.use_mid_for_planning:
+            est_rate = mid
         else:
-            assert fx_quote.bid is not None
-            est_rate = fx_quote.bid
+            if side == "BUY":
+                assert fx_quote.ask is not None
+                est_rate = fx_quote.ask
+            else:
+                assert fx_quote.bid is not None
+                est_rate = fx_quote.bid
+    else:
+        est_rate = fx_price
+        if fx_quote is not None:
+            try:
+                mid = fx_quote.mid()
+            except ValueError:
+                mid = fx_price
+        else:
+            mid = fx_price
+
     est_rate = _round_price(est_rate)
 
     # Cap the desired USD notional by available funding cash.  Determine the
