@@ -135,11 +135,33 @@ ibkr_etf_rebalancer/
 ## 5) Phase 4 — FX Funding (Math + Plan Only)
 
 ### Integrate `fx_engine.py`
-**Goal:** Just‑in‑time CAD→USD conversion if `[fx].enabled=true` to fund USD ETF BUYs.  
+**Goal:** Just‑in‑time CAD→USD conversion if `[fx].enabled=true` to fund USD ETF BUYs.
+
+**`[fx]` settings:**
+- `enabled` — toggle FX funding stage.
+- `base_currency` — target currency for the portfolio.
+- `funding_currencies` — comma‑separated list of currencies that may be sold to fund `base_currency`.
+- `convert_mode` — `just_in_time` vs `always_top_up` behavior.
+- `use_mid_for_planning` — size FX orders using mid price instead of snapshot.
+- `min_fx_order_usd` — skip conversions below this USD amount.
+- `fx_buffer_bps` — extra cushion added to the shortfall.
+- `order_type` — `MKT` or `LMT`.
+- `limit_slippage_bps` — max slippage when `order_type=LMT`.
+- `route` — IBKR venue (e.g., `IDEALPRO`).
+- `wait_for_fill_seconds` — pause before placing dependent ETF orders.
+- `prefer_market_hours` — when true, gate FX trades outside market hours.
+
 **Tests:**
-- CAD‑only cash funds USD buys via **BUY USD.CAD** with `fx_buffer_bps` and `min_fx_order_usd`.
-- Tiny shortfalls ignored.
-- LMT vs MKT parameters validated.
+- FX stage only runs when `enabled=true`; otherwise ETF buys proceed without FX.
+- `base_currency`/`funding_currencies` honored: CAD→USD supported, others rejected.
+- `convert_mode` paths: `just_in_time` fires only for shortfalls; `always_top_up` replenishes to target cash.
+- `use_mid_for_planning` uses mid price sizing vs snapshot ask/bid when false.
+- Shortfalls below `min_fx_order_usd` ignored.
+- Sized amount includes `fx_buffer_bps` cushion.
+- `order_type` switch: `MKT` sent directly; `LMT` obeys `limit_slippage_bps` cap.
+- `route` populated on the FX order.
+- `wait_for_fill_seconds` delays ETF orders until the FX fill or timeout.
+- `prefer_market_hours` blocks orders during off‑hours when true.
 
 ---
 
