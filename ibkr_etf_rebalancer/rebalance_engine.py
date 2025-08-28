@@ -65,7 +65,7 @@ def generate_orders(
     cash_buffer_pct: float = 0.0,
     maintenance_buffer_pct: float = 0.0,
     allow_fractional: bool = True,
-    trigger_mode: str = "per_symbol",
+    trigger_mode: str = "per_holding",
     portfolio_total_band_bps: float = 0.0,
 ) -> Dict[str, float]:
     """Create rebalance orders for the supplied portfolio.
@@ -107,7 +107,7 @@ def generate_orders(
     allow_fractional:
         When ``False`` orders are rounded to whole shares.
     trigger_mode:
-        ``"per_symbol"`` (default) evaluates bands per position.  ``"total_drift"``
+        ``"per_holding"`` (default) evaluates bands per position.  ``"total_drift"``
         sums absolute drifts across the portfolio and triggers rebalancing if
         that total exceeds ``portfolio_total_band_bps``.
     portfolio_total_band_bps:
