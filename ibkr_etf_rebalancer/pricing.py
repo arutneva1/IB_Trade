@@ -3,43 +3,36 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Protocol
+
+
+__all__ = [
+    "Quote",
+    "is_stale",
+    "QuoteProvider",
+    "FakeQuoteProvider",
+]
 
 
 @dataclass
 class Quote:
-    """Simple market quote.
+    """Simple market quote."""
 
-    Attributes
-    ----------
-    bid:
-        Best bid price or ``None`` if unavailable.
-    ask:
-        Best ask price or ``None`` if unavailable.
-    ts:
-        Timestamp when the quote was observed.
-    """
-
-    bid: float | None
-    ask: float | None
+    bid: float
+    ask: float
     ts: datetime
 
     def mid(self) -> float:
-        """Return the mid price with fallbacks.
+        """Return the arithmetic mid price."""
 
-        If both bid and ask are available the arithmetic mid is returned.  If
-        one side is missing the other side is used as a conservative mid.
-        ``ValueError`` is raised when both sides are missing.
-        """
-
-        if self.bid is not None and self.ask is not None:
-            return (self.bid + self.ask) / 2
-        if self.bid is not None:
-            return self.bid
-        if self.ask is not None:
-            return self.ask
-        raise ValueError("Quote missing bid and ask")
+        if self.bid is None and self.ask is None:
+            raise ValueError("Quote missing bid and ask")
+        if self.bid is None:
+            raise ValueError("Quote missing bid")
+        if self.ask is None:
+            raise ValueError("Quote missing ask")
+        return (self.bid + self.ask) / 2
 
 
 class QuoteProvider(Protocol):
@@ -49,11 +42,10 @@ class QuoteProvider(Protocol):
         """Return a :class:`Quote` for *symbol*."""
 
 
-def is_stale(quote: Quote, stale_quote_seconds: int, *, now: datetime | None = None) -> bool:
+def is_stale(quote: Quote, now: datetime, stale_quote_seconds: int) -> bool:
     """Return ``True`` if *quote* is older than ``stale_quote_seconds``."""
 
-    current = now or datetime.now(timezone.utc)
-    return (current - quote.ts).total_seconds() > stale_quote_seconds
+    return (now - quote.ts).total_seconds() > stale_quote_seconds
 
 
 class FakeQuoteProvider:
@@ -66,4 +58,9 @@ class FakeQuoteProvider:
         if symbol not in self._quotes:
             msg = f"No quote available for {symbol}"
             raise KeyError(msg)
-        return self._quotes[symbol]
+        quote = self._quotes[symbol]
+        if quote.bid is None:
+            raise ValueError(f"Quote for {symbol} missing bid")
+        if quote.ask is None:
+            raise ValueError(f"Quote for {symbol} missing ask")
+        return quote
