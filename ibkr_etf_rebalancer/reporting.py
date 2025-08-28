@@ -125,6 +125,9 @@ def generate_pre_trade_report(
     *,
     output_dir: Path | None = None,
     as_of: datetime | None = None,
+    net_liq: float | None = None,
+    cash_balances: Mapping[str, float] | None = None,
+    cash_buffer: float | None = None,
     **order_kwargs: Any,
 ) -> pd.DataFrame | tuple[pd.DataFrame, Path, Path]:
     """Create the pre‑trade report and optionally persist it to ``output_dir``.
@@ -138,6 +141,8 @@ def generate_pre_trade_report(
         this directory using a timestamped filename.
     as_of:
         Timestamp used for naming the output files.  Defaults to ``datetime.now()``.
+    net_liq, cash_balances, cash_buffer:
+        Optional account summary details to prepend to the generated reports.
     **order_kwargs:
         Additional options passed through to
         :func:`rebalance_engine.generate_orders`.
@@ -157,8 +162,31 @@ def generate_pre_trade_report(
         output_dir.mkdir(parents=True, exist_ok=True)
         csv_path = output_dir / f"pre_trade_report_{stamp}.csv"
         md_path = output_dir / f"pre_trade_report_{stamp}.md"
-        df.to_csv(csv_path, index=False)
-        md_path.write_text(_df_to_markdown(df))
+
+        summary_csv_lines: list[str] = []
+        summary_md_lines: list[str] = []
+        if net_liq is not None:
+            summary_csv_lines.append(f"NetLiq,{net_liq:.2f}")
+            summary_md_lines.append(f"NetLiq: {net_liq:.2f}")
+        if cash_balances:
+            for cur, amt in cash_balances.items():
+                summary_csv_lines.append(f"Cash {cur},{amt:.2f}")
+                summary_md_lines.append(f"Cash {cur}: {amt:.2f}")
+        if cash_buffer is not None:
+            summary_csv_lines.append(f"Cash Buffer,{cash_buffer:.2f}")
+            summary_md_lines.append(f"Cash Buffer: {cash_buffer:.2f}")
+
+        csv_content = "\n".join(summary_csv_lines)
+        if csv_content:
+            csv_content += "\n\n"
+        csv_content += df.to_csv(index=False)
+        csv_path.write_text(csv_content)
+
+        md_content = "\n".join(summary_md_lines)
+        if md_content:
+            md_content += "\n\n"
+        md_content += _df_to_markdown(df)
+        md_path.write_text(md_content)
         return df, csv_path, md_path
 
     return df

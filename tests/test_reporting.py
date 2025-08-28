@@ -16,14 +16,27 @@ def test_pre_trade_report(tmp_path):
 
     with freeze_time("2024-01-01 12:00:00"):
         _, csv_path, md_path = generate_pre_trade_report(
-            targets, current, prices, 100_000.0, output_dir=tmp_path
+            targets,
+            current,
+            prices,
+            100_000.0,
+            output_dir=tmp_path,
+            net_liq=100_000.0,
+            cash_balances={"USD": 10_000.0},
+            cash_buffer=5_000.0,
         )
 
     golden_csv = Path("tests/golden/pre_trade_report.csv").read_text()
     golden_md = Path("tests/golden/pre_trade_report.md").read_text()
 
-    assert csv_path.read_text() == golden_csv
-    assert md_path.read_text() == golden_md
+    csv_text = csv_path.read_text()
+    md_text = md_path.read_text()
+
+    assert "NetLiq" in csv_text and "Cash USD" in csv_text and "Cash Buffer" in csv_text
+    assert "NetLiq" in md_text and "Cash USD" in md_text and "Cash Buffer" in md_text
+
+    assert csv_text == golden_csv
+    assert md_text == golden_md
 
 
 def test_pre_trade_report_respects_min_order():
