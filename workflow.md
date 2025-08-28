@@ -58,7 +58,7 @@ This guide summarizes how to use `srs.md` and `plan.md` with Codex to build the 
 - Phase 9: Live adapter integration
 - Phase 10: Production hardening
 
-Consult `phase1_checklist.md` through `phase10_checklist.md` for detailed tasks (e.g., `phase9_checklist.md` for the Live adapter and `phase10_checklist.md` for production hardening). Refer to the appropriate checklist when working on each phase.
+Consult `phase0_checklist.md` through `phase10_checklist.md` for detailed tasks (e.g., `phase9_checklist.md` for the Live adapter and `phase10_checklist.md` for production hardening). Refer to the appropriate checklist when working on each phase. Complete Phase 0 bootstrap before Phase 1 development begins.
 
 ## 6) Example Prompt (module)
 > Implement `limit_pricer.py` per SRS `[limits]`: NBBO caps, mid ± offset*spread, tick rounding, `max_offset_bps`, stale/wide escalation. Write exhaustive pytest for spreads (1–100 bps), minTick grid, NBBO caps, stale quotes, escalation (`cross|market|keep`). Then implement the module. Keep tests green and code typed.
