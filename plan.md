@@ -155,10 +155,16 @@ ibkr_etf_rebalancer/
 ## 4) Phase 3 — Account Snapshot Model (Offline)
 
 ### `account_state.py`
-**Goal:** Compute current weights from positions + prices; apply `cash_buffer_pct`; read per‑currency cash (USD/CAD).  
+**Goal:** Compute current weights from positions + prices; apply `cash_buffer_pct`; read per‑currency cash (USD/CAD).
 **Tests:**
 - Correct weight math with/without cash buffer.
 - USD and CAD balances kept separate and reported.
+
+**Usage:**
+```python
+from ibkr_etf_rebalancer import AccountSnapshot, compute_account_state
+snapshot = compute_account_state(positions, prices, cash)
+```
 
 ---
 

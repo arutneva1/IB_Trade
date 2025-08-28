@@ -181,7 +181,11 @@ ibkr_etf_rebalancer/
 └─ tests/                 # unit & scenario tests
 ```
 
-**Primary library:** `ib_async`.  
+Key snapshot helpers are re-exported for convenience; import
+``AccountSnapshot`` and ``compute_account_state`` directly from
+``ibkr_etf_rebalancer`` when performing offline analysis.
+
+**Primary library:** `ib_async`.
 **Python:** 3.10+ recommended.  
 **OS:** Windows 10+, macOS, or Linux (TWS/Gateway installed & running).
 

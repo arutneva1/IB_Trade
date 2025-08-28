@@ -2,7 +2,7 @@ import math
 import pytest
 from hypothesis import given, strategies as st
 
-from ibkr_etf_rebalancer.account_state import compute_account_state
+from ibkr_etf_rebalancer import AccountSnapshot, compute_account_state
 
 
 def test_weights_and_exposure_with_and_without_cash_buffer():
@@ -14,6 +14,7 @@ def test_weights_and_exposure_with_and_without_cash_buffer():
     buf = compute_account_state(positions, prices, cash, cash_buffer_pct=0.1)
 
     # Without buffer ---------------------------------------------------------
+    assert isinstance(no_buf, AccountSnapshot)
     assert pytest.approx(1_000 / 3_000, rel=1e-6) == no_buf.weights["SPY"]
     assert pytest.approx(1_000 / 3_000, rel=1e-6) == no_buf.weights["GLD"]
     assert pytest.approx(1_000 / 3_000, rel=1e-6) == no_buf.weights["CASH"]
