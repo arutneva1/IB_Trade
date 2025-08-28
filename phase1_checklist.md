@@ -10,6 +10,7 @@ Copy/paste into your PR or keep this file in `.github/` to guide reviews for **P
 - [ ] No new dependencies added to `requirements.txt`
 - [ ] PR references relevant SRS acceptance criteria in description
 - [ ] CHANGELOG.md updated under latest release
+- [ ] PR description references relevant SRS acceptance criteria
 
 ## CI & local checks
 - [ ] CI is green (ruff, black, mypy, pytest)
@@ -26,9 +27,14 @@ Copy/paste into your PR or keep this file in `.github/` to guide reviews for **P
 ## Tests (table-driven & edge cases)
 - [ ] Valid CSVs load: per-portfolio sums = **100%** or **assets + CASH = 100%** (±0.01)
 - [ ] Exactly **one** optional `CASH` row per portfolio; **must be negative**
-- [ ] Descriptive errors for:  - [ ] Missing/unknown portfolio name  - [ ] Multiple `CASH` rows  - [ ] Non-numeric or out-of-range `target_pct`  - [ ] Sums not meeting the rule above
+- [ ] Descriptive errors for:
+  - [ ] Missing/unknown portfolio name
+  - [ ] Multiple `CASH` rows
+  - [ ] Non-numeric or out-of-range `target_pct`
+  - [ ] Sums not meeting the rule above
 - [ ] Fixtures cover **SMURF/BADASS/GLTR** with overlapping ETFs
 - [ ] Golden sample(s) included for a valid file and a few invalid files
+- [ ] Portfolios exceeding `[rebalance].max_leverage` are rejected
 
 ## Code quality
 - [ ] Clear dataclasses/types; no magic constants
@@ -47,6 +53,25 @@ Copy/paste into your PR or keep this file in `.github/` to guide reviews for **P
 - [ ] Normalization preserves signs (keep `CASH` negative internally)
 - [ ] Clear separation: parsing → validation → normalization
 - [ ] Unit tests assert **exact** error messages (or stable substrings) for bad inputs
+
+### Module-specific add-on: `config.py`
+- [ ] INI validation
+- [ ] Model weights sum to 100%
+- [ ] Margin knobs (e.g., `[rebalance].max_leverage`)
+
+### Module-specific add-on: `target_blender.py`
+- [ ] Overlap handling
+- [ ] Gross vs. net exposure
+
+### Module-specific add-on: `rebalance_engine.py`
+- [ ] Drift filtering
+- [ ] Min order
+- [ ] Leverage guard
+- [ ] Rounding rules
+
+### Module-specific add-on: `reporting.py`
+- [ ] Pre-trade report columns
+- [ ] Skeleton post-trade
 
 ### Reviewer quick commands
 ```bash

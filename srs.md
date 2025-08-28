@@ -207,10 +207,10 @@ Key snapshot helpers are re-exported for convenience; import
      - Require `allow_margin=true` in config; otherwise fail with: "CSV contains CASH but margin is disabled".
      - Enforce `CASH < 0`. If `CASH ≥ 0` → fail (positive cash should be modeled by reducing asset weights).
      - Compute `sum_assets = sum(target_pct of non‑CASH)` and verify `sum_assets + CASH ≈ 100%` (±0.01).
-     - Compute gross = `sum_assets`. Verify `gross ≤ max_leverage × 100%` (with a small epsilon); else fail with a leverage error.
+     - Compute gross = `sum_assets`. Verify `gross ≤ [rebalance].max_leverage × 100%` (with a small epsilon); else fail with a leverage error.
   3. If no `CASH` row: verify `sum_assets ≈ 100%` (±0.01).
 
-*Implementation note:* The current loader enforces the weight and `CASH` rules above but does **not** yet check `max_leverage`.
+*Implementation note:* The loader enforces the weight and `CASH` rules above and checks that gross exposure respects `[rebalance].max_leverage`.
 
 ### 5.3 Model Blending
 - Compute final targets per symbol using model mix.
