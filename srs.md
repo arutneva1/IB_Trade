@@ -369,19 +369,19 @@ class Plan:
 ---
 
 ## 8) Acceptance Criteria
-1. **Validation:** App refuses to run with invalid `settings.ini` or portfolios that don’t sum to 100% per model (clear error).  
-2. **Blending:** Given the sample CSV and `smurf=0.5,badass=0.3,gltr=0.2`, the final targets equal the weighted sum across models to within 1e‑6 and total 100%.  
-3. **Snapshot:** App retrieves NetLiq, cash (USD & CAD), and all ETF positions for the configured account.  
-4. **Triggering:** With `per_holding_band_bps=50`, only holdings with |drift|>0.50% appear in the plan.  
-5. **Sizing:** Orders respect `min_order_usd`, `allow_fractional`, `allow_margin`, `cash_buffer_pct`, and FX guardrails.  
-6. **Execution:** In `--paper` mode, orders are actually submitted to the paper account; in `--dry-run`, no orders are sent.  
-7. **Safety:** If `paper_only=true`, `--live` is blocked with a clear message.  
-8. **Reporting:** Pre‑ and post‑trade CSVs are written to `reports/` and include target vs. current vs. residual drift.  
-9. **Pacing:** The app spaces requests to avoid IBKR pacing violations (no error 10197).  
-10. **Exit codes:** 0 on success; non‑zero plus message on handled failures.  
-11. **Margin via CASH:** A CSV containing `CASH=-50` alongside assets totaling 150 (e.g., SMURF: GLD=100, GDX=50, CASH=-50) validates only when `allow_margin=true` and `max_leverage ≥ 1.5`; resulting plan targets ~150% gross and 100% net, otherwise the app fails with a clear leverage/validator error.  
-12. **FX funding:** With `[fx].enabled=true`, account with CAD cash and zero USD cash can fund USD ETF BUYs by placing a `BUY USD.CAD` FX trade sized to cover the shortfall plus `fx_buffer_bps`; ETFs are only placed after FX funding confirms (or the configurable wait).  
-13. **Spread‑aware limits (default):** For liquid ETFs (spread_bps ≤ `wide_spread_bps`), BUY/SELL limits are placed at mid ± `offset_frac*spread` (rounded to tick) and never beyond NBBO; for wide or stale quotes, `escalate_action` policy is applied.  
+1. [AC1] (Validation) App refuses to run with invalid `settings.ini` or portfolios that don’t sum to 100% per model (clear error).  
+2. [AC2] (Blending) Given the sample CSV and `smurf=0.5,badass=0.3,gltr=0.2`, the final targets equal the weighted sum across models to within 1e‑6 and total 100%.  
+3. [AC3] (Snapshot) App retrieves NetLiq, cash (USD & CAD), and all ETF positions for the configured account.  
+4. [AC4] (Triggering) With `per_holding_band_bps=50`, only holdings with |drift|>0.50% appear in the plan.  
+5. [AC5] (Sizing) Orders respect `min_order_usd`, `allow_fractional`, `allow_margin`, `cash_buffer_pct`, and FX guardrails.  
+6. [AC6] (Execution) In `--paper` mode, orders are actually submitted to the paper account; in `--dry-run`, no orders are sent.  
+7. [AC7] (Safety) If `paper_only=true`, `--live` is blocked with a clear message.  
+8. [AC8] (Reporting) Pre‑ and post‑trade CSVs are written to `reports/` and include target vs. current vs. residual drift.  
+9. [AC9] (Pacing) The app spaces requests to avoid IBKR pacing violations (no error 10197).  
+10. [AC10] (Exit codes) 0 on success; non‑zero plus message on handled failures.  
+11. [AC11] (Margin via CASH) A CSV containing `CASH=-50` alongside assets totaling 150 (e.g., SMURF: GLD=100, GDX=50, CASH=-50) validates only when `allow_margin=true` and `max_leverage ≥ 1.5`; resulting plan targets ~150% gross and 100% net, otherwise the app fails with a clear leverage/validator error.  
+12. [AC12] (FX funding) With `[fx].enabled=true`, account with CAD cash and zero USD cash can fund USD ETF BUYs by placing a `BUY USD.CAD` FX trade sized to cover the shortfall plus `fx_buffer_bps`; ETFs are only placed after FX funding confirms (or the configurable wait).  
+13. [AC13] (Spread‑aware limits) For liquid ETFs (spread_bps ≤ `wide_spread_bps`), BUY/SELL limits are placed at mid ± `offset_frac*spread` (rounded to tick) and never beyond NBBO; for wide or stale quotes, `escalate_action` policy is applied.  
 
 ---
 
