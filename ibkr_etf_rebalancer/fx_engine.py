@@ -82,10 +82,11 @@ def _round_qty(value: float) -> float:
 def plan_fx_if_needed(
     usd_needed: float,
     usd_cash: float,
-    cad_cash: float,
+    funding_cash: float,
     fx_quote: pricing.Quote | None,
     cfg: FXConfig,
     *,
+    funding_currency: str = "CAD",
     now: datetime | None = None,
 ) -> FxPlan:
     """Return an :class:`FxPlan` describing any required FX conversion.
@@ -96,17 +97,20 @@ def plan_fx_if_needed(
         Total USD required to fund upcoming purchases.
     usd_cash:
         Current USD cash on hand.
-    cad_cash:
-        Available CAD cash.  If this is zero the function will return a plan
-        with ``need_fx=False`` because there is nothing to convert.
+    funding_cash:
+        Available cash in the funding currency.  If this is zero the function
+        will return a plan with ``need_fx=False`` because there is nothing to
+        convert.
     fx_quote:
-        A :class:`pricing.Quote` for the ``USD.CAD`` pair.  When ``None`` or
-        stale the function returns ``need_fx=False`` with a reason.
+        A :class:`pricing.Quote` for the relevant currency pair.  When ``None``
+        or stale the function returns ``need_fx=False`` with a reason.
     cfg:
         FX configuration settings.
+    funding_currency:
+        Currency used to fund USD purchases. Defaults to ``"CAD"``.
     """
 
-    pair = f"{cfg.base_currency}.CAD"
+    pair = f"{cfg.base_currency}.{funding_currency}"
     side: Literal["BUY", "SELL"] = "BUY"
     now = now or datetime.now(timezone.utc)
 
@@ -142,7 +146,7 @@ def plan_fx_if_needed(
             reason="no USD shortfall",
         )
 
-    if cad_cash <= 0:
+    if funding_cash <= 0:
         return FxPlan(
             need_fx=False,
             pair=pair,
@@ -154,7 +158,7 @@ def plan_fx_if_needed(
             limit_price=None,
             route=cfg.route,
             wait_for_fill_seconds=cfg.wait_for_fill_seconds,
-            reason="no CAD cash available",
+            reason=f"no {funding_currency} cash available",
         )
 
     buffered = shortfall * (1 + cfg.fx_buffer_bps / 10_000)

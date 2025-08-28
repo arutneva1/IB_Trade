@@ -268,7 +268,7 @@ def test_fx_top_up_generates_plan_and_feasible_orders():
         fx_cfg=fx_cfg,
         quote_provider=provider,
         pricing_cfg=pricing_cfg,
-        cad_cash=150_000.0,
+        funding_cash=150_000.0,
         bands=0.0,
         min_order=0.0,
         max_leverage=1.5,
@@ -299,7 +299,7 @@ def test_sells_partially_fund_buys_reducing_fx():
         fx_cfg=fx_cfg,
         quote_provider=provider,
         pricing_cfg=pricing_cfg,
-        cad_cash=10_000.0,
+        funding_cash=10_000.0,
         bands=0.0,
         min_order=0.0,
         max_leverage=1.5,
@@ -310,6 +310,28 @@ def test_sells_partially_fund_buys_reducing_fx():
     assert fx_plan.usd_notional == pytest.approx(expected_fx)
     assert orders["AAA"] == pytest.approx(-50)
     assert orders["BBB"] == pytest.approx(150)
+
+
+def test_unsupported_funding_currency_rejected():
+    targets = {"AAA": 0.5, "BBB": 0.5}
+    current = {"AAA": 0.0, "BBB": 0.0, "CASH": 0.0}
+    prices = {"AAA": 100.0, "BBB": 100.0}
+    fx_cfg = FXConfig(enabled=True)
+    pricing_cfg = PricingConfig()
+    provider = FakeQuoteProvider({})
+
+    with pytest.raises(ValueError):
+        plan_rebalance_with_fx(
+            targets,
+            current,
+            prices,
+            EQUITY,
+            fx_cfg=fx_cfg,
+            quote_provider=provider,
+            pricing_cfg=pricing_cfg,
+            funding_currency="EUR",
+            funding_cash=10_000.0,
+        )
 
 
 def test_invalid_trigger_mode():
