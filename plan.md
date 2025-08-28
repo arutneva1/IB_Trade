@@ -69,10 +69,11 @@ ibkr_etf_rebalancer/
 - Table‑driven tests with small CSV fixtures.
 
 ### 2.2 `config.py`
-**Goal:** Parse & validate `settings.ini` sections: `[ibkr] [models] [rebalance] [fx] [limits] [safety] [io]` (see SRS).  
+**Goal:** Parse & validate `settings.ini` sections: `[ibkr] [models] [rebalance] [fx] [limits] [safety] [io]` and optional `[symbol_overrides]` (see SRS).
 **Tests:**
 - Model weights sum to 1.0 (SMURF/BADASS/GLTR).
 - Guard `allow_margin`, `max_leverage`, spread‑aware params, FX knobs.
+- Parse/validate optional `[symbol_overrides]` mapping.
 - Defaults and helpful error messages.
 
 ### 2.3 `target_blender.py`
@@ -106,10 +107,11 @@ ibkr_etf_rebalancer/
 - Spreads from 1–100 bps; different minTicks; stale quotes trigger escalation policy (`cross|market|keep`).
 
 ### 3.2 `pricing.py` (interface only)
-**Goal:** Define `Quote(bid, ask, ts)` & a provider interface + **FakeQuoteProvider**.  
+**Goal:** Define `Quote(bid, ask, ts)` & a provider interface + **FakeQuoteProvider**. Support configurable `price_source` with full fallback chain and optional snapshot mode.
 **Tests:**
 - Staleness detection (`stale_quote_seconds`).
-- Fallback selection if bid/ask missing.
+- Fallback selection if bid/ask missing, respecting `price_source` chain.
+- Snapshot option honored.
 
 ---
 
@@ -150,20 +152,25 @@ ibkr_etf_rebalancer/
 
 ## 7) Phase 6 — Order Builder & Executor (Dry‑Run First)
 
+### 7.0 `safety.py`
+**Goal:** Centralize kill switch, confirmation prompts, and `prefer_rth` gating.
+**Tests:**
+- `require_confirm`, `kill_switch_file`, and `prefer_rth` enforcement.
+
 ### 7.1 `order_builder.py`
-**Goal:** Map plan lines to broker orders using `limit_pricer` (default LMT), TIF=DAY, SMART route, RTH.  
+**Goal:** Map plan lines to broker orders using `limit_pricer` (default LMT), TIF=DAY, SMART route, RTH.
 **Tests:**
 - Mapping correctness for BUY/SELL; FX vs equity orders; tick rounding applied.
 
 ### 7.2 `order_executor.py`
-**Goal:** Two‑stage sequencing with safety and pacing.  
+**Goal:** Two‑stage sequencing with safety and pacing.
 **Flow:**
 1. **FX Stage** (if `[fx].enabled=true`): place `BUY USD.CAD`, wait for fill (or configured pause).
 2. **Equities Stage**: **SELLS first**, then **BUYS**; cap concurrent open orders; optional confirmation; respect `paper_only` and kill‑switch.
 **Tests (with FakeIB):**
 - FX before ETF buys; sells before buys.
 - Concurrency cap respected.
-- Abort on safety violations with clear messages.
+- `prefer_rth` gating enforced; abort on safety violations with clear messages.
 
 ---
 
@@ -192,8 +199,8 @@ python app.py --csv portfolios.csv --ini settings.ini --dry-run
 python app.py --csv portfolios.csv --ini settings.ini --paper
 python app.py --csv portfolios_margin.csv --ini settings.ini --paper --yes
 ```
-**Logging:** Structured logs, run‑id, config echo, environment dump.  
-**Exit codes:** 0 success; non‑zero with crisp error messages.
+**Logging:** Structured logs, run‑id, config echo, environment dump.
+**Errors:** Structured error‑handling strategy with defined exit‑code mapping (0 success; non‑zero per failure type).
 
 ---
 

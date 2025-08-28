@@ -16,7 +16,7 @@ This guide summarizes how to use `srs.md` and `plan.md` with Codex to build the 
   - CI green; verify GitHub Actions shows a green check before merging
   - SRS/README updated if behavior changes
   - No secrets committed
-  - Safety rails intact (paper_only, LMT default, RTH)
+  - Safety rails intact (paper_only, LMT default, RTH, require_confirm, kill_switch_file, prefer_rth)
 
 ## 3) Task Card Template (paste into Codex prompt)
 **Task:** Implement `<module>` per SRS (paste relevant subsection only).  
@@ -32,7 +32,7 @@ This guide summarizes how to use `srs.md` and `plan.md` with Codex to build the 
 
 ## 5) Phase Order (from `plan.md`)
 - Phase 0: Bootstrap (CI, pre‑commit, skeleton files)
-- Phase 1: Pure core (CSV loader, config, blending, rebalance math, reporting)
+- Phase 1: Pure core (CSV loader, config with optional `[symbol_overrides]`, blending, rebalance math, reporting)
 - Phase 2: Spread‑aware limit pricing + FakeQuoteProvider
 - Phase 3: Account snapshot model (per‑currency cash)
 - Phase 4: FX funding (math/plan only)
