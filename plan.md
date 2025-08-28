@@ -62,6 +62,7 @@ ibkr_etf_rebalancer/
   make lint test run
   ```
 - Add empty modules with docstrings and TODOs.
+- When creating modules, follow [SRS §7 Data Structures (suggested)](srs.md#7-data-structures-suggested) for dataclass templates.
 
 **No external calls** yet.
 
