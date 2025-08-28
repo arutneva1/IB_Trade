@@ -141,6 +141,18 @@ class LimitsConfig(BaseModel):
     use_ask_bid_cap: bool = Field(True, description="Never bid above ask or offer below bid")
 
 
+class PricingConfig(BaseModel):
+    """Pricing options controlling preferred price sources."""
+
+    price_source: Literal["last", "midpoint", "bidask"] = Field(
+        "last", description="Preferred initial price source"
+    )
+    fallback_to_snapshot: bool = Field(
+        True,
+        description="Allow snapshot retrieval when live data is unavailable",
+    )
+
+
 class SafetyConfig(BaseModel):
     """Safety related thresholds and flags from SRS ``[safety]``."""
 
@@ -172,6 +184,7 @@ class AppConfig(BaseModel):
     rebalance: RebalanceConfig
     fx: FXConfig
     limits: LimitsConfig
+    pricing: PricingConfig = Field(default_factory=PricingConfig)
     safety: SafetyConfig
     io: IOConfig
 
@@ -202,6 +215,7 @@ def load_config(path: Path) -> AppConfig:
         "models",
         "rebalance",
         "fx",
+        "pricing",
         "limits",
         "safety",
         "io",
@@ -210,6 +224,8 @@ def load_config(path: Path) -> AppConfig:
             items: dict[str, Any] = dict(parser.items(section))
             if section == "ibkr" and "read_only" in items:
                 items["read_only"] = parser.getboolean(section, "read_only")
+            if section == "pricing" and "fallback_to_snapshot" in items:
+                items["fallback_to_snapshot"] = parser.getboolean(section, "fallback_to_snapshot")
             if section == "fx" and "funding_currencies" in items:
                 items["funding_currencies"] = [
                     s.strip() for s in items["funding_currencies"].split(",") if s.strip()
@@ -225,6 +241,7 @@ __all__ = [
     "RebalanceConfig",
     "FXConfig",
     "LimitsConfig",
+    "PricingConfig",
     "SafetyConfig",
     "IOConfig",
     "AppConfig",
