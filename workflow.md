@@ -48,10 +48,20 @@ This guide summarizes how to use `srs.md` and `plan.md` with Codex to build the 
 > You may only change: `limit_pricer.py`, `tests/test_limit_pricer.py`. Do not modify other files.
 
 ## 8) Example Commands
+Use the provided wrappers to keep linting, testing, and running consistent across environments.
+
 ```bash
+# direct commands
 ruff check . && black --check . && mypy . && pytest -q
 python app.py --csv portfolios.csv --ini settings.ini --dry-run
+
+# or via Make/Invoke helpers
+make lint
+make test
+invoke run --csv portfolios.csv --ini settings.ini --dry-run
 ```
+
+These wrappers centralize the lint/test/run commands so the same checks run everywhere.
 
 ## 9) Files Added by This Update
 - `.github/PULL_REQUEST_TEMPLATE.md`
