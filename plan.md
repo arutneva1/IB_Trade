@@ -69,10 +69,11 @@ ibkr_etf_rebalancer/
 - Table‑driven tests with small CSV fixtures.
 
 ### 2.2 `config.py`
-**Goal:** Parse & validate `settings.ini` sections: `[ibkr] [models] [rebalance] [fx] [limits] [safety] [io]` and optional `[symbol_overrides]` (see SRS).
+**Goal:** Parse & validate `settings.ini` sections: `[ibkr] [models] [rebalance] [fx] [limits] [safety] [pricing] [io]` and optional `[symbol_overrides]` (see SRS).
 **Tests:**
 - Model weights sum to 1.0 (SMURF/BADASS/GLTR).
 - Guard `allow_margin`, `max_leverage`, spread‑aware params, FX knobs.
+- Validate `[pricing]` options: `price_source` chain and `fallback_to_snapshot` toggle.
 - Parse/validate optional `[symbol_overrides]` mapping.
 - Defaults and helpful error messages.
 
