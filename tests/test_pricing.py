@@ -8,10 +8,10 @@ from ibkr_etf_rebalancer.pricing import Quote, is_stale, FakeQuoteProvider
 def fake_quote_provider() -> FakeQuoteProvider:
     now = datetime.now(timezone.utc)
     quotes = {
-        "FRESH": Quote(bid=100.0, ask=101.0, ts=now),
-        "STALE": Quote(bid=100.0, ask=101.0, ts=now - timedelta(seconds=20)),
-        "NOBID": Quote(bid=None, ask=101.0, ts=now),
-        "NOASK": Quote(bid=100.0, ask=None, ts=now),
+        "FRESH": Quote(bid=100.0, ask=101.0, ts=now, last=100.5),
+        "STALE": Quote(bid=100.0, ask=101.0, ts=now - timedelta(seconds=20), last=100.5),
+        "NOBID": Quote(bid=None, ask=101.0, ts=now, last=100.0),
+        "NOASK": Quote(bid=100.0, ask=None, ts=now, last=100.0),
     }
     return FakeQuoteProvider(quotes)
 
@@ -60,3 +60,42 @@ def test_fake_quote_provider_missing_symbol(fake_quote_provider: FakeQuoteProvid
 def test_mid_calculation() -> None:
     quote = Quote(bid=100.0, ask=102.0, ts=datetime.now(timezone.utc))
     assert quote.mid() == pytest.approx(101.0)
+
+
+def test_price_source_last_fallback_midpoint() -> None:
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider({"SYM": Quote(100.0, 102.0, now, last=None)})
+    price = provider.get_price("SYM", "last")
+    assert price == pytest.approx(101.0)
+
+
+def test_price_source_midpoint_fallback_bidask() -> None:
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider({"SYM": Quote(100.0, None, now, last=None)})
+    price = provider.get_price("SYM", "midpoint")
+    assert price == pytest.approx(100.0)
+
+
+def test_price_source_bidask_fallback_last() -> None:
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider({"SYM": Quote(None, None, now, last=99.5)})
+    price = provider.get_price("SYM", "bidask")
+    assert price == pytest.approx(99.5)
+
+
+def test_snapshot_fallback() -> None:
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider(
+        {"SYM": Quote(None, None, now, last=None)}, snapshots={"SYM": 98.7}
+    )
+    price = provider.get_price("SYM", "last", fallback_to_snapshot=True)
+    assert price == pytest.approx(98.7)
+
+
+def test_snapshot_disabled_raises() -> None:
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider(
+        {"SYM": Quote(None, None, now, last=None)}, snapshots={"SYM": 98.7}
+    )
+    with pytest.raises(ValueError):
+        provider.get_price("SYM", "last")
