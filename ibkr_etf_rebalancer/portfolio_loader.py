@@ -25,7 +25,12 @@ class PortfolioError(ValueError):
     """Raised when the portfolio CSV fails validation."""
 
 
-def load_portfolios(csv_path: Path, *, allow_margin: bool = False) -> Dict[str, Dict[str, float]]:
+def load_portfolios(
+    csv_path: Path,
+    *,
+    allow_margin: bool = False,
+    max_leverage: float = 1.0,
+) -> Dict[str, Dict[str, float]]:
     """Read a portfolio CSV and return a mapping of model -> weights.
 
     Parameters
@@ -35,6 +40,10 @@ def load_portfolios(csv_path: Path, *, allow_margin: bool = False) -> Dict[str, 
     allow_margin:
         When ``True``, allow a single ``CASH`` row per portfolio with a
         negative percentage representing borrowed cash.
+    max_leverage:
+        Maximum allowed sum of non-``CASH`` asset weights for a portfolio.
+        Portfolios whose asset weights exceed this value will raise
+        :class:`PortfolioError`.
 
     Returns
     -------
@@ -45,7 +54,8 @@ def load_portfolios(csv_path: Path, *, allow_margin: bool = False) -> Dict[str, 
     Raises
     ------
     PortfolioError
-        If the CSV is malformed or violates validation rules.
+        If the CSV is malformed or violates validation rules, including when
+        the non-``CASH`` asset weights exceed ``max_leverage``.
     """
 
     rows: list[PortfolioRow] = []
@@ -107,6 +117,11 @@ def load_portfolios(csv_path: Path, *, allow_margin: bool = False) -> Dict[str, 
             raise PortfolioError(f"Portfolio {name}: multiple CASH rows found")
         cash_pct = cash_values[0] if cash_values else 0.0
         asset_sum = sum(v for s, v in weights.items() if s != "CASH")
+
+        if asset_sum - max_leverage > TOLERANCE:
+            raise PortfolioError(
+                f"Portfolio {name}: asset weights {asset_sum*100:.2f}% exceed max leverage {max_leverage*100:.2f}%"
+            )
 
         if cash_values:
             if not allow_margin:
