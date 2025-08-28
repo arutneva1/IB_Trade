@@ -311,7 +311,7 @@ python app.py --csv portfolios.csv --ini settings.ini --paper
 python app.py --csv portfolios_margin.csv --ini settings.ini --paper --yes
 python app.py --csv portfolios.csv --ini settings.ini --live --yes
 ```
-**Logging:** Structured logs, run‑id, config echo, environment dump.
+**Logging:** Structured logs written to a `.log` file including run‑id, config echo, and environment dump; support `--log-level DEBUG` to enable debug output. Tests or manual steps should verify that the log file is created and that debug logging toggles with the option.
 **Errors:** Structured error‑handling strategy with defined exit‑code mapping (0 success; non‑zero per failure type).
 
 ---
