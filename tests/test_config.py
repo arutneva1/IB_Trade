@@ -73,7 +73,7 @@ def test_allow_margin_true():
 
 def test_invalid_trigger_mode():
     data = valid_config_dict()
-    data["rebalance"]["trigger_mode"] = "bad"
+    data["rebalance"]["trigger_mode"] = "per_symbol"
     with pytest.raises(ValidationError):
         AppConfig(**data)
 
