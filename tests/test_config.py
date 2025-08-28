@@ -214,6 +214,66 @@ GLTR = 0.2
     assert cfg.models.SMURF == 0.5
 
 
+def test_load_config_lowercase_models(tmp_path: Path):
+    ini = tmp_path / "config.ini"
+    ini.write_text(
+        """
+[ibkr]
+account = DU123
+
+[models]
+smurf = 0.5
+badass = 0.3
+gltr = 0.2
+
+[rebalance]
+
+[fx]
+
+[limits]
+
+[safety]
+
+[io]
+"""
+    )
+
+    cfg = load_config(ini)
+    assert cfg.models.SMURF == 0.5
+    assert cfg.models.BADASS == 0.3
+    assert cfg.models.GLTR == 0.2
+
+
+def test_load_config_mixed_case_models(tmp_path: Path):
+    ini = tmp_path / "config.ini"
+    ini.write_text(
+        """
+[ibkr]
+account = DU123
+
+[models]
+SmUrF = 0.5
+BaDaSs = 0.3
+gLtR = 0.2
+
+[rebalance]
+
+[fx]
+
+[limits]
+
+[safety]
+
+[io]
+"""
+    )
+
+    cfg = load_config(ini)
+    assert cfg.models.SMURF == 0.5
+    assert cfg.models.BADASS == 0.3
+    assert cfg.models.GLTR == 0.2
+
+
 def test_load_config_missing_section(tmp_path: Path):
     ini = tmp_path / "config.ini"
     ini.write_text(
