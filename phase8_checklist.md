@@ -8,6 +8,8 @@
 - [ ] Changes limited to CLI & polish (e.g., `app.py`, `__main__.py`, `README.md`, docs/examples, packaging metadata)
 - [ ] No behavior changes to pricing/math or provider beyond wiring CLI options
 - [ ] Live trading remains fully gated (paper default; explicit `--live --yes` required, and KILL_SWITCH checked)
+- [ ] PR references relevant SRS acceptance criteria in description
+- [ ] CHANGELOG.md updated under latest release
 
 ## CI & local checks
 - [ ] CI green: `ruff`, `black --check`, `mypy`, `pytest`
@@ -20,6 +22,8 @@
 - [ ] Sequencing & safety rules unchanged (FX → SELLS → BUYS; LMT default; NBBO caps; tolerance bands)
 - [ ] Spread‑aware pricing is still the default for equities
 - [ ] FX handling per SRS `[fx]` is surfaced via CLI flags/env/config; no new execution behavior added
+- [ ] `price_source` fallback chain: `last` → `midpoint` → `bid/ask` → `snapshot`
+- [ ] Optional snapshot mode controlled by config
 
 ## CLI (`app.py` with Typer)
 - [ ] Commands/subcommands (example):

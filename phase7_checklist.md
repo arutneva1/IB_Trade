@@ -9,6 +9,8 @@
 - [ ] No functional changes to pricing math or provider beyond **wiring**
 - [ ] No new production deps; dev/test deps only (e.g., `pyyaml`, `freezegun`)
 - [ ] All runs deterministic (fixed timestamps, seeded randomness)
+- [ ] PR references relevant SRS acceptance criteria in description
+- [ ] CHANGELOG.md updated under latest release
 
 ## CI & local checks
 - [ ] CI green: `ruff`, `black --check`, `mypy`, `pytest`
@@ -21,6 +23,8 @@
 - [ ] Post‑trade artifacts summarize fills, slippage vs limit, remaining drift
 - [ ] Safety rails enforced even offline (paper default, kill‑switch honored)
 - [ ] Spread‑aware pricing used by default; NBBO caps respected in prices placed
+- [ ] `price_source` fallback chain: `last` → `midpoint` → `bid/ask` → `snapshot`
+- [ ] Optional snapshot mode controlled by config
 
 ## Scenario format (example YAML)
 ```yaml

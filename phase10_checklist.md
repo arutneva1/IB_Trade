@@ -8,12 +8,18 @@
 - [ ] PR contents match Phase 10 scope (ops/safety/observability/rollout); no new trading features
 - [ ] Feature flags guard any behavior that could affect live runs
 - [ ] No secrets in code or logs; `.env` remains git‑ignored; secrets pulled from env/secret store
+- [ ] PR references relevant SRS acceptance criteria in description
+- [ ] CHANGELOG.md updated under latest release
 
 ## CI, QA & quality bars
 - [ ] CI green: `ruff`, `black --check`, `mypy`, `pytest`
 - [ ] Diff coverage ≥ **90%** (including new safety/ops helpers)
 - [ ] Static analysis for supply chain basics (dependabot/py-upgrade optional)
 - [ ] Reproducible builds: `pip install -e .` and `python -m ibkr_etf_rebalancer --version` succeed
+
+## Alignment with SRS
+- [ ] `price_source` fallback chain: `last` → `midpoint` → `bid/ask` → `snapshot`
+- [ ] Optional snapshot mode controlled by config
 
 ## Safety rails (final)
 - [ ] Hard caps enforced & configurable:

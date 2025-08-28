@@ -8,6 +8,8 @@ Copy/paste into your PR or keep this file in `.github/` to guide reviews for **P
 - [ ] **Scope is Phase 1 only** (pure core; no broker/`ib_async`, no network I/O)
 - [ ] Only expected files changed (e.g., `portfolio_loader.py`, `tests/test_portfolio_loader.py`)
 - [ ] No new dependencies added to `requirements.txt`
+- [ ] PR references relevant SRS acceptance criteria in description
+- [ ] CHANGELOG.md updated under latest release
 
 ## CI & local checks
 - [ ] CI is green (ruff, black, mypy, pytest)
@@ -18,6 +20,8 @@ Copy/paste into your PR or keep this file in `.github/` to guide reviews for **P
 - [ ] Uses model names **SMURF**, **BADASS**, **GLTR**
 - [ ] Margin encoding uses **`CASH` negative row** pattern only
 - [ ] Spread-aware pricing, FX, broker calls **not** implemented in Phase 1
+- [ ] `price_source` fallback chain: `last` → `midpoint` → `bid/ask` → `snapshot`
+- [ ] Optional snapshot mode controlled by config
 
 ## Tests (table-driven & edge cases)
 - [ ] Valid CSVs load: per-portfolio sums = **100%** or **assets + CASH = 100%** (±0.01)
