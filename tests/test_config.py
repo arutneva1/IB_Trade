@@ -225,6 +225,25 @@ GLTR = 0.2
     assert cfg2.symbol_overrides == {}
 
 
+@pytest.mark.parametrize(
+    "level",
+    ["DEBUG", "info", "Warning", "error", "critical"],
+)
+def test_log_level_values(level: str) -> None:
+    data = valid_config_dict()
+    data["io"]["log_level"] = level
+    cfg = AppConfig(**data)
+    assert cfg.io.log_level == level.upper()
+
+
+@pytest.mark.parametrize("level", ["", "VERBOSE", "trace", "warn"])
+def test_log_level_invalid(level: str) -> None:
+    data = valid_config_dict()
+    data["io"]["log_level"] = level
+    with pytest.raises(ValidationError):
+        AppConfig(**data)
+
+
 def test_load_config_success(tmp_path: Path):
     ini = tmp_path / "config.ini"
     ini.write_text(
