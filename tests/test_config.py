@@ -28,6 +28,8 @@ def test_valid_config():
     assert cfg.rebalance.trigger_mode == "per_holding"
     assert cfg.limits.style == "spread_aware"
     assert cfg.ibkr.read_only is True
+    assert cfg.pricing.price_source == "last"
+    assert cfg.pricing.fallback_to_snapshot is True
 
 
 def test_missing_section():
@@ -91,6 +93,24 @@ def test_invalid_fx_buffer():
     data["fx"]["fx_buffer_bps"] = -1
     with pytest.raises(ValidationError):
         AppConfig(**data)
+
+
+def test_invalid_price_source():
+    data = valid_config_dict()
+    data["pricing"] = {"price_source": "bogus"}
+    with pytest.raises(ValidationError):
+        AppConfig(**data)
+
+
+def test_fallback_to_snapshot_coercion():
+    data = valid_config_dict()
+    data["pricing"] = {"fallback_to_snapshot": "false"}
+    cfg = AppConfig(**data)
+    assert cfg.pricing.fallback_to_snapshot is False
+
+    data["pricing"] = {"fallback_to_snapshot": "1"}
+    cfg2 = AppConfig(**data)
+    assert cfg2.pricing.fallback_to_snapshot is True
 
 
 def test_symbol_overrides_parsing(tmp_path: Path):
