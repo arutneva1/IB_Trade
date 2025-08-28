@@ -39,6 +39,8 @@ target-version = "py311"
 python_version = "3.11"
 # Keep app code strict
 strict = true
+# Look for additional type stubs in the ``typings`` directory
+mypy_path = ["typings"]
 # Teach mypy about Pydantic BaseModel/validators
 plugins = ["pydantic.mypy"]
 
