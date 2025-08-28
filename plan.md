@@ -130,9 +130,11 @@ ibkr_etf_rebalancer/
 
 ### 2.5 `reporting.py`
 **Goal:** Pre‑trade report (CSV/Markdown); post‑trade skeleton.
+- Pre-trade report includes an account summary (NetLiq, cash balances, cash buffer).
 - Pre-trade columns (see SRS §14): `symbol, target_pct, current_pct, drift_bps, price, dollar_delta, share_delta, side, est_notional`.
 - Post-trade columns (see SRS §14): `symbol, side, filled_shares, avg_price, notional`.
 **Tests:**
+- Assert account summary appears in generated reports.
 - Golden‑file comparisons for stable formatting.
 
 ---

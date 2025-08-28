@@ -1,3 +1,7 @@
+NetLiq: 100000.00
+Cash USD: 10000.00
+Cash Buffer: 5000.00
+
 | symbol | target_pct | current_pct | drift_bps | price | dollar_delta | share_delta | side | est_notional |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | AAA | 60.00 | 50.00 | 1000.00 | 100.00 | 10000.00 | 100.0000 | BUY | 10000.00 |
