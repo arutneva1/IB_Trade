@@ -305,7 +305,8 @@ def test_sells_partially_fund_buys_reducing_fx():
         max_leverage=1.5,
     )
 
-    expected_fx = 10_000 * (1 + fx_cfg.fx_buffer_bps / 10_000)
+    est_rate = round(provider.get_quote("USD.CAD").mid(), 4)
+    expected_fx = round(10_000 / est_rate, 2)
     assert fx_plan.need_fx is True
     assert fx_plan.usd_notional == pytest.approx(expected_fx)
     assert orders["AAA"] == pytest.approx(-50)

@@ -153,6 +153,33 @@ def test_no_cad_cash_skips_plan(fresh_quote: Quote, fx_cfg: FXConfig) -> None:
     assert "no CAD cash" in plan.reason
 
 
+def test_funding_cash_caps_order(fresh_quote: Quote, fx_cfg: FXConfig) -> None:
+    plan = plan_fx_if_needed(
+        usd_needed=5_000,
+        usd_cash=0,
+        funding_cash=1_500,
+        fx_quote=fresh_quote,
+        cfg=fx_cfg,
+    )
+    est_rate = round(fresh_quote.mid(), 4)
+    expected = round(1_500 / est_rate, 2)
+    assert plan.need_fx is True
+    assert plan.usd_notional == pytest.approx(expected)
+    assert plan.qty == pytest.approx(expected)
+
+
+def test_insufficient_funding_cash_skips(fresh_quote: Quote, fx_cfg: FXConfig) -> None:
+    plan = plan_fx_if_needed(
+        usd_needed=5_000,
+        usd_cash=0,
+        funding_cash=500,
+        fx_quote=fresh_quote,
+        cfg=fx_cfg,
+    )
+    assert plan.need_fx is False
+    assert "insufficient CAD" in plan.reason
+
+
 def test_use_ask_when_mid_disabled(fresh_quote: Quote, fx_cfg: FXConfig) -> None:
     cfg = fx_cfg.model_copy(update={"use_mid_for_planning": False})
     plan = plan_fx_if_needed(

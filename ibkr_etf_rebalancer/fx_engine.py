@@ -241,6 +241,27 @@ def plan_fx_if_needed(
             est_rate = fx_quote.bid
     est_rate = _round_price(est_rate)
 
+    # Cap the desired USD notional by available funding cash.  Determine the
+    # maximum purchasable USD using the estimated FX rate and either reduce the
+    # order size to this cap or skip FX entirely when the cap falls below the
+    # minimum order size.
+    max_usd = funding_cash / est_rate
+    if max_usd < cfg.min_fx_order_usd:
+        return FxPlan(
+            need_fx=False,
+            pair=pair,
+            side=side,
+            usd_notional=0.0,
+            est_rate=0.0,
+            qty=0.0,
+            order_type=cfg.order_type,
+            limit_price=None,
+            route=cfg.route,
+            wait_for_fill_seconds=cfg.wait_for_fill_seconds,
+            reason=f"insufficient {funding_currency} cash",
+        )
+    usd_notional = min(usd_notional, max_usd)
+
     qty = _round_qty(usd_notional)
     usd_notional = qty
 
