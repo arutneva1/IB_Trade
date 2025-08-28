@@ -48,6 +48,20 @@ ibkr_etf_rebalancer/
   tests/
 ```
 
+### Phase–Acceptance Criteria Map
+
+| Phase | SRS §8 Acceptance Criteria |
+|-------|----------------------------|
+| Phase 0 — Bootstrap & Guardrails | — |
+| Phase 1 — Pure Core (No IB, No Network) | AC1, AC2, AC4, AC5, AC11 |
+| Phase 2 — Spread‑Aware Limit Pricing (Still Offline) | AC13 |
+| Phase 3 — Account Snapshot Model (Offline) | AC3 |
+| Phase 4 — FX Funding (Math + Plan Only) | AC5, AC12 |
+| Phase 5 — IBKR Provider (ib_async) with Fakes | AC3, AC9 |
+| Phase 6 — Order Builder & Executor (Dry‑Run First) | AC5, AC6, AC7, AC8, AC9, AC10 |
+| Phase 7 — End‑to‑End Scenarios | AC1–AC13 |
+| Phase 8 — CLI, Logging, DX polish | AC7, AC10 |
+
 ---
 
 ## 1) Phase 0 — Bootstrap & Guardrails
