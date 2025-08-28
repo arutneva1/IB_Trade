@@ -205,6 +205,7 @@ ibkr_etf_rebalancer/
 python app.py --csv portfolios.csv --ini settings.ini --dry-run
 python app.py --csv portfolios.csv --ini settings.ini --paper
 python app.py --csv portfolios_margin.csv --ini settings.ini --paper --yes
+python app.py --csv portfolios.csv --ini settings.ini --live --yes
 ```
 **Logging:** Structured logs, run‑id, config echo, environment dump.
 **Errors:** Structured error‑handling strategy with defined exit‑code mapping (0 success; non‑zero per failure type).
