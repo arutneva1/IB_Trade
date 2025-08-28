@@ -211,9 +211,7 @@ def generate_orders(
                 continue
         if shares < 0:
             current_shares = current.get(symbol, 0.0) * total_equity / price
-            max_sell = (
-                math.floor(current_shares) if not allow_fractional else current_shares
-            )
+            max_sell = math.floor(current_shares) if not allow_fractional else current_shares
             if abs(shares) > max_sell:
                 if max_sell > 0:
                     shares = -max_sell
