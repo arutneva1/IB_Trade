@@ -115,6 +115,7 @@ funding_currencies = CAD       ; comma‑sep list; v1 supports CAD only
 convert_mode = just_in_time    ; just_in_time | always_top_up
 use_mid_for_planning = true    ; plan FX size using mid price
 min_fx_order_usd = 1000        ; skip tiny conversions
+max_fx_order_usd = 5000        ; cap single conversion size (optional)
 fx_buffer_bps = 20             ; buy a small extra cushion (0.20%)
 order_type = MKT               ; MKT | LMT
 limit_slippage_bps = 5         ; when order_type=LMT
@@ -149,7 +150,7 @@ log_level = INFO
 ```
 ### 3.3 `[pricing]` & `[fx]` configuration
 - `[pricing]` selects the quote source (`last`, `midpoint`, or `bidask`) and whether to fall back to snapshot data.
-- `[fx]` enables optional CAD→USD conversions, defining base/funding currencies, conversion timing, and order controls.
+- `[fx]` enables optional CAD→USD conversions, defining base/funding currencies, conversion timing, and order controls such as `max_fx_order_usd` and `limit_slippage_bps`.
 
 ### 3.4 `[limits]` — Spread‑aware limit pricing (default)
 - Default order type is **LMT** with a **spread‑aware** strategy.
@@ -513,6 +514,7 @@ funding_currencies=CAD
 convert_mode=just_in_time
 use_mid_for_planning=true
 min_fx_order_usd=1000
+max_fx_order_usd=5000
 fx_buffer_bps=20
 order_type=MKT
 limit_slippage_bps=5

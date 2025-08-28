@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 - Placeholder for upcoming changes.
+- Added FX planning with `[fx]` configuration for offline CAD→USD conversions.
 - Document paper and live CLI examples in `workflow.md`.
 - Clarified Definition of Done in `plan.md` to include CHANGELOG entries and SRS acceptance-criteria references.
 
