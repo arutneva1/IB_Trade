@@ -18,19 +18,20 @@ def fake_quote_provider() -> FakeQuoteProvider:
 
 def test_quote_staleness(fake_quote_provider: FakeQuoteProvider) -> None:
     fresh = fake_quote_provider.get_quote("FRESH")
-    assert not is_stale(fresh, stale_quote_seconds=10)
+    now = datetime.now(timezone.utc)
+    assert not is_stale(fresh, now, stale_quote_seconds=10)
     stale = fake_quote_provider.get_quote("STALE")
-    assert is_stale(stale, stale_quote_seconds=10)
+    assert is_stale(stale, now, stale_quote_seconds=10)
 
 
-def test_mid_fallback_for_missing_bid(fake_quote_provider: FakeQuoteProvider) -> None:
-    quote = fake_quote_provider.get_quote("NOBID")
-    assert quote.mid() == pytest.approx(101.0)
+def test_fake_quote_provider_missing_bid(fake_quote_provider: FakeQuoteProvider) -> None:
+    with pytest.raises(ValueError, match="missing bid"):
+        fake_quote_provider.get_quote("NOBID")
 
 
-def test_mid_fallback_for_missing_ask(fake_quote_provider: FakeQuoteProvider) -> None:
-    quote = fake_quote_provider.get_quote("NOASK")
-    assert quote.mid() == pytest.approx(100.0)
+def test_fake_quote_provider_missing_ask(fake_quote_provider: FakeQuoteProvider) -> None:
+    with pytest.raises(ValueError, match="missing ask"):
+        fake_quote_provider.get_quote("NOASK")
 
 
 def test_mid_raises_when_no_sides() -> None:
