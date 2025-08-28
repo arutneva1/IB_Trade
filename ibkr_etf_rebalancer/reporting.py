@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Any, Iterable, Mapping
 
 import pandas as pd
 
@@ -16,10 +16,16 @@ def _build_pre_trade_dataframe(
     current: Mapping[str, float],
     prices: Mapping[str, float],
     total_equity: float,
+    **order_kwargs: Any,
 ) -> pd.DataFrame:
-    """Internal helper to assemble the pre‑trade report dataframe."""
+    """Internal helper to assemble the pre‑trade report dataframe.
 
-    orders = generate_orders(targets, current, prices, total_equity)
+    Additional keyword arguments are forwarded to
+    :func:`rebalance_engine.generate_orders` allowing callers to tweak
+    behaviour such as tolerance bands or minimum order size.
+    """
+
+    orders = generate_orders(targets, current, prices, total_equity, **order_kwargs)
     rows: list[dict[str, object]] = []
     symbols = sorted(set(targets) | set(current))
     for symbol in symbols:
@@ -119,6 +125,7 @@ def generate_pre_trade_report(
     *,
     output_dir: Path | None = None,
     as_of: datetime | None = None,
+    **order_kwargs: Any,
 ) -> pd.DataFrame | tuple[pd.DataFrame, Path, Path]:
     """Create the pre‑trade report and optionally persist it to ``output_dir``.
 
@@ -131,6 +138,9 @@ def generate_pre_trade_report(
         this directory using a timestamped filename.
     as_of:
         Timestamp used for naming the output files.  Defaults to ``datetime.now()``.
+    **order_kwargs:
+        Additional options passed through to
+        :func:`rebalance_engine.generate_orders`.
 
     Returns
     -------
@@ -139,7 +149,7 @@ def generate_pre_trade_report(
         csv_path, md_path)`` is returned.
     """
 
-    df = _build_pre_trade_dataframe(targets, current, prices, total_equity)
+    df = _build_pre_trade_dataframe(targets, current, prices, total_equity, **order_kwargs)
 
     if output_dir is not None:
         as_of = as_of or datetime.now()
