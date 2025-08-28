@@ -43,7 +43,7 @@ def price_limit_buy(
 
     The algorithm follows the spread-aware specification in SRS ``[limits]``:
     apply an offset from the mid price, cap the result by ``max_offset_bps`` and
-    optionally the current ask, then round to the contract's minimum tick.  Wide
+    optionally the current ask, then align to the contract's minimum tick.  Wide
     or stale markets may escalate according to ``escalate_action``.  When
     ``escalate_action`` is ``"market"`` this function returns ``None`` and the
     ``"MKT"`` order type.
@@ -62,9 +62,9 @@ def price_limit_buy(
     price = mid + cfg.buy_offset_frac * spread
     cap = mid * (1 + cfg.max_offset_bps / 10000)
     price = min(price, cap)
-    price = _round_to_tick(price, min_tick)
     if cfg.use_ask_bid_cap:
         price = min(price, ask)
+    price = _round_to_tick(price, min_tick)
 
     wide_or_stale = spread_bps > cfg.wide_spread_bps or is_stale(
         quote, now, cfg.stale_quote_seconds
@@ -103,9 +103,9 @@ def price_limit_sell(
     price = mid - cfg.sell_offset_frac * spread
     cap = mid * (1 - cfg.max_offset_bps / 10000)
     price = max(price, cap)
-    price = _round_to_tick(price, min_tick)
     if cfg.use_ask_bid_cap:
         price = max(price, bid)
+    price = _round_to_tick(price, min_tick)
 
     wide_or_stale = spread_bps > cfg.wide_spread_bps or is_stale(
         quote, now, cfg.stale_quote_seconds

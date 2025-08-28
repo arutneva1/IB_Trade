@@ -177,6 +177,42 @@ def test_cross_rounds_non_tick_aligned(func, bid, ask, tick, exp):
     assert t == "LMT" and p == pytest.approx(exp)
 
 
+@pytest.mark.parametrize(
+    "func,bid,ask,tick,exp",
+    [
+        (
+            price_limit_buy,
+            99.98,
+            100.006,
+            0.01,
+            math.floor(100.006 / 0.01 + 0.5) * 0.01,
+        ),
+        (
+            price_limit_sell,
+            99.994,
+            100.02,
+            0.01,
+            math.floor(99.994 / 0.01 + 0.5) * 0.01,
+        ),
+    ],
+)
+def test_nbbo_cap_rounds_to_tick(func, bid, ask, tick, exp):
+    """NBBO cap is applied before tick rounding."""
+    now = datetime.now(timezone.utc)
+    q = Quote(bid, ask, now)
+    cfg = LimitsConfig(
+        buy_offset_frac=1.0,
+        sell_offset_frac=1.0,
+        max_offset_bps=1000,
+        wide_spread_bps=200,
+        escalate_action="keep",
+        stale_quote_seconds=10,
+        use_ask_bid_cap=True,
+    )
+    p, t = func(q, tick, cfg, now)
+    assert t == "LMT" and p == pytest.approx(exp)
+
+
 def test_tick_fallback_rounding():
     now = datetime.now(timezone.utc)
     q = Quote(100.0, 100.1, now)
@@ -294,7 +330,9 @@ def test_spread_monotonic_and_bounds(mid, spread, extra, tick):
     p_sell1, _ = price_limit_sell(q1, tick, cfg, FIXED_NOW)
     p_sell2, _ = price_limit_sell(q2, tick, cfg, FIXED_NOW)
     assert p_sell2 <= p_sell1
-    assert p_buy1 <= ask1
-    assert p_buy2 <= ask2
-    assert p_sell1 >= bid1
-    assert p_sell2 >= bid2
+    tick_eff = tick if tick > 0 else 0.01
+    half_tick = tick_eff / 2
+    assert p_buy1 <= ask1 + half_tick
+    assert p_buy2 <= ask2 + half_tick
+    assert p_sell1 >= bid1 - half_tick
+    assert p_sell2 >= bid2 - half_tick
