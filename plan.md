@@ -127,6 +127,8 @@ ibkr_etf_rebalancer/
 
 ### 2.5 `reporting.py`
 **Goal:** Pre‑trade report (CSV/Markdown); post‑trade skeleton.
+- Pre-trade columns (see SRS §14): `symbol, target_pct, current_pct, drift_bps, price, dollar_delta, share_delta, side, est_notional`.
+- Post-trade columns (see SRS §14): `symbol, side, filled_shares, avg_price, notional`.
 **Tests:**
 - Golden‑file comparisons for stable formatting.
 
@@ -250,6 +252,8 @@ ibkr_etf_rebalancer/
 
 ### 7.4 `report_post` completion
 **Goal:** Finalize post-trade reporting. `report_post` writes CSV and Markdown outputs summarizing fills and residual drift.
+- Pre-trade columns (see SRS §14): `symbol, target_pct, current_pct, drift_bps, price, dollar_delta, share_delta, side, est_notional`.
+- Post-trade columns (see SRS §14): `symbol, side, filled_shares, avg_price, notional`.
 **Tests:**
 - Golden-file snapshots verifying fill summaries and residual drift columns.
 - Integration test confirms post-trade reports are generated in `reports/` and include target vs current vs residual drift (SRS AC8).
