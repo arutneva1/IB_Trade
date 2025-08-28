@@ -5,11 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from configparser import ConfigParser
 from typing import Any, Literal
+from pydantic import BaseModel, Field, model_validator, field_validator
 
 
 SymbolOverrides = dict[str, str | int]
-
-from pydantic import BaseModel, Field, model_validator, field_validator
 
 
 class IBKRConfig(BaseModel):
