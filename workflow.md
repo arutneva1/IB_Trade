@@ -22,7 +22,7 @@ This guide summarizes how to use `srs.md` and `plan.md` with Codex to build the 
   - No secrets committed
   - Safety rails intact (paper_only, LMT default, RTH, require_confirm, kill_switch_file, prefer_rth)
   - Benchmark runtime & quote concurrency; ensure <30 s, safe 4–6 quote fetches, and retry/backoff strategy
-  - CHANGELOG entry added for each PR.
+  - Add an entry to [`CHANGELOG.md`](CHANGELOG.md) under the latest release heading for each PR.
   - Structured logging follows SRS §5.10 (run-id, config echo, log level).
 
 ### Performance constraints
