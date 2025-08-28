@@ -23,8 +23,17 @@ make test
 Example run of the application:
 
 ```bash
-python ibkr_etf_rebalancer/app.py
+python -m ibkr_etf_rebalancer.app pre-trade \
+    --config config.ini \
+    --portfolios portfolios.csv \
+    --positions positions.csv \
+    --cash USD=10000 \
+    --output-dir reports
 ```
+
+The command reads a configuration file, model portfolio definitions and the
+current account positions before producing CSV and Markdown pre‑trade reports
+under the specified ``reports`` directory.
 
 ## Further Documentation
 
