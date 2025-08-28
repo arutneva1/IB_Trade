@@ -89,6 +89,21 @@ def test_scaled_buy_dropped_below_min_order():
     assert orders == {}
 
 
+def test_scaled_buy_dropped_below_min_order_due_to_leverage():
+    targets = {"AAA": 1.006, "CASH": -0.006}
+    current = {"AAA": 1.0, "CASH": 0.0}
+    orders = generate_orders(
+        targets,
+        current,
+        PRICES,
+        EQUITY,
+        bands=0.0,
+        min_order=500.0,
+        max_leverage=1.0,
+    )
+    assert orders == {}
+
+
 def test_margin_leverage_scaling():
     targets = {"AAA": 1.3, "BBB": 0.3, "CASH": -0.6}
     current = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}

@@ -140,6 +140,9 @@ def generate_orders(
     sells = {sym: val for sym, val in orders_value.items() if val < 0}
     buys = {sym: val for sym, val in orders_value.items() if val > 0}
 
+    # Rebuild ``orders_value`` so dropped buys don't leave stale entries
+    orders_value = {}
+
     for symbol, value in sells.items():
         cash -= value  # value is negative -> increases cash
         gross += value  # reduces gross exposure
@@ -159,12 +162,13 @@ def generate_orders(
 
     for symbol, value in buys.items():
         scaled_value = value * scale
+        if abs(scaled_value) < min_order:
+            # Drop any orders that fell below ``min_order`` after scaling
+            continue
         cash -= scaled_value
         gross += scaled_value
         orders_value[symbol] = scaled_value
 
-    # Drop any orders that fell below ``min_order`` after scaling
-    orders_value = {sym: val for sym, val in orders_value.items() if abs(val) >= min_order}
     if not orders_value:
         return {}
 
