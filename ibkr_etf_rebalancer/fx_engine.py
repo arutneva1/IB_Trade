@@ -198,7 +198,7 @@ def plan_fx_if_needed(
             reason="no FX quote",
         )
 
-    if pricing.is_stale(fx_quote, now, stale_quote_seconds=10):
+    if pricing.is_stale(fx_quote, now, stale_quote_seconds=cfg.stale_quote_seconds):
         return FxPlan(
             need_fx=False,
             pair=pair,
