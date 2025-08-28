@@ -91,6 +91,7 @@ def test_invalid_fx_buffer():
     with pytest.raises(ValidationError):
         AppConfig(**data)
 
+
 @pytest.mark.parametrize("price_source", ["last", "midpoint", "bidask"])
 def test_price_source_values(price_source: str) -> None:
     data = valid_config_dict()
