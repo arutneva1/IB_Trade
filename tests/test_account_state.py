@@ -15,17 +15,24 @@ def test_weights_and_exposure_with_and_without_cash_buffer():
     # Without buffer ---------------------------------------------------------
     assert pytest.approx(1_000 / 3_000, rel=1e-6) == no_buf.weights["SPY"]
     assert pytest.approx(1_000 / 3_000, rel=1e-6) == no_buf.weights["GLD"]
+    assert pytest.approx(1_000 / 3_000, rel=1e-6) == no_buf.weights["CASH"]
     assert pytest.approx(2_000 / 3_000, rel=1e-6) == no_buf.gross_exposure
     assert pytest.approx(1.0, rel=1e-6) == no_buf.net_exposure
     assert "CAD" not in no_buf.weights
     assert pytest.approx(500.0, rel=1e-6) == no_buf.cad_cash
+    assert pytest.approx(3_000.0, rel=1e-6) == no_buf.total_equity
 
     # With 10% buffer --------------------------------------------------------
     assert pytest.approx(1_000 / 2_900, rel=1e-6) == buf.weights["SPY"]
     assert pytest.approx(1_000 / 2_900, rel=1e-6) == buf.weights["GLD"]
+    assert pytest.approx(900 / 2_900, rel=1e-6) == buf.weights["CASH"]
     assert pytest.approx(2_000 / 2_900, rel=1e-6) == buf.gross_exposure
     assert pytest.approx(1.0, rel=1e-6) == buf.net_exposure
     assert pytest.approx(500.0, rel=1e-6) == buf.cad_cash
+    assert pytest.approx(3_000.0, rel=1e-6) == buf.total_equity
+
+    # weights sum to unity within tolerance
+    assert abs(sum(buf.weights.values()) - 1.0) < 1e-6
 
 
 def test_cash_only_account():
@@ -34,10 +41,12 @@ def test_cash_only_account():
     cash = {"USD": 2500.0, "CAD": 0.0}
 
     result = compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
-    assert result.weights == {}
+    assert result.market_values == {}
+    assert result.weights == {"CASH": 1.0}
     assert pytest.approx(0.0, rel=1e-6) == result.gross_exposure
     assert pytest.approx(1.0, rel=1e-6) == result.net_exposure
     assert pytest.approx(2500.0, rel=1e-6) == result.usd_cash
+    assert pytest.approx(2_500.0, rel=1e-6) == result.total_equity
 
 
 @pytest.mark.parametrize(

@@ -4,7 +4,8 @@ This module provides a small helper used throughout the tests to reason about
 an account's current state.  The real project contains a much richer
 implementation but for the exercises we only need a subset of the behaviour:
 
-* Derive per-symbol weights from position quantities and prices.
+* Derive per-symbol market values and weights from position quantities and
+  prices.
 * Report gross and net exposure relative to available equity.
 * Track cash balances for USD and CAD while supporting a configurable USD cash
   buffer which is excluded from the exposure calculations.
@@ -24,18 +25,18 @@ import math
 from typing import Mapping
 
 
-@dataclass
-class AccountState:
+@dataclass(frozen=True)
+class AccountSnapshot:
     """Simple view of the account after normalisation."""
 
-    weights: "OrderedDict[str, float]"
-    """Normalised position weights keyed by symbol."""
+    market_values: OrderedDict[str, float]
+    """Per-symbol USD market values."""
 
-    gross_exposure: float
-    """Total long exposure relative to equity (always positive)."""
+    weights: OrderedDict[str, float]
+    """Normalised position weights keyed by symbol and ``"CASH"``."""
 
-    net_exposure: float
-    """Net exposure including cash (should equal ``1.0``)."""
+    cash_by_currency: Mapping[str, float]
+    """Reported cash balances keyed by ISO currency code."""
 
     usd_cash: float
     """Reported USD cash balance (before any buffer adjustment)."""
@@ -43,38 +44,55 @@ class AccountState:
     cad_cash: float
     """Reported CAD cash balance."""
 
+    gross_exposure: float
+    """Sum of absolute asset exposure relative to equity."""
+
+    net_exposure: float
+    """Net exposure including USD cash (should equal ``1.0``)."""
+
+    total_equity: float
+    """Net asset value including USD cash before any buffer adjustment."""
+
 
 def compute_account_state(
     positions: Mapping[str, float],
     prices: Mapping[str, float],
-    cash: Mapping[str, float],
+    cash_balances: Mapping[str, float],
     *,
-    cash_buffer_pct: float,
-) -> AccountState:
-    """Return the :class:`AccountState` for *positions*.
+    cash_buffer_pct: float = 0.0,
+) -> AccountSnapshot:
+    """Return the :class:`AccountSnapshot` for *positions*.
+
+    The function is pure and performs no side effects.  Prices must be provided
+    for each symbol and be strictly positive.  Weights are derived using the
+    available equity after applying ``cash_buffer_pct`` to the USD cash balance
+    and include a ``"CASH"`` entry representing the remaining USD cash.  Non-USD
+    cash balances are excluded from weight normalisation.  Due to floating point
+    rounding the weights may not sum exactly to ``1.0`` but are expected to be
+    within ``±1e-6``.
 
     Parameters
     ----------
     positions:
-        Mapping of symbol to quantity.  Quantities must be positive and every
-        symbol requires a valid price entry in ``prices``.
+        Mapping of symbol to quantity.  Zero quantities are rejected.
     prices:
         Mapping of symbol to last trade price.  Prices must be positive and not
         NaN.
-    cash:
-        Mapping of currency code ("USD"/"CAD") to amount.
+    cash_balances:
+        Mapping of currency code (e.g. ``"USD"``/``"CAD"``) to amount.
     cash_buffer_pct:
         Fraction of the USD cash balance to exclude from exposure/weight
         calculations.
     """
 
-    # Extract cash balances before applying any buffer.
-    usd_cash = float(cash.get("USD", 0.0))
-    cad_cash = float(cash.get("CAD", 0.0))
+    cash_by_currency = {ccy: float(amount) for ccy, amount in cash_balances.items()}
+    usd_cash = float(cash_by_currency.get("USD", 0.0))
+    cad_cash = float(cash_by_currency.get("CAD", 0.0))
 
     # Validate positions and compute their USD market value.
-    position_values: dict[str, float] = {}
-    total_pos_val = 0.0
+    market_values: OrderedDict[str, float] = OrderedDict()
+    net_pos_val = 0.0
+    gross_pos_val = 0.0
     for symbol, qty in positions.items():
         if qty == 0:
             raise ValueError("Zero quantity not allowed")
@@ -84,30 +102,35 @@ def compute_account_state(
         if price <= 0 or math.isnan(price):
             raise ValueError(f"Invalid price for {symbol}")
         value = qty * price
-        position_values[symbol] = value
-        total_pos_val += value
+        market_values[symbol] = value
+        net_pos_val += value
+        gross_pos_val += abs(value)
 
-    # Account must have some equity (positions or USD cash after buffer).
+    total_equity = net_pos_val + usd_cash
     effective_usd_cash = usd_cash * (1.0 - cash_buffer_pct)
-    equity = total_pos_val + effective_usd_cash
-    if equity <= 0.0:
+    effective_equity = net_pos_val + effective_usd_cash
+    if effective_equity <= 0.0:
         raise ValueError("Account has zero equity")
 
-    # Derive weights relative to the equity figure.
+    # Derive weights relative to the effective equity figure.
     weights = OrderedDict(
-        (symbol, value / equity) for symbol, value in sorted(position_values.items())
+        (symbol, value / effective_equity) for symbol, value in sorted(market_values.items())
     )
+    weights["CASH"] = effective_usd_cash / effective_equity
 
-    gross = total_pos_val / equity
-    net = (total_pos_val + effective_usd_cash) / equity
+    gross = gross_pos_val / effective_equity
+    net = (net_pos_val + effective_usd_cash) / effective_equity
 
-    return AccountState(
+    return AccountSnapshot(
+        market_values=OrderedDict(sorted(market_values.items())),
         weights=weights,
-        gross_exposure=gross,
-        net_exposure=net,
+        cash_by_currency=OrderedDict(sorted(cash_by_currency.items())),
         usd_cash=usd_cash,
         cad_cash=cad_cash,
+        gross_exposure=gross,
+        net_exposure=net,
+        total_equity=total_equity,
     )
 
 
-__all__ = ["AccountState", "compute_account_state"]
+__all__ = ["AccountSnapshot", "compute_account_state"]
