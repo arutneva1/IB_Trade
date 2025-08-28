@@ -189,9 +189,7 @@ class IOConfig(BaseModel):
             valid = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
             if level in valid:
                 return level
-        raise ValueError(
-            "log_level must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL"
-        )
+        raise ValueError("log_level must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL")
 
 
 class AppConfig(BaseModel):
