@@ -27,6 +27,7 @@
 - [ ] Dry‑run prints pre‑trade report + order plan; paper mode places orders only on `FakeIB`
 - [ ] `price_source` fallback chain: `last` → `midpoint` → `bid/ask` → `snapshot`
 - [ ] Optional snapshot mode controlled by config
+- [ ] Applies `cash_buffer_pct` and `maintenance_buffer_pct` when sizing and sequencing orders
 
 ## `order_builder.py`
 - [ ] Pure mapping of plan → broker orders (no side effects)
