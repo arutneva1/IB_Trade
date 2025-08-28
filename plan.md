@@ -201,6 +201,18 @@ ibkr_etf_rebalancer/
 - Concurrency cap respected.
 - `prefer_rth` gating enforced; abort on safety violations with clear messages.
 
+### 7.3 Error Handling
+**Goal:** Catch SRS §5.11 failures with actionable messages and non-zero exit codes.
+**Failures & tests:**
+- Connection failures → FakeIB drop hooks; unit tests verify clear message and exit code.
+- Pacing violations → FakeIB pacing hook; tests assert abort with code.
+- Contract not found → FakeIB lookup failure; tests show message.
+- Stale data → Fake quote provider returns stale quotes; tests assert detection and exit.
+- Fractional not allowed → FakeIB rejects fractional orders; tests ensure surfaced and non-zero exit.
+- Market closed when `prefer_rth=true` → safety gate trips; tests confirm error path.
+- Insufficient buying power → FakeIB account shortfall; tests assert exit.
+**Surfacing:** Map each to dedicated non-zero exit codes.
+
 ---
 
 ## 8) Phase 7 — End‑to‑End Scenarios
