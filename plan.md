@@ -61,10 +61,11 @@ ibkr_etf_rebalancer/
 ## 2) Phase 1 — Pure Core (No IB, No Network)
 
 ### 2.1 `portfolio_loader.py`
-**Goal:** Parse `portfolios.csv` (SMURF/BADASS/GLTR). Support margin via **one** `CASH` row with **negative** `target_pct`.  
+**Goal:** Parse `portfolios.csv` (SMURF/BADASS/GLTR). Support margin via **one** `CASH` row with **negative** `target_pct`. Extra columns `note`, `min_lot`, and `exchange` are ignored.
 **Tests (pytest):**
 - Valid CSV: each portfolio sums to 100% or `assets + CASH = 100%` when margin used.
 - Exactly one `CASH` row allowed (if present) and must be negative.
+- Error if a `CASH` row exists while `[rebalance].allow_margin` is false.
 - Helpful error messages on violations.
 - Table‑driven tests with small CSV fixtures.
 
