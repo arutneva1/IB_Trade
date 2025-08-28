@@ -17,7 +17,7 @@ This guide summarizes how to use `srs.md` and `plan.md` with Codex to build the 
 - DoD per PR:
   - Tests ≥90% diff coverage
   - CI green; verify GitHub Actions shows a green check before merging
-  - SRS/README updated if behavior changes
+  - SRS/plan/README updated if behavior changes
   - Map each change to relevant SRS acceptance criteria and mention them in the PR description
     - Example: `feat(snapshot): track NetLiq [AC3]`
   - No secrets committed
