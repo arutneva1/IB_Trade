@@ -31,6 +31,17 @@ python -m ibkr_etf_rebalancer.app pre-trade \
     --output-dir reports
 ```
 
+The configuration file can include an `[fx]` section to plan CAD→USD conversions:
+
+```ini
+[fx]
+enabled = true
+max_fx_order_usd = 5000
+limit_slippage_bps = 5
+```
+
+Phase 4 processes these conversions offline before submitting dependent ETF orders.
+
 The command reads a configuration file, model portfolio definitions and the
 current account positions before producing CSV and Markdown pre‑trade reports
 under the specified ``reports`` directory.
