@@ -92,6 +92,41 @@ def test_invalid_fx_buffer():
         AppConfig(**data)
 
 
+def test_max_fx_order_usd_parsing(tmp_path: Path) -> None:
+    ini = tmp_path / "config.ini"
+    ini.write_text(
+        """
+[ibkr]
+account = DU123
+
+[models]
+SMURF = 0.5
+BADASS = 0.3
+GLTR = 0.2
+
+[rebalance]
+
+[fx]
+max_fx_order_usd = 5000
+
+[limits]
+
+[safety]
+
+[io]
+"""
+    )
+    cfg = load_config(ini)
+    assert cfg.fx.max_fx_order_usd == 5000
+
+
+def test_invalid_max_fx_order_usd():
+    data = valid_config_dict()
+    data["fx"]["max_fx_order_usd"] = -1
+    with pytest.raises(ValidationError):
+        AppConfig(**data)
+
+
 @pytest.mark.parametrize("price_source", ["last", "midpoint", "bidask"])
 def test_price_source_values(price_source: str) -> None:
     data = valid_config_dict()
