@@ -25,6 +25,7 @@ This guide summarizes how to use `srs.md` and `plan.md` with Codex to build the 
   - Benchmark runtime & quote concurrency; ensure <30 s, safe 4–6 quote fetches, and retry/backoff strategy
   - Add an entry to [`CHANGELOG.md`](CHANGELOG.md) under the latest release heading for each PR.
   - Structured logging follows SRS §5.10 (run-id, config echo, log level).
+  - Error paths surface clear messages and map to exit codes per SRS §5.11.
 
 ### Performance constraints
 - Full rebalance run should complete in under 30 s.
