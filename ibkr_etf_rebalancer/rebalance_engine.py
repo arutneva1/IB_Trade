@@ -253,6 +253,10 @@ def plan_rebalance_with_fx(
     usd_buy_notional = sum(
         shares * prices[symbol] for symbol, shares in orders.items() if shares > 0
     )
+    usd_sell_notional = sum(
+        -shares * prices[symbol] for symbol, shares in orders.items() if shares < 0
+    )
+    usd_cash_after_sells = usd_cash + usd_sell_notional
 
     fx_plan = FxPlan(
         need_fx=False,
@@ -269,7 +273,7 @@ def plan_rebalance_with_fx(
     )
 
     need_fx = fx_cfg.enabled and (
-        usd_buy_notional > usd_cash or fx_cfg.convert_mode == "always_top_up"
+        usd_buy_notional > usd_cash_after_sells or fx_cfg.convert_mode == "always_top_up"
     )
     if need_fx:
         fx_quote = quote_provider.get_quote("USD.CAD")
@@ -278,7 +282,7 @@ def plan_rebalance_with_fx(
             usd_needed = max(usd_buy_notional, fx_cfg.min_fx_order_usd)
         fx_plan = plan_fx_if_needed(
             usd_needed=usd_needed,
-            usd_cash=usd_cash,
+            usd_cash=usd_cash_after_sells,
             cad_cash=cad_cash,
             fx_quote=fx_quote,
             cfg=fx_cfg,
