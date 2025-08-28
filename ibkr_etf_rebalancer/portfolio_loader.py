@@ -57,6 +57,8 @@ def load_portfolios(
         If the CSV is malformed or violates validation rules, including when
         the non-``CASH`` asset weights exceed ``max_leverage``.
     """
+    if max_leverage <= 0:
+        raise PortfolioError(f"max_leverage must be positive, got {max_leverage}")
 
     rows: list[PortfolioRow] = []
     with open(csv_path, newline="") as f:
