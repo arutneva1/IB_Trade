@@ -245,9 +245,7 @@ def plan_rebalance_with_fx(
 ) -> tuple[Dict[str, float], FxPlan]:
     """Plan equity trades and any required FX conversion."""
 
-    funding_cash = float(
-        kwargs.pop("funding_cash", kwargs.pop("cad_cash", 0.0))
-    )
+    funding_cash = float(kwargs.pop("funding_cash", kwargs.pop("cad_cash", 0.0)))
     if funding_currency not in fx_cfg.funding_currencies:
         raise ValueError(f"unsupported funding currency: {funding_currency}")
     usd_cash = current.get("CASH", 0.0) * total_equity
