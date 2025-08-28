@@ -243,6 +243,7 @@ ibkr_etf_rebalancer/
 ```
 python app.py --csv portfolios.csv --ini settings.ini --report-only
 python app.py --csv portfolios.csv --ini settings.ini --dry-run
+python app.py --csv portfolios.csv --ini settings.ini --dry-run --per-holding-band-bps 50 --min-order-usd 100
 python app.py --csv portfolios.csv --ini settings.ini --paper
 python app.py --csv portfolios_margin.csv --ini settings.ini --paper --yes
 python app.py --csv portfolios.csv --ini settings.ini --live --yes
