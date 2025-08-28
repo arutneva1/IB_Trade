@@ -209,6 +209,13 @@ ibkr_etf_rebalancer/
 
 > Live tests are deferred; unit tests use FakeIB exclusively.
 
+### 6.2 `IBKRQuoteProvider`
+**Goal:** Implement a quote provider that uses `ibkr_provider` to fetch live bid/ask and FX quotes and plugs into `pricing.py`.
+**Tests:**
+- ETF and FX quotes retrieved via `ibkr_provider`.
+- Stale-quote handling and fallback chain exercised with real provider data.
+- Verification that `pricing.py` switches from `FakeQuoteProvider` to `IBKRQuoteProvider` when connected.
+
 ---
 
 ## 7) Phase 6 — Order Builder & Executor (Dry‑Run First)
