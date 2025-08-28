@@ -297,6 +297,14 @@ snapshot = compute_account_state(positions, prices, cash)
 6. Spread‑aware limits, wide/stale escalation.
 7. Disable `allow_fractional`, verify shares are rounded and residual drift ≤10 bps (SRS scenario test #4).
 
+### Tests
+1. [Small drift ignored](srs.md#9-test-plan)
+2. [One large overweight](srs.md#9-test-plan)
+3. [Underweight multiple symbols](srs.md#9-test-plan)
+4. [Fractional disallowed](srs.md#9-test-plan)
+5. [Margin via CASH](srs.md#9-test-plan)
+6. [Spread-aware limits](srs.md#9-test-plan)
+
 **Assertions:**
 - Acceptance criteria from the SRS (margin, FX funding, spread‑aware limits, safety).
 
