@@ -5,6 +5,7 @@ import pytest
 from ibkr_etf_rebalancer.config import FXConfig
 from ibkr_etf_rebalancer.fx_engine import plan_fx_if_needed
 from ibkr_etf_rebalancer.pricing import Quote
+from typing import Literal
 
 
 @pytest.fixture
@@ -147,3 +148,47 @@ def test_no_cad_cash_skips_plan(fresh_quote: Quote, fx_cfg: FXConfig) -> None:
     )
     assert plan.need_fx is False
     assert "no CAD cash" in plan.reason
+
+
+class DummyProvider:
+    """Minimal quote provider used for type checking.
+
+    This implements the :class:`QuoteProvider` protocol from
+    :mod:`ibkr_etf_rebalancer.pricing` by providing both ``get_quote`` and
+    ``get_price`` methods.  The tests only require ``get_quote`` but mypy
+    expects the full protocol, hence the stub ``get_price`` implementation.
+    """
+
+    def __init__(self, quote: Quote) -> None:
+        self.quote = quote
+
+    def get_quote(self, symbol: str) -> Quote:
+        return self.quote
+
+    def get_price(
+        self,
+        symbol: str,
+        price_source: Literal["last", "midpoint", "bidask"],
+        fallback_to_snapshot: bool = False,
+    ) -> float:
+        return self.quote.mid()
+
+
+def test_round_limit_price_with_assertion(fx_cfg: FXConfig) -> None:
+    """Ensure optional limit price is checked before rounding.
+
+    This guards against calling ``round`` on a ``None`` value which would
+    otherwise trigger a mypy error about ``float | None``.
+    """
+
+    quote = Quote(bid=1.0, ask=1.1, ts=datetime.now(timezone.utc))
+    cfg = fx_cfg.model_copy(update={"order_type": "LMT"})
+    plan = plan_fx_if_needed(
+        usd_needed=1_000,
+        usd_cash=0,
+        cad_cash=10_000,
+        fx_quote=quote,
+        cfg=cfg,
+    )
+    assert plan.limit_price is not None
+    assert round(plan.limit_price, 4) == round(plan.limit_price, 4)
