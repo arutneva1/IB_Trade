@@ -33,7 +33,7 @@ def _round_to_tick(price: float, tick: float) -> float:
         tick = 0.01
         ratio = price / tick
 
-    return round(ratio) * tick
+    return math.floor(ratio + 0.5) * tick
 
 
 def price_limit_buy(
