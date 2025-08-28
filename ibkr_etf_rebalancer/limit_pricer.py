@@ -138,8 +138,22 @@ def calc_limit_price(
 
     quote = provider.get_quote(symbol)
     side_u = side.upper()
+    if side_u not in {"BUY", "SELL"}:
+        raise ValueError("Side must be 'BUY' or 'SELL'")
+
+    # Allow disabling the spread-aware algorithm entirely.  When smart_limit is
+    # False or an unsupported style is selected, fall back to a naive bid/ask
+    # price to avoid surprising behaviour.
+    if not cfg.smart_limit or cfg.style != "spread_aware":
+        bid, ask = quote.bid, quote.ask
+        if bid is None or ask is None:
+            raise ValueError("Quote missing bid/ask")
+        if not cfg.smart_limit or cfg.style == "off":
+            return (ask if side_u == "BUY" else bid), "LMT"
+        msg = f"Unsupported limit pricing style: {cfg.style}"
+        raise ValueError(msg)
+
     if side_u == "BUY":
         return price_limit_buy(quote, tick, cfg, now)
-    if side_u == "SELL":
-        return price_limit_sell(quote, tick, cfg, now)
-    raise ValueError("Side must be 'BUY' or 'SELL'")
+    # side_u == "SELL"
+    return price_limit_sell(quote, tick, cfg, now)
