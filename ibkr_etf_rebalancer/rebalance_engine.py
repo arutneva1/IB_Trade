@@ -38,7 +38,11 @@ other trades and the leverage constraints.
 from __future__ import annotations
 
 import math
-from typing import Dict, Mapping
+from typing import Any, Dict, Mapping
+
+from .config import FXConfig
+from .fx_engine import FxPlan, plan_fx_if_needed
+from .pricing import QuoteProvider
 
 
 def _get_band(bands: float | Mapping[str, float], symbol: str) -> float:
@@ -226,4 +230,58 @@ def generate_orders(
     return orders_shares
 
 
-__all__ = ["generate_orders"]
+def plan_rebalance_with_fx(
+    targets: Mapping[str, float],
+    current: Mapping[str, float],
+    prices: Mapping[str, float],
+    total_equity: float,
+    *,
+    fx_cfg: FXConfig,
+    quote_provider: QuoteProvider,
+    **kwargs: Any,
+) -> tuple[Dict[str, float], FxPlan]:
+    """Plan equity trades and any required FX conversion."""
+
+    cad_cash = float(kwargs.pop("cad_cash", 0.0))
+    usd_cash = current.get("CASH", 0.0) * total_equity
+
+    # First pass: assume CAD cash is converted to size desired equity orders
+    planning_current = dict(current)
+    planning_current["CASH"] = (usd_cash + cad_cash) / total_equity
+    orders = generate_orders(targets, planning_current, prices, total_equity, **kwargs)
+
+    usd_buy_notional = sum(
+        shares * prices[symbol] for symbol, shares in orders.items() if shares > 0
+    )
+
+    fx_plan = FxPlan(
+        need_fx=False,
+        pair=f"{fx_cfg.base_currency}.CAD",
+        side="BUY",
+        usd_notional=0.0,
+        est_rate=0.0,
+        qty=0.0,
+        order_type=fx_cfg.order_type,
+        limit_price=None,
+        reason="fx disabled" if not fx_cfg.enabled else "sufficient USD cash",
+    )
+
+    if fx_cfg.enabled and usd_buy_notional > usd_cash:
+        fx_quote = quote_provider.get_quote("USD.CAD")
+        fx_plan = plan_fx_if_needed(
+            usd_needed=usd_buy_notional,
+            usd_cash=usd_cash,
+            cad_cash=cad_cash,
+            fx_quote=fx_quote,
+            cfg=fx_cfg,
+        )
+
+    final_cash = usd_cash + fx_plan.usd_notional
+    final_current = dict(current)
+    final_current["CASH"] = final_cash / total_equity
+    final_orders = generate_orders(targets, final_current, prices, total_equity, **kwargs)
+
+    return final_orders, fx_plan
+
+
+__all__ = ["generate_orders", "plan_rebalance_with_fx"]

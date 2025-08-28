@@ -1,9 +1,12 @@
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
 
-from ibkr_etf_rebalancer.rebalance_engine import generate_orders
+from ibkr_etf_rebalancer.config import FXConfig
+from ibkr_etf_rebalancer.pricing import FakeQuoteProvider, Quote
+from ibkr_etf_rebalancer.rebalance_engine import generate_orders, plan_rebalance_with_fx
 
 # Ensure package root on path when running tests directly
 sys.path.append(str(Path(__file__).resolve().parents[1]))
@@ -246,6 +249,35 @@ def test_total_drift_trigger_mixed_sign(current, expected):
         portfolio_total_band_bps=100,
     )
     assert orders == expected
+
+
+def test_fx_top_up_generates_plan_and_feasible_orders():
+    targets = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    current = {"AAA": 0.0, "BBB": 0.0, "CASH": 0.0}
+    prices = {"AAA": 100.0, "BBB": 100.0}
+    fx_cfg = FXConfig(enabled=True)
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider({"USD.CAD": Quote(1.25, 1.26, now)})
+
+    orders, fx_plan = plan_rebalance_with_fx(
+        targets,
+        current,
+        prices,
+        EQUITY,
+        fx_cfg=fx_cfg,
+        quote_provider=provider,
+        cad_cash=150_000.0,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+    )
+
+    assert fx_plan.need_fx is True
+    buy_notional = sum(shares * prices[symbol] for symbol, shares in orders.items() if shares > 0)
+    usd_cash_after = current.get("CASH", 0.0) * EQUITY + fx_plan.usd_notional
+    assert buy_notional <= usd_cash_after + 1e-6
+    assert orders["AAA"] == pytest.approx(500)
+    assert orders["BBB"] == pytest.approx(500)
 
 
 def test_invalid_trigger_mode():
