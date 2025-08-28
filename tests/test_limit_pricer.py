@@ -102,8 +102,10 @@ def test_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
     [
         (99, 101, 0, "cross", 99, "LMT"),
         (99, 101, 0, "market", None, "MKT"),
+        (99, 101, 0, "keep", 99.9, "LMT"),
         (99.85, 100.15, 20, "cross", 99.85, "LMT"),
         (99.85, 100.15, 20, "market", None, "MKT"),
+        (99.85, 100.15, 20, "keep", 99.92, "LMT"),
     ],
 )
 def test_sell_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
