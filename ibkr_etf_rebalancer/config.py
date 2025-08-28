@@ -116,6 +116,9 @@ class FXConfig(BaseModel):
     )
     use_mid_for_planning: bool = Field(True, description="Size FX conversions using the mid price")
     min_fx_order_usd: float = Field(1000, gt=0, description="Skip conversions smaller than this")
+    max_fx_order_usd: float | None = Field(
+        None, gt=0, description="Upper bound on any single FX conversion"
+    )
     fx_buffer_bps: int = Field(20, ge=0, description="Buy a small extra cushion when converting")
     order_type: Literal["MKT", "LMT"] = Field(
         "MKT", description="Order type used for FX conversions"
@@ -250,6 +253,8 @@ def load_config(path: Path) -> AppConfig:
                 items["funding_currencies"] = [
                     s.strip() for s in items["funding_currencies"].split(",") if s.strip()
                 ]
+            if section == "fx" and "max_fx_order_usd" in items:
+                items["max_fx_order_usd"] = parser.getfloat(section, "max_fx_order_usd")
             if section == "symbol_overrides":
                 converted: dict[str, Any] = {}
                 for k, v in items.items():
