@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from configparser import ConfigParser
 from typing import Any, Literal
-from pydantic import BaseModel, Field, model_validator, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 SymbolOverrides = dict[str, str | int]
