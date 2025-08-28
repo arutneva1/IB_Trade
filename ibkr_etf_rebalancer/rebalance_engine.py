@@ -65,6 +65,8 @@ def generate_orders(
     cash_buffer_pct: float = 0.0,
     maintenance_buffer_pct: float = 0.0,
     allow_fractional: bool = True,
+    trigger_mode: str = "per_symbol",
+    portfolio_total_band_bps: float = 0.0,
 ) -> Dict[str, float]:
     """Create rebalance orders for the supplied portfolio.
 
@@ -104,6 +106,12 @@ def generate_orders(
         exposure plus this buffer within ``max_leverage``.
     allow_fractional:
         When ``False`` orders are rounded to whole shares.
+    trigger_mode:
+        ``"per_symbol"`` (default) evaluates bands per position.  ``"total_drift"``
+        sums absolute drifts across the portfolio and triggers rebalancing if
+        that total exceeds ``portfolio_total_band_bps``.
+    portfolio_total_band_bps:
+        Threshold in basis points for ``trigger_mode="total_drift"``.
 
     Returns
     -------
@@ -116,12 +124,26 @@ def generate_orders(
     # Determine raw desired order sizes in dollars
     orders_value: Dict[str, float] = {}
     symbols = set(targets) | set(current)
+    diffs: Dict[str, float] = {}
+    outside_band: Dict[str, float] = {}
     for symbol in symbols:
         if symbol == "CASH":
             continue
         diff = targets.get(symbol, 0.0) - current.get(symbol, 0.0)
-        if abs(diff) <= _get_band(bands, symbol):
-            continue
+        diffs[symbol] = diff
+        if abs(diff) > _get_band(bands, symbol):
+            outside_band[symbol] = diff
+
+    if outside_band:
+        actionable = outside_band
+    else:
+        total_drift_bps = round(sum(abs(d) for d in diffs.values()) * 10_000, 8)
+        if trigger_mode == "total_drift" and total_drift_bps > portfolio_total_band_bps:
+            actionable = {sym: d for sym, d in diffs.items() if d != 0}
+        else:
+            actionable = {}
+
+    for symbol, diff in actionable.items():
         # Round to cents to avoid downstream floating point artefacts when
         # converting back to share counts.
         value = round(diff * total_equity, 2)
