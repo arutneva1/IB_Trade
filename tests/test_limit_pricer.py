@@ -160,6 +160,14 @@ def test_calc_limit_price_wrapper():
     assert t == "MKT" and price is None
 
 
+def test_calc_limit_price_invalid_side():
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider({"SYM": Quote(100, 100.1, now)})
+    cfg = LimitsConfig()
+    with pytest.raises(ValueError, match="BUY.*SELL"):
+        calc_limit_price("HOLD", "SYM", 0.01, provider, now, cfg)
+
+
 @pytest.mark.parametrize(
     "func,bid,ask",
     [
