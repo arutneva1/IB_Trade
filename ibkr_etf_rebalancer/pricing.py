@@ -19,8 +19,8 @@ __all__ = [
 class Quote:
     """Simple market quote."""
 
-    bid: float
-    ask: float
+    bid: float | None
+    ask: float | None
     ts: datetime
 
     def mid(self) -> float:
