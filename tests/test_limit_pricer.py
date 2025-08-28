@@ -132,6 +132,34 @@ def test_sell_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
         assert p == pytest.approx(exp)
 
 
+@pytest.mark.parametrize(
+    "func,bid,ask,tick,exp",
+    [
+        (
+            price_limit_buy,
+            99.9,
+            100.013,
+            0.005,
+            round(100.013 / 0.005) * 0.005,
+        ),
+        (
+            price_limit_sell,
+            99.987,
+            100.1,
+            0.005,
+            round(99.987 / 0.005) * 0.005,
+        ),
+    ],
+)
+def test_cross_rounds_non_tick_aligned(func, bid, ask, tick, exp):
+    """Cross escalation should tick align raw bid/ask prices."""
+    now = datetime.now(timezone.utc)
+    q = Quote(bid, ask, now)
+    cfg = LimitsConfig(wide_spread_bps=0, escalate_action="cross")
+    p, t = func(q, tick, cfg, now)
+    assert t == "LMT" and p == pytest.approx(exp)
+
+
 def test_tick_fallback_rounding():
     now = datetime.now(timezone.utc)
     q = Quote(100.0, 100.1, now)
