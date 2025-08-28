@@ -98,8 +98,8 @@ def generate_orders(
         and ``CASH=-0.50``.
     cash_buffer_pct:
         Percentage of ``total_equity`` that must remain as cash after
-        rebalancing.  Buys are scaled down if necessary to leave this
-        cushion unspent.
+        rebalancing (e.g. ``5`` for ``5%``).  Buys are scaled down if
+        necessary to leave this cushion unspent.
     maintenance_buffer_pct:
         Additional headroom against the leverage cap expressed as a
         percentage of ``total_equity``.  Buys are scaled to keep gross

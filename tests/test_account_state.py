@@ -11,7 +11,7 @@ def test_weights_and_exposure_with_and_without_cash_buffer():
     cash = {"USD": 1000.0, "CAD": 500.0}
 
     no_buf = compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
-    buf = compute_account_state(positions, prices, cash, cash_buffer_pct=0.1)
+    buf = compute_account_state(positions, prices, cash, cash_buffer_pct=10.0)
 
     # Without buffer ---------------------------------------------------------
     assert isinstance(no_buf, AccountSnapshot)
@@ -73,10 +73,10 @@ def test_weights_use_netliq_minus_cash_buffer_amount():
     prices = {"SPY": 100.0}
     cash = {"USD": 100.0}
 
-    snapshot = compute_account_state(positions, prices, cash, cash_buffer_pct=0.2)
+    snapshot = compute_account_state(positions, prices, cash, cash_buffer_pct=20.0)
 
     netliq = 1_000 + 100
-    buffer_amount = 100 * 0.2
+    buffer_amount = 100 * (20.0 / 100.0)
     denom = netliq - buffer_amount
 
     assert pytest.approx(1_000 / denom, rel=1e-6) == snapshot.weights["SPY"]

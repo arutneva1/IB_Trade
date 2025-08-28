@@ -86,7 +86,7 @@ def test_scaled_buy_dropped_below_min_order():
         bands=0.0,
         min_order=500.0,
         max_leverage=1.5,
-        cash_buffer_pct=0.8,
+        cash_buffer_pct=0.8,  # 0.8% buffer
     )
     assert orders == {}
 
@@ -198,7 +198,7 @@ def test_cash_buffer_limits_buys():
         bands=0.0,
         min_order=0.0,
         max_leverage=1.5,
-        cash_buffer_pct=5.0,
+        cash_buffer_pct=5.0,  # 5% buffer
         allow_fractional=False,
     )
     assert orders["BBB"] == -100
