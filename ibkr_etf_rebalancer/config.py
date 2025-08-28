@@ -177,7 +177,21 @@ class IOConfig(BaseModel):
     """Input/output paths and options."""
 
     report_dir: str = Field("reports", description="Directory for generated reports")
-    log_level: str = Field("INFO", description="Logging verbosity")
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
+        "INFO", description="Logging verbosity"
+    )
+
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def _validate_log_level(cls, v: Any) -> str:
+        if isinstance(v, str):
+            level = v.strip().upper()
+            valid = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+            if level in valid:
+                return level
+        raise ValueError(
+            "log_level must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL"
+        )
 
 
 class AppConfig(BaseModel):
