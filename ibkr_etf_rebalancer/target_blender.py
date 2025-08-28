@@ -69,9 +69,7 @@ def blend_targets(
     ]
     missing = [name for name, weight in model_weights if weight > 0 and name not in portfolios]
     if missing:
-        raise ValueError(
-            "Missing portfolios for models with weight > 0: " + ", ".join(missing)
-        )
+        raise ValueError("Missing portfolios for models with weight > 0: " + ", ".join(missing))
 
     # Accumulate contributions from each model
     contributions: Dict[str, float] = defaultdict(float)
