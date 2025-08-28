@@ -22,6 +22,8 @@ Copy/paste into your PR or keep this file in `.github/` to guide reviews for **P
 - [ ] Spread-aware pricing, FX, broker calls **not** implemented in Phase 1
 - [ ] `price_source` fallback chain: `last` → `midpoint` → `bid/ask` → `snapshot`
 - [ ] Optional snapshot mode controlled by config
+- [ ] Handles `trigger_mode` options `per_holding` and `total_drift` with `portfolio_total_band_bps`
+- [ ] Validates leverage using `maintenance_buffer_pct` in `rebalance_engine` tests
 
 ## Tests (table-driven & edge cases)
 - [ ] Valid CSVs load: per-portfolio sums = **100%** or **assets + CASH = 100%** (±0.01)
