@@ -177,3 +177,12 @@ def test_max_leverage_invalid(tmp_path: Path, name, csv_content, max_leverage, m
     with pytest.raises(PortfolioError) as exc:
         load_portfolios(path, allow_margin=True, max_leverage=max_leverage)
     assert message in str(exc.value)
+
+
+@pytest.mark.parametrize("max_leverage", [0, -0.5])
+def test_max_leverage_non_positive(tmp_path: Path, max_leverage):
+    path = tmp_path / "dummy.csv"
+    path.write_text("portfolio,symbol,target_pct\nSMURF,VTI,100\n")
+    with pytest.raises(PortfolioError) as exc:
+        load_portfolios(path, max_leverage=max_leverage)
+    assert "max_leverage must be positive" in str(exc.value)
