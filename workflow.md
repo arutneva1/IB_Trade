@@ -20,6 +20,14 @@ This guide summarizes how to use `srs.md` and `plan.md` with Codex to build the 
     - Example: `feat(snapshot): track NetLiq [AC3]`
   - No secrets committed
   - Safety rails intact (paper_only, LMT default, RTH, require_confirm, kill_switch_file, prefer_rth)
+  - Benchmark runtime & quote concurrency; ensure <30 s, safe 4–6 quote fetches, and retry/backoff strategy
+
+### Performance constraints
+- Full rebalance run should complete in under 30 s.
+- Limit concurrent quote fetches to roughly 4–6 to avoid pacing.
+- Apply retries with backoff on transient IBKR errors.
+
+> These expectations come from SRS §10.
 
 ## 3) Task Card Template (paste into Codex prompt)
 **Task:** Implement `<module>` per SRS (paste relevant subsection only).  
