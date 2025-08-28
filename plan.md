@@ -193,9 +193,12 @@ ibkr_etf_rebalancer/
 ## 7) Phase 6 — Order Builder & Executor (Dry‑Run First)
 
 ### 7.0 `safety.py`
-**Goal:** Centralize kill switch, confirmation prompts, and `prefer_rth` gating.
+**Goal:** Centralize kill switch, paper/live gating, confirmation prompts, and `prefer_rth` gating (SRS §5.9, §11).
 **Tests:**
-- `require_confirm`, `kill_switch_file`, and `prefer_rth` enforcement.
+- `paper_only` blocks `--live` unless config flips.
+- `require_confirm` prompts before sending real orders.
+- `kill_switch_file` aborts run when present.
+- `prefer_rth` prevents orders outside regular hours.
 
 ### 7.1 `order_builder.py`
 **Goal:** Map plan lines to broker orders using `limit_pricer` (default LMT), TIF=DAY, SMART route, RTH.
