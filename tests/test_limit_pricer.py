@@ -2,8 +2,12 @@ import pytest
 from datetime import datetime, timedelta, timezone
 
 from ibkr_etf_rebalancer.config import LimitsConfig
-from ibkr_etf_rebalancer.pricing import Quote
-from ibkr_etf_rebalancer.limit_pricer import price_limit_buy, price_limit_sell
+from ibkr_etf_rebalancer.pricing import Quote, FakeQuoteProvider
+from ibkr_etf_rebalancer.limit_pricer import (
+    price_limit_buy,
+    price_limit_sell,
+    calc_limit_price,
+)
 
 
 @pytest.mark.parametrize(
@@ -93,9 +97,80 @@ def test_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
         assert p == pytest.approx(exp)
 
 
-@pytest.mark.parametrize("bid,ask", [(100, 100), (101, 100)])
-def test_bad_spread(bid, ask):
+@pytest.mark.parametrize(
+    "bid,ask,delta,action,exp,t",
+    [
+        (99, 101, 0, "cross", 99, "LMT"),
+        (99, 101, 0, "market", None, "MKT"),
+        (99.85, 100.15, 20, "cross", 99.85, "LMT"),
+        (99.85, 100.15, 20, "market", None, "MKT"),
+    ],
+)
+def test_sell_wide_or_stale_escalation(bid, ask, delta, action, exp, t):
+    ts = datetime.now(timezone.utc) - timedelta(seconds=delta)
+    q = Quote(bid, ask, ts)
+    cfg = LimitsConfig(
+        buy_offset_frac=0.25,
+        sell_offset_frac=0.25,
+        max_offset_bps=10,
+        wide_spread_bps=50,
+        escalate_action=action,
+        stale_quote_seconds=10,
+        use_ask_bid_cap=True,
+    )
+    p, ot = price_limit_sell(q, 0.01, cfg, datetime.now(timezone.utc))
+    assert ot == t
+    if t == "MKT":
+        assert p == 0
+    else:
+        assert p == pytest.approx(exp)
+
+
+def test_tick_fallback_rounding():
+    now = datetime.now(timezone.utc)
+    q = Quote(100.0, 100.1, now)
+    p, t = price_limit_buy(q, 0, LimitsConfig(), now)
+    assert t == "LMT" and p == pytest.approx(100.07)
+
+
+@pytest.mark.parametrize(
+    "func,bid,ask",
+    [
+        (price_limit_buy, None, 100),
+        (price_limit_buy, 100, None),
+        (price_limit_sell, None, 100),
+        (price_limit_sell, 100, None),
+    ],
+)
+def test_missing_bid_or_ask(func, bid, ask):
+    now = datetime.now(timezone.utc)
+    q = Quote(bid, ask, now)
+    with pytest.raises(ValueError, match="missing bid/ask"):
+        func(q, 0.01, LimitsConfig(), now)
+
+
+def test_calc_limit_price_wrapper():
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider({"SYM": Quote(100, 100.1, now)})
+    cfg = LimitsConfig(wide_spread_bps=1000, escalate_action="keep")
+    price, t = calc_limit_price("BUY", "SYM", 0.01, provider, now, cfg)
+    assert t == "LMT" and price is not None
+    cfg_market = LimitsConfig(wide_spread_bps=0, escalate_action="market")
+    price, t = calc_limit_price("SELL", "SYM", 0.01, provider, now, cfg_market)
+    assert t == "MKT" and price is None
+
+
+@pytest.mark.parametrize(
+    "func,bid,ask",
+    [
+        (price_limit_buy, 100, 100),
+        (price_limit_buy, 101, 100),
+        (price_limit_sell, 100, 100),
+        (price_limit_sell, 101, 100),
+    ],
+)
+def test_bad_spread(func, bid, ask):
     now = datetime.now(timezone.utc)
     q = Quote(bid, ask, now)
     with pytest.raises(ValueError):
-        price_limit_buy(q, 0.01, LimitsConfig(), now)
+        func(q, 0.01, LimitsConfig(), now)

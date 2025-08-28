@@ -38,3 +38,25 @@ def test_mid_raises_when_no_sides() -> None:
     quote = Quote(bid=None, ask=None, ts=datetime.now(timezone.utc))
     with pytest.raises(ValueError):
         quote.mid()
+
+
+def test_mid_raises_when_missing_bid_only() -> None:
+    quote = Quote(bid=None, ask=100.0, ts=datetime.now(timezone.utc))
+    with pytest.raises(ValueError, match="missing bid"):
+        quote.mid()
+
+
+def test_mid_raises_when_missing_ask_only() -> None:
+    quote = Quote(bid=100.0, ask=None, ts=datetime.now(timezone.utc))
+    with pytest.raises(ValueError, match="missing ask"):
+        quote.mid()
+
+
+def test_fake_quote_provider_missing_symbol(fake_quote_provider: FakeQuoteProvider) -> None:
+    with pytest.raises(KeyError):
+        fake_quote_provider.get_quote("UNKNOWN")
+
+
+def test_mid_calculation() -> None:
+    quote = Quote(bid=100.0, ask=102.0, ts=datetime.now(timezone.utc))
+    assert quote.mid() == pytest.approx(101.0)
