@@ -127,9 +127,11 @@ def pre_trade(
         output_dir=report_dir,
         net_liq=snapshot.total_equity,
         cash_balances=snapshot.cash_by_currency,
-        cash_buffer=(snapshot.usd_cash * cfg.rebalance.cash_buffer_pct / 100.0)
-        if cfg.rebalance.cash_buffer_pct
-        else None,
+        cash_buffer=(
+            (snapshot.usd_cash * cfg.rebalance.cash_buffer_pct / 100.0)
+            if cfg.rebalance.cash_buffer_pct
+            else None
+        ),
         min_order=cfg.rebalance.min_order_usd,
     )
 
@@ -146,4 +148,3 @@ def pre_trade(
 
 if __name__ == "__main__":  # pragma: no cover
     app()
-

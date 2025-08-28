@@ -39,9 +39,7 @@ cash_buffer_pct = 0
     )
 
     positions = tmp_path / "positions.csv"
-    positions.write_text(
-        """symbol,quantity,price\nAAA,500,100\nBBB,625,80\n"""
-    )
+    positions.write_text("""symbol,quantity,price\nAAA,500,100\nBBB,625,80\n""")
 
     return config, portfolios, positions
 
@@ -72,4 +70,3 @@ def test_pre_trade_cli(tmp_path: Path) -> None:
     md = tmp_path / "pre_trade_report_20240101T120000.md"
     assert csv.exists()
     assert md.exists()
-
