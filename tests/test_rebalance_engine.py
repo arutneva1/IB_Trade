@@ -312,6 +312,35 @@ def test_sells_partially_fund_buys_reducing_fx():
     assert orders["BBB"] == pytest.approx(150)
 
 
+def test_fx_limit_price_honours_spread():
+    targets = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    current = {"AAA": 0.0, "BBB": 0.0, "CASH": 0.0}
+    prices = {"AAA": 100.0, "BBB": 100.0}
+    now = datetime.now(timezone.utc)
+    quote = Quote(1.25, 1.2502, now)
+    provider = FakeQuoteProvider({"USD.CAD": quote})
+    fx_cfg = FXConfig(enabled=True, order_type="LMT", limit_slippage_bps=5)
+    pricing_cfg = PricingConfig()
+
+    _, fx_plan = plan_rebalance_with_fx(
+        targets,
+        current,
+        prices,
+        EQUITY,
+        fx_cfg=fx_cfg,
+        quote_provider=provider,
+        pricing_cfg=pricing_cfg,
+        funding_cash=150_000.0,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+    )
+
+    assert fx_plan.need_fx is True
+    assert fx_plan.limit_price is not None
+    assert fx_plan.limit_price >= quote.ask
+
+
 def test_unsupported_funding_currency_rejected():
     targets = {"AAA": 0.5, "BBB": 0.5}
     current = {"AAA": 0.0, "BBB": 0.0, "CASH": 0.0}
