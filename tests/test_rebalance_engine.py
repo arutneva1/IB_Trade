@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from ibkr_etf_rebalancer.config import FXConfig
+from ibkr_etf_rebalancer.config import FXConfig, PricingConfig
 from ibkr_etf_rebalancer.pricing import FakeQuoteProvider, Quote
 from ibkr_etf_rebalancer.rebalance_engine import generate_orders, plan_rebalance_with_fx
 
@@ -258,6 +258,7 @@ def test_fx_top_up_generates_plan_and_feasible_orders():
     fx_cfg = FXConfig(enabled=True)
     now = datetime.now(timezone.utc)
     provider = FakeQuoteProvider({"USD.CAD": Quote(1.25, 1.26, now)})
+    pricing_cfg = PricingConfig()
 
     orders, fx_plan = plan_rebalance_with_fx(
         targets,
@@ -266,6 +267,7 @@ def test_fx_top_up_generates_plan_and_feasible_orders():
         EQUITY,
         fx_cfg=fx_cfg,
         quote_provider=provider,
+        pricing_cfg=pricing_cfg,
         cad_cash=150_000.0,
         bands=0.0,
         min_order=0.0,
@@ -287,6 +289,7 @@ def test_sells_partially_fund_buys_reducing_fx():
     fx_cfg = FXConfig(enabled=True)
     now = datetime.now(timezone.utc)
     provider = FakeQuoteProvider({"USD.CAD": Quote(1.25, 1.26, now)})
+    pricing_cfg = PricingConfig()
 
     orders, fx_plan = plan_rebalance_with_fx(
         targets,
@@ -295,6 +298,7 @@ def test_sells_partially_fund_buys_reducing_fx():
         EQUITY,
         fx_cfg=fx_cfg,
         quote_provider=provider,
+        pricing_cfg=pricing_cfg,
         cad_cash=10_000.0,
         bands=0.0,
         min_order=0.0,

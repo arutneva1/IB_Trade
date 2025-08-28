@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from ibkr_etf_rebalancer.config import FXConfig
+from ibkr_etf_rebalancer.config import FXConfig, PricingConfig
 from ibkr_etf_rebalancer.fx_engine import plan_fx_if_needed
 from ibkr_etf_rebalancer.rebalance_engine import plan_rebalance_with_fx
 from ibkr_etf_rebalancer.pricing import Quote
@@ -167,7 +167,7 @@ class DummyProvider:
     def __init__(self, quote: Quote) -> None:
         self.quote = quote
 
-    def get_quote(self, pair: str) -> Quote:
+    def get_quote(self, pair: str) -> Quote:  # pragma: no cover - compatibility
         assert pair == "USD.CAD"
         return self.quote
 
@@ -177,12 +177,23 @@ class DummyProvider:
         price_source: str,
         fallback_to_snapshot: bool = False,
     ) -> float:
-        raise NotImplementedError
+        assert symbol == "USD.CAD"
+        if price_source == "last" and self.quote.last is not None:
+            return self.quote.last
+        try:
+            return self.quote.mid()
+        except ValueError:
+            if self.quote.bid is not None:
+                return self.quote.bid
+            if self.quote.ask is not None:
+                return self.quote.ask
+            raise
 
 
 def test_always_top_up_converts(fresh_quote: Quote) -> None:
     cfg = FXConfig(enabled=True, convert_mode="always_top_up")
     provider = DummyProvider(fresh_quote)
+    pricing_cfg = PricingConfig()
     _, plan = plan_rebalance_with_fx(
         targets={},
         current={"CASH": 0.0},
@@ -190,6 +201,7 @@ def test_always_top_up_converts(fresh_quote: Quote) -> None:
         total_equity=1.0,
         fx_cfg=cfg,
         quote_provider=provider,
+        pricing_cfg=pricing_cfg,
         cad_cash=20_000,
     )
     assert plan.need_fx is True

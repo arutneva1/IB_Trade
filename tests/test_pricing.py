@@ -83,7 +83,21 @@ def test_price_source_bidask_fallback_last() -> None:
     assert price == pytest.approx(99.5)
 
 
-def test_snapshot_fallback() -> None:
+def test_price_source_last_fallback_bidask_when_mid_missing() -> None:
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider({"SYM": Quote(100.0, None, now, last=None)})
+    price = provider.get_price("SYM", "last")
+    assert price == pytest.approx(100.0)
+
+
+def test_price_source_last_fallback_ask_when_bid_missing() -> None:
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider({"SYM": Quote(None, 101.0, now, last=None)})
+    price = provider.get_price("SYM", "last")
+    assert price == pytest.approx(101.0)
+
+
+def test_price_source_last_fallback_snapshot() -> None:
     now = datetime.now(timezone.utc)
     provider = FakeQuoteProvider(
         {"SYM": Quote(None, None, now, last=None)}, snapshots={"SYM": 98.7}
