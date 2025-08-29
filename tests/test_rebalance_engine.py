@@ -140,9 +140,28 @@ def test_margin_leverage_scaling():
         min_order=0.0,
         max_leverage=1.5,
         allow_fractional=False,
+        allow_margin=True,
     )
     assert plan.orders["AAA"] == 700
     assert plan.orders["BBB"] == -200
+
+
+def test_margin_disabled_blocks_leverage():
+    targets = {"AAA": 1.3, "BBB": 0.3, "CASH": -0.6}
+    current = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    plan = generate_orders(
+        targets,
+        current,
+        PRICES,
+        EQUITY,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+        allow_fractional=False,
+        allow_margin=False,
+    )
+    assert plan.orders["BBB"] == -200
+    assert plan.orders["AAA"] == 200
 
 
 def test_fractional_buy_rounds_up():

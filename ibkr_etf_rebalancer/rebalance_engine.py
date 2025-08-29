@@ -81,6 +81,7 @@ def generate_orders(
     allow_fractional: bool = True,
     trigger_mode: str = "per_holding",
     portfolio_total_band_bps: float = 0.0,
+    allow_margin: bool = True,
 ) -> OrderPlan:
     """Create rebalance orders for the supplied portfolio.
 
@@ -120,6 +121,8 @@ def generate_orders(
         exposure plus this buffer within ``max_leverage``.
     allow_fractional:
         When ``False`` orders are rounded to whole shares.
+    allow_margin:
+        Permit cash usage beyond available cash up to ``max_leverage``.
     trigger_mode:
         ``"per_holding"`` (default) evaluates bands per position.  ``"total_drift"``
         sums absolute drifts across the portfolio and triggers rebalancing if
@@ -196,7 +199,10 @@ def generate_orders(
     cash_buffer = total_equity * cash_buffer_pct / 100.0
     maint_buffer = total_equity * maintenance_buffer_pct / 100.0
     available_leverage = max_leverage * total_equity - gross - maint_buffer
-    available_cash = cash - cash_buffer if cash_buffer_pct > 0 else float("inf")
+    if allow_margin:
+        available_cash = cash - cash_buffer if cash_buffer_pct > 0 else float("inf")
+    else:
+        available_cash = cash - cash_buffer
     available = min(available_leverage, available_cash)
     total_buy_value = sum(buys.values())
     scale = 1.0
@@ -254,9 +260,14 @@ def plan_rebalance_with_fx(
     quote_provider: QuoteProvider,
     pricing_cfg: PricingConfig,
     funding_currency: str = "CAD",
+    allow_margin: bool = True,
     **kwargs: Any,
 ) -> tuple[OrderPlan, FxPlan]:
-    """Plan equity trades and any required FX conversion."""
+    """Plan equity trades and any required FX conversion.
+
+    ``allow_margin`` is forwarded to :func:`generate_orders` to control
+    whether leverage may be used when sizing equity trades.
+    """
 
     funding_cash = float(kwargs.pop("funding_cash", kwargs.pop("cad_cash", 0.0)))
     funding_currency = funding_currency.upper()
@@ -270,7 +281,14 @@ def plan_rebalance_with_fx(
     # First pass: assume funding cash is converted to size desired equity orders
     planning_current = dict(current)
     planning_current["CASH"] = (usd_cash + funding_cash) / total_equity
-    planning_plan = generate_orders(targets, planning_current, prices, total_equity, **kwargs)
+    planning_plan = generate_orders(
+        targets,
+        planning_current,
+        prices,
+        total_equity,
+        allow_margin=allow_margin,
+        **kwargs,
+    )
 
     usd_buy_notional = sum(
         shares * prices[symbol] for symbol, shares in planning_plan.orders.items() if shares > 0
@@ -339,7 +357,14 @@ def plan_rebalance_with_fx(
     final_cash = usd_cash + fx_plan.usd_notional
     final_current = dict(current)
     final_current["CASH"] = final_cash / total_equity
-    final_plan = generate_orders(targets, final_current, prices, total_equity, **kwargs)
+    final_plan = generate_orders(
+        targets,
+        final_current,
+        prices,
+        total_equity,
+        allow_margin=allow_margin,
+        **kwargs,
+    )
 
     return final_plan, fx_plan
 
