@@ -320,7 +320,7 @@ class FakeIB:
             raise ResolutionError(msg)
         return self._contracts[symbol]
 
-    def get_quote(self, contract: Contract) -> pricing.Quote:
+    def get_quote(self, contract: Contract) -> pricing.Quote | Quote:
         resolved = self.resolve_contract(contract)
         if resolved.symbol not in self._quotes:
             msg = f"No quote for {resolved.symbol}"
