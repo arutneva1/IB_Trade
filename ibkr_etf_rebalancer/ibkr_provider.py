@@ -9,7 +9,7 @@ from typing import Callable, Mapping, Protocol, Sequence, runtime_checkable
 
 from ib_async import IB, Contract as IBContract, Order as IBOrder
 
-from . import pricing
+from . import pricing, safety
 
 
 class OrderSide(str, Enum):
@@ -126,6 +126,8 @@ class IBKRProviderOptions:
         Connect to a live trading environment.
     dry_run:
         Avoid performing any side effects on the provider.
+    kill_switch:
+        Path to a file whose presence aborts order placement.
     host:
         Hostname of the TWS or gateway API.
     port:
@@ -134,9 +136,10 @@ class IBKRProviderOptions:
         Client ID for the API connection.
     """
 
-    paper: bool = False
+    paper: bool = True
     live: bool = False
     dry_run: bool = False
+    kill_switch: str | None = None
     host: str = "127.0.0.1"
     port: int = 7497
     client_id: int = 0
@@ -349,6 +352,9 @@ class FakeIB:
 
     # ------------------------------------------------------------------
     def place_order(self, order: Order) -> str:
+        safety.check_kill_switch(self.options.kill_switch)
+        safety.ensure_paper_trading(self.options.paper, self.options.live)
+
         if order.quantity <= 0:
             raise ValueError("Quantity must be positive")
 

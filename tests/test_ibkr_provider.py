@@ -1,3 +1,5 @@
+import pathlib
+
 import pytest
 from datetime import datetime, timedelta, timezone
 from typing import cast
@@ -7,6 +9,7 @@ from ibkr_etf_rebalancer.ibkr_provider import (
     AccountValue,
     Contract,
     FakeIB,
+    IBKRProviderOptions,
     Position,
     Order,
     OrderSide,
@@ -207,3 +210,26 @@ def test_pacing_limit_triggers_backoff_hook() -> None:
     with pytest.raises(PacingError):
         ib.place_order(order)
     assert called == [1]
+
+
+def test_place_order_abort_on_kill_switch(tmp_path: pathlib.Path) -> None:
+    contract = Contract(symbol="AAA")
+    kill_file = tmp_path / "STOP"
+    kill_file.write_text("halt")
+
+    options = IBKRProviderOptions(paper=True, kill_switch=str(kill_file))
+    ib = FakeIB(options=options, contracts={"AAA": contract})
+
+    order = Order(contract=contract, side=OrderSide.BUY, quantity=1, order_type=OrderType.MARKET)
+    with pytest.raises(RuntimeError):
+        ib.place_order(order)
+
+
+def test_place_order_abort_when_live_disallowed() -> None:
+    contract = Contract(symbol="AAA")
+    options = IBKRProviderOptions(paper=False, live=True)
+    ib = FakeIB(options=options, contracts={"AAA": contract})
+
+    order = Order(contract=contract, side=OrderSide.BUY, quantity=1, order_type=OrderType.MARKET)
+    with pytest.raises(RuntimeError):
+        ib.place_order(order)
