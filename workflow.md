@@ -8,6 +8,7 @@ This guide summarizes how to use `srs.md` and `plan.md` with Codex to build the 
 - Feature branches per phase (e.g., `feat/phase-1-portfolio-loader`).
 - One module per PR + its tests.
 - Conventional commits (e.g., `feat(loader): add CASH row validation`).
+- Consult the relevant phase checklist before starting work (e.g., [`phase3_checklist.md`](phase3_checklist.md)); reviewers must verify checklist items to ensure SRS alignment.
 
 ## 2) CI & Guardrails
 - Keep planning logic pure; isolate IBKR/IO interactions.
