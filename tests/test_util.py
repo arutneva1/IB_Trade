@@ -2,7 +2,13 @@
 
 import pytest
 
-from ibkr_etf_rebalancer.util import from_bps, to_bps, clamp
+from ibkr_etf_rebalancer.util import (
+    from_bps,
+    from_percent,
+    to_bps,
+    to_percent,
+    clamp,
+)
 
 
 def test_to_bps_and_back() -> None:
@@ -12,8 +18,19 @@ def test_to_bps_and_back() -> None:
     assert from_bps(bps) == value
 
 
+def test_to_percent_and_back() -> None:
+    value = 0.0125  # 1.25%
+    percent = to_percent(value)
+    assert percent == 1.25
+    assert from_percent(percent) == value
+
+
 def test_from_bps_negative() -> None:
     assert from_bps(-50) == -0.005
+
+
+def test_from_percent_negative() -> None:
+    assert from_percent(-1.5) == -0.015
 
 
 def test_clamp_basic() -> None:

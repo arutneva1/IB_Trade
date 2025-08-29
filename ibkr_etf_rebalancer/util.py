@@ -8,7 +8,13 @@ consistency when dealing with sizing and reporting logic.
 
 from __future__ import annotations
 
-__all__ = ["to_bps", "from_bps", "clamp"]
+__all__ = [
+    "to_bps",
+    "from_bps",
+    "to_percent",
+    "from_percent",
+    "clamp",
+]
 
 
 def to_bps(fraction: float) -> float:
@@ -31,6 +37,28 @@ def from_bps(bps: float) -> float:
     """
 
     return bps / 10_000
+
+
+def to_percent(fraction: float) -> float:
+    """Convert *fraction* to a percentage.
+
+    Examples
+    --------
+    ``0.0125`` becomes ``1.25`` percent.
+    """
+
+    return fraction * 100
+
+
+def from_percent(percent: float) -> float:
+    """Convert *percent* to a fractional value.
+
+    Examples
+    --------
+    ``1.25`` percent becomes ``0.0125``.
+    """
+
+    return percent / 100
 
 
 def clamp(value: float, lower: float | None = None, upper: float | None = None) -> float:
