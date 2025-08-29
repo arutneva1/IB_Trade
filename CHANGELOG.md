@@ -9,6 +9,9 @@
 - Added integration test covering FX → SELL → BUY order sequencing with `FakeIB`.
 
 
+## Phase 6
+- Implemented order builder and executor for dry-run and paper modes with spread-aware limit pricing, FX → SELL → BUY sequencing, and safety rails. [SRS AC5][SRS AC6][SRS AC7][SRS AC12][SRS AC13]
+
 ## Phase 5
 - Export provider and quote provider classes via package API. [SRS AC3][SRS AC9]
 
