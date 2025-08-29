@@ -97,11 +97,11 @@ def execute_orders(
         if not group:
             return
         cap = options.concurrency_cap
-        batches = (
-            [list(group)]
-            if cap in (None, 0)
-            else [list(group[i : i + cap]) for i in range(0, len(group), cap)]
-        )
+        if cap is None or cap == 0:
+            batches = [list(group)]
+        else:
+            nonzero_cap = cap
+            batches = [list(group[i : i + nonzero_cap]) for i in range(0, len(group), nonzero_cap)]
         for batch in batches:
             order_ids = [ib.place_order(o) for o in batch]
             logger.info("orders_submitted", extra={"group": group_name, "count": len(batch)})
