@@ -1,0 +1,8 @@
+NetLiq,17500.00
+Cash USD,10000.00
+Cash Buffer,100.00
+
+symbol,target_pct,current_pct,drift_bps,price,dollar_delta,share_delta,side,est_notional,reason
+AAA,66.67,28.74,3793.1,100.0,6637.93,66.3793,BUY,6637.93,
+BBB,33.33,14.37,1896.55,50.0,3318.97,66.3794,BUY,3318.97,
+TOTAL,100.0,43.11,5689.65,,9956.9,,,9956.9,
