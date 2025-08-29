@@ -14,7 +14,7 @@ positions:
   AAA: 60
   BBB: 40
 cash:
-  USD: 10000.0
+  USD: 500.0
 config_overrides:
   rebalance:
     per_holding_band_bps: 1000
