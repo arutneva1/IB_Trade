@@ -252,8 +252,9 @@ def generate_post_trade_report(
         info["qty"] += signed_qty
         info["notional"] += notional
         limit = None
-        if getattr(fill, "order_id", None) is not None:
-            limit = limit_prices.get(fill.order_id)
+        order_id = getattr(fill, "order_id", None)
+        if order_id is not None:
+            limit = limit_prices.get(order_id)
         if limit is not None:
             side_mult = 1.0 if fill.side == OrderSide.BUY else -1.0
             per_share_slip = side_mult * (fill.price - limit)
