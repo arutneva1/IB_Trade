@@ -175,6 +175,8 @@ def test_scenarios(fixture_path: Path) -> None:
             return
         if result2.execution.timed_out:
             assert any(e["type"] == "canceled" for e in events)
+        if fixture_path.stem == "timeout_or_partial":
+            assert result2.execution.timed_out
         exec_cap = scenario.config_overrides.get("execution", {}).get("concurrency_cap")
         fake_ib_limit = scenario.config_overrides.get("fake_ib", {}).get("concurrency_limit")
         if exec_cap == 1 and fake_ib_limit == 1:

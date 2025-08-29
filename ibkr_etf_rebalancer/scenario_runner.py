@@ -235,7 +235,9 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
                     buy_orders=buy_orders,
                     fx_plan=fx_plan,
                     options=OrderExecutionOptions(
-                        yes=True, concurrency_cap=exec_cfg.get("concurrency_cap")
+                        yes=True,
+                        concurrency_cap=exec_cfg.get("concurrency_cap"),
+                        timeout=exec_cfg.get("timeout_seconds"),
                     ),
                     max_leverage=cfg.rebalance.max_leverage,
                     allow_margin=cfg.rebalance.allow_margin,

@@ -80,6 +80,9 @@ class OrderExecutionOptions:
         Maximum number of concurrent orders to maintain. ``None`` for no cap.
     prefer_rth:
         Require regular trading hours before placing orders.
+    timeout:
+        Maximum time in seconds to wait for fills before canceling outstanding
+        orders. ``None`` waits indefinitely.
     """
 
     report_only: bool = False
@@ -87,6 +90,7 @@ class OrderExecutionOptions:
     yes: bool = False
     concurrency_cap: int | None = None
     prefer_rth: bool = False
+    timeout: float | None = None
 
 
 @dataclass
@@ -245,7 +249,7 @@ def execute_orders(
             id_to_order = dict(zip(order_ids, batch))
             timed_out = False
             try:
-                batch_fills = list(ib.wait_for_fills(order_ids))
+                batch_fills = list(ib.wait_for_fills(order_ids, timeout=options.timeout))
             except TimeoutError:
                 batch_fills = []
                 timed_out = True
