@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 import logging
 import time
@@ -14,6 +14,7 @@ from .ibkr_provider import (
     Fill,
     IBKRProvider,
     Order,
+    OrderSide,
     PacingError as ProviderPacingError,
     ProviderError,
     ResolutionError as ProviderResolutionError,
@@ -100,11 +101,14 @@ class OrderExecutionResult:
         Orders that were canceled due to timeout or partial fills.
     timed_out:
         ``True`` if any batch timed out while waiting for fills.
+    sell_proceeds:
+        Cash realized from ``sell_orders`` fills.
     """
 
     fills: list[Fill]
     canceled: list[Order]
     timed_out: bool = False
+    sell_proceeds: float = 0.0
 
 
 def execute_orders(
@@ -115,6 +119,8 @@ def execute_orders(
     buy_orders: Sequence[Order] | None = None,
     fx_plan: FxPlan | None = None,
     options: OrderExecutionOptions | None = None,
+    available_cash: float | None = None,
+    max_leverage: float = 1.0,
 ) -> OrderExecutionResult | Sequence[Order]:
     """Place FX, then SELL, then BUY orders using ``ib``.
 
@@ -132,6 +138,11 @@ def execute_orders(
         Optional :class:`FxPlan` used to insert a pause after FX fills.
     options:
         Execution options controlling behaviour.
+    available_cash:
+        Optional cash available for purchasing securities before considering
+        sell proceeds.
+    max_leverage:
+        Maximum multiple of ``available_cash`` that may be spent on BUYS.
 
     Returns
     -------
@@ -229,7 +240,34 @@ def execute_orders(
         logger.info("fx_pause", extra={"seconds": fx_plan.wait_for_fill_seconds})
         time.sleep(fx_plan.wait_for_fill_seconds)
 
+    pre_sell = len(result.fills)
     _submit_group("sell", sell_orders)
+
+    # capture proceeds from sell fills for later use
+    sell_fills = [f for f in result.fills[pre_sell:] if f.side is OrderSide.SELL]
+    result.sell_proceeds = sum(f.quantity * f.price for f in sell_fills)
+
+    # scale buys to respect available cash and leverage
+    if available_cash is not None and buy_orders:
+        buying_power = available_cash * max_leverage + result.sell_proceeds
+
+        def _notional(order: Order) -> float:
+            price = order.limit_price
+            if price is None:
+                quote = ib.get_quote(order.contract)
+                price = quote.ask if order.side is OrderSide.BUY else quote.bid
+                if price is None:
+                    price = quote.last
+            if price is None:
+                raise RuntimeError("cannot determine order notional")
+            return order.quantity * price
+
+        total_notional = sum(_notional(o) for o in buy_orders)
+        if total_notional > 0 and buying_power < total_notional:
+            scale = buying_power / total_notional
+            logger.info("buy_scaled", extra={"scale": scale})
+            buy_orders = [replace(o, quantity=o.quantity * scale) for o in buy_orders]
+
     _submit_group("buy", buy_orders)
 
     logger.info("fills_collected", extra={"count": len(result.fills)})

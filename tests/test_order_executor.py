@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import cast
+from typing import Sequence, cast
 import builtins
 import pathlib
 
@@ -213,6 +213,65 @@ def test_execute_orders_partial_fill_cancels_remaining() -> None:
     assert not result.timed_out
     events = [e["type"] for e in ib.event_log]
     assert events == ["placed", "placed", "filled", "canceled"]
+
+
+def test_execute_orders_partial_sell_proceeds_scale_buy(monkeypatch: pytest.MonkeyPatch) -> None:
+    now = datetime.now(timezone.utc)
+    contracts, quotes = _basic_contracts(now)
+    quotes["AAA"] = pricing.Quote(bid=10.0, ask=10.0, ts=now, last=10.0)
+    ib = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True),
+        contracts=contracts,
+        quotes=quotes,
+    )
+    sell = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.SELL,
+        quantity=4,
+        order_type=OrderType.LIMIT,
+        limit_price=10.0,
+    )
+    buy = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=3,
+        order_type=OrderType.LIMIT,
+        limit_price=10.0,
+    )
+
+    orig_wait = ib.wait_for_fills
+
+    def partial_wait(order_ids: list[str], timeout: float | None = None) -> Sequence[Fill]:
+        fills = orig_wait(order_ids, timeout)
+        return [
+            Fill(
+                contract=f.contract,
+                side=f.side,
+                quantity=(f.quantity / 2 if f.side is OrderSide.SELL else f.quantity),
+                price=f.price,
+                timestamp=f.timestamp,
+                order_id=f.order_id,
+            )
+            for f in fills
+        ]
+
+    monkeypatch.setattr(ib, "wait_for_fills", partial_wait)
+
+    result = cast(
+        OrderExecutionResult,
+        execute_orders(
+            cast(IBKRProvider, ib),
+            sell_orders=[sell],
+            buy_orders=[buy],
+            options=OrderExecutionOptions(yes=True),
+            available_cash=0.0,
+            max_leverage=1.0,
+        ),
+    )
+
+    assert result.sell_proceeds == pytest.approx(20.0)
+    buy_event = [e for e in ib.event_log if e["type"] == "placed" and cast(Order, e["order"]).side is OrderSide.BUY][0]
+    assert cast(Order, buy_event["order"]).quantity == pytest.approx(2.0)
 
 
 def test_execute_orders_timeout_cancels(monkeypatch: pytest.MonkeyPatch) -> None:
