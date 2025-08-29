@@ -151,6 +151,16 @@ def test_order_lifecycle_and_fills() -> None:
     )
     buy_open_id = ib.place_order(buy_open)
 
+    # BUY limit that fills (limit at ask)
+    buy_fill = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=3,
+        order_type=OrderType.LIMIT,
+        limit_price=100.0,
+    )
+    buy_fill_id = ib.place_order(buy_fill)
+
     # SELL limit that fills (limit below market bid)
     sell_fill = Order(
         contract=contracts["AAA"],
@@ -179,13 +189,19 @@ def test_order_lifecycle_and_fills() -> None:
     )
     sell_mkt_id = ib.place_order(sell_mkt)
 
-    fills = ib.wait_for_fills([sell_fill_id, fx_mkt_id, sell_mkt_id, buy_open_id])
-    assert [f.side for f in fills] == [OrderSide.SELL, OrderSide.BUY, OrderSide.SELL]
+    fills = ib.wait_for_fills([sell_fill_id, buy_fill_id, fx_mkt_id, sell_mkt_id, buy_open_id])
+    assert [f.side for f in fills] == [
+        OrderSide.SELL,
+        OrderSide.BUY,
+        OrderSide.BUY,
+        OrderSide.SELL,
+    ]
 
     prices = [f.price for f in fills]
     assert prices[0] == pytest.approx(99.0)
-    assert prices[1] == pytest.approx(1.26)
-    assert prices[2] == pytest.approx(99.0)
+    assert prices[1] == pytest.approx(100.0)
+    assert prices[2] == pytest.approx(1.26)
+    assert prices[3] == pytest.approx(99.0)
 
     ts = [cast(datetime, f.timestamp) for f in fills]
     assert ts == sorted(ts)
@@ -200,10 +216,12 @@ def test_order_lifecycle_and_fills() -> None:
     events = ib.event_log
     assert [(e["type"], e["order_id"]) for e in events] == [
         ("placed", buy_open_id),
+        ("placed", buy_fill_id),
         ("placed", sell_fill_id),
         ("placed", fx_mkt_id),
         ("placed", sell_mkt_id),
         ("filled", sell_fill_id),
+        ("filled", buy_fill_id),
         ("filled", fx_mkt_id),
         ("filled", sell_mkt_id),
         ("canceled", buy_open_id),
