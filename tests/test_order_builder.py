@@ -118,4 +118,3 @@ def test_limit_prices_capped_at_nbbo() -> None:
     assert order.limit_price <= quotes["AAA"].ask
     # tick rounding honoured
     assert abs(order.limit_price / 0.05 - round(order.limit_price / 0.05)) < 1e-9
-

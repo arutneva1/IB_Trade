@@ -87,13 +87,16 @@ def test_execute_orders_sequences_fx_sell_buy_event_log() -> None:
         limit_price=101.0,
     )
 
-    fills = cast(List[Fill], execute_orders(
-        cast(IBKRProvider, ib),
-        fx_orders=[fx_order],
-        sell_orders=[sell1, sell2],
-        buy_orders=[buy],
-        options=OrderExecutionOptions(yes=True),
-    ))
+    fills = cast(
+        List[Fill],
+        execute_orders(
+            cast(IBKRProvider, ib),
+            fx_orders=[fx_order],
+            sell_orders=[sell1, sell2],
+            buy_orders=[buy],
+            options=OrderExecutionOptions(yes=True),
+        ),
+    )
 
     assert [f.contract.symbol for f in fills] == ["USD", "AAA", "AAA", "AAA"]
     assert [f.side for f in fills] == [
@@ -152,11 +155,14 @@ def test_execute_orders_concurrency_cap_batches() -> None:
         order_type=OrderType.LIMIT,
         limit_price=97.0,
     )
-    fills = cast(List[Fill], execute_orders(
-        cast(IBKRProvider, ib),
-        sell_orders=[sell1, sell2],
-        options=OrderExecutionOptions(concurrency_cap=1, yes=True),
-    ))
+    fills = cast(
+        List[Fill],
+        execute_orders(
+            cast(IBKRProvider, ib),
+            sell_orders=[sell1, sell2],
+            options=OrderExecutionOptions(concurrency_cap=1, yes=True),
+        ),
+    )
     assert [f.contract.symbol for f in fills] == ["AAA", "AAA"]
     assert pacing == []  # concurrency limit not exceeded
     events = [e["type"] for e in ib.event_log]
@@ -176,7 +182,9 @@ def test_execute_orders_kill_switch(tmp_path: pathlib.Path) -> None:
         order_type=OrderType.MARKET,
     )
     with pytest.raises(RuntimeError):
-        execute_orders(cast(IBKRProvider, ib), buy_orders=[order], options=OrderExecutionOptions(yes=True))
+        execute_orders(
+            cast(IBKRProvider, ib), buy_orders=[order], options=OrderExecutionOptions(yes=True)
+        )
 
 
 def test_execute_orders_paper_only_enforcement() -> None:
@@ -190,7 +198,9 @@ def test_execute_orders_paper_only_enforcement() -> None:
         order_type=OrderType.MARKET,
     )
     with pytest.raises(RuntimeError):
-        execute_orders(cast(IBKRProvider, ib), buy_orders=[order], options=OrderExecutionOptions(yes=True))
+        execute_orders(
+            cast(IBKRProvider, ib), buy_orders=[order], options=OrderExecutionOptions(yes=True)
+        )
 
 
 def test_execute_orders_rth_outside_hours() -> None:
