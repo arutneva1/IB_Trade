@@ -281,12 +281,12 @@ def test_execute_orders_sequential_buy_orders_pacing() -> None:
 
         orig_place_order = ib.place_order
 
-        def place_order_with_hook(order: Order) -> str:  # type: ignore[override]
+        def place_order_with_hook(order: Order) -> str:
             if ib._next_order_id >= 1 and ib._pacing_hook is not None:
                 ib._pacing_hook(len(ib._orders) or 1)
             return orig_place_order(order)
 
-        ib.place_order = place_order_with_hook  # type: ignore[assignment]
+        ib.place_order = place_order_with_hook  # type: ignore[method-assign]
 
         orders = [
             Order(
