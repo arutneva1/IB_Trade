@@ -61,6 +61,7 @@ class Contract:
     sec_type: str = "STK"
     currency: str = "USD"
     exchange: str = "SMART"
+    con_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -316,6 +317,11 @@ class FakeIB:
         self._symbol_overrides: dict[str, str | Contract] = dict(symbol_overrides or {})
         self._connected = False
         self._next_order_id = 0
+        existing_ids = [c.con_id or 0 for c in self._contracts.values()]
+        existing_ids.extend(
+            c.con_id or 0 for c in self._symbol_overrides.values() if isinstance(c, Contract)
+        )
+        self._next_con_id = max(existing_ids, default=0)
         self._orders: dict[str, Order] = {}
         self._event_log: list[dict[str, object]] = []
         self._last_ts = datetime.now(timezone.utc)
@@ -347,17 +353,27 @@ class FakeIB:
     def resolve_contract(self, contract: Contract) -> Contract:
         symbol = contract.symbol
         override = self._symbol_overrides.get(symbol)
+        resolved: Contract | None
         if override is not None:
             if isinstance(override, Contract):
-                return override
-            if isinstance(override, str):
+                resolved = override
+            elif isinstance(override, str):
                 symbol = override
+                resolved = self._contracts.get(symbol)
             else:  # pragma: no cover - defensive
                 raise ResolutionError(f"Unsupported override type for {symbol!r}")
-        if symbol not in self._contracts:
+        else:
+            resolved = self._contracts.get(symbol)
+        if resolved is None:
             msg = f"Unknown symbol: {symbol}"
             raise ResolutionError(msg)
-        return self._contracts[symbol]
+        if resolved.con_id is None:
+            self._next_con_id += 1
+            resolved = replace(resolved, con_id=self._next_con_id)
+            self._contracts[resolved.symbol] = resolved
+            if override is not None and isinstance(override, Contract):
+                self._symbol_overrides[contract.symbol] = resolved
+        return resolved
 
     def get_quote(self, contract: Contract) -> pricing.Quote | Quote:
         resolved = self.resolve_contract(contract)
