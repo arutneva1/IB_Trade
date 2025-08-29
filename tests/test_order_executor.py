@@ -236,9 +236,7 @@ def test_execute_orders_fx_sell_buy_limit_pricer_nbbo() -> None:
     ]
 
     placed_prices = [
-        cast(Order, e["order"]).limit_price
-        for e in ib.event_log
-        if e["type"] == "placed"
+        cast(Order, e["order"]).limit_price for e in ib.event_log if e["type"] == "placed"
     ]
     assert placed_prices == [
         pytest.approx(quotes["USD"].ask),
@@ -246,11 +244,7 @@ def test_execute_orders_fx_sell_buy_limit_pricer_nbbo() -> None:
         pytest.approx(buy_price),
     ]
 
-    fill_prices = [
-        cast(Fill, e["fill"]).price
-        for e in ib.event_log
-        if e["type"] == "filled"
-    ]
+    fill_prices = [cast(Fill, e["fill"]).price for e in ib.event_log if e["type"] == "filled"]
     assert fill_prices == [
         pytest.approx(quotes["USD"].ask),
         pytest.approx(sell_price),
