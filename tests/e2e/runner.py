@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict
+from typing import Dict
 
 from ibkr_etf_rebalancer.account_state import AccountSnapshot, compute_account_state
 from ibkr_etf_rebalancer.config import AppConfig
@@ -16,7 +16,11 @@ from ibkr_etf_rebalancer.ibkr_provider import (
     Position,
 )
 from ibkr_etf_rebalancer.order_builder import build_fx_order, build_orders
-from ibkr_etf_rebalancer.order_executor import OrderExecutionOptions, OrderExecutionResult, execute_orders
+from ibkr_etf_rebalancer.order_executor import (
+    OrderExecutionOptions,
+    OrderExecutionResult,
+    execute_orders,
+)
 from ibkr_etf_rebalancer.pricing import FakeQuoteProvider, Quote
 from ibkr_etf_rebalancer.rebalance_engine import FxPlan, OrderPlan, plan_rebalance_with_fx
 from ibkr_etf_rebalancer.reporting import generate_post_trade_report, generate_pre_trade_report
@@ -43,6 +47,7 @@ class ScenarioRunResult:
 
 
 # ---------------------------------------------------------------------------
+
 
 def run_scenario(scenario: Scenario) -> ScenarioRunResult:
     """Execute *scenario* end-to-end using fakes only.
@@ -95,11 +100,16 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
             )
             for sym, qty in scenario.positions.items()
         ]
-        net_liq = sum(
-            qty * scenario.prices[sym] for sym, qty in scenario.positions.items()
-        ) + sum(scenario.cash.values())
+        net_liq = sum(qty * scenario.prices[sym] for sym, qty in scenario.positions.items()) + sum(
+            scenario.cash.values()
+        )
         account_values = [AccountValue(tag="NetLiquidation", value=net_liq, currency="USD")]
-        ib = FakeIB(contracts=contracts, quotes=ib_quotes, account_values=account_values, positions=positions)
+        ib = FakeIB(
+            contracts=contracts,
+            quotes=ib_quotes,
+            account_values=account_values,
+            positions=positions,
+        )
 
         # ------------------------------------------------------------------
         # Targets: derive trivial portfolios from current holdings for now
