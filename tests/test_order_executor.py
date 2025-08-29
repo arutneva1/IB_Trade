@@ -63,7 +63,9 @@ def test_execute_orders_dry_run_no_provider_calls() -> None:
 def test_execute_orders_allow_margin_scaling() -> None:
     now = datetime.now(timezone.utc)
     contracts, quotes = _basic_contracts(now)
-    ib = FakeIB(options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts, quotes=quotes)
+    ib = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts, quotes=quotes
+    )
 
     order = Order(
         contract=contracts["AAA"],
@@ -86,7 +88,9 @@ def test_execute_orders_allow_margin_scaling() -> None:
 
     assert any(f.contract.symbol == "AAA" and f.quantity == 20 for f in result.fills)
 
-    ib2 = FakeIB(options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts, quotes=quotes)
+    ib2 = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts, quotes=quotes
+    )
     result2 = cast(
         OrderExecutionResult,
         execute_orders(
@@ -104,7 +108,9 @@ def test_execute_orders_allow_margin_scaling() -> None:
 def test_execute_orders_margin_only_rejected() -> None:
     now = datetime.now(timezone.utc)
     contracts, quotes = _basic_contracts(now)
-    ib = FakeIB(options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts, quotes=quotes)
+    ib = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts, quotes=quotes
+    )
 
     order = Order(
         contract=contracts["AAA"],
