@@ -42,8 +42,6 @@ def _assert_md_almost_equal(actual: Path, expected: Path) -> None:
     _assert_text_almost_equal(_normalize(actual.read_text()), _normalize(expected.read_text()))
 
 
-
-
 def _read_report(path: Path) -> tuple[str, pd.DataFrame]:
     lines = path.read_text().splitlines()
     meta_lines: list[str] = []
@@ -140,9 +138,7 @@ def test_scenarios(fixture_path: Path) -> None:
     for e in placed:
         info = _parse_order(e["order"])
         key = (
-            f"{info['symbol']}.{info['currency']}"
-            if info["sec_type"] == "CASH"
-            else info["symbol"]
+            f"{info['symbol']}.{info['currency']}" if info["sec_type"] == "CASH" else info["symbol"]
         )
         quote = scenario.quotes[key]
         if info["side"] == "BUY":
