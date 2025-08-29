@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Sequence, cast
 import builtins
 import pathlib
+import logging
 
 import pytest
 from freezegun import freeze_time
@@ -137,6 +138,62 @@ def test_execute_orders_sequences_fx_sell_buy_event_log() -> None:
         ("placed", "AAA", OrderSide.BUY),
         ("filled", "AAA", OrderSide.BUY),
     ]
+
+
+def test_order_logging_details(caplog: pytest.LogCaptureFixture) -> None:
+    now = datetime.now(timezone.utc)
+    contracts, quotes = _basic_contracts(now)
+    ib = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts, quotes=quotes
+    )
+
+    fill_order = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.LIMIT,
+        limit_price=101.0,
+    )
+    cancel_order = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.LIMIT,
+        limit_price=50.0,
+    )
+
+    with caplog.at_level(logging.INFO):
+        execute_orders(
+            cast(IBKRProvider, ib),
+            buy_orders=[fill_order, cancel_order],
+            options=OrderExecutionOptions(yes=True),
+        )
+
+    placed = [r for r in caplog.records if r.msg == "order_placed"]
+    assert len(placed) == 2
+    assert getattr(placed[0], "order_id") == "1"
+    assert getattr(placed[0], "symbol") == "AAA"
+    assert getattr(placed[0], "side") == "BUY"
+    assert getattr(placed[0], "quantity") == 1
+    assert getattr(placed[0], "price") == 101.0
+    assert getattr(placed[1], "order_id") == "2"
+    assert getattr(placed[1], "price") == 50.0
+
+    filled = [r for r in caplog.records if r.msg == "order_filled"]
+    assert len(filled) == 1
+    assert getattr(filled[0], "order_id") == "1"
+    assert getattr(filled[0], "symbol") == "AAA"
+    assert getattr(filled[0], "side") == "BUY"
+    assert getattr(filled[0], "quantity") == 1
+    assert getattr(filled[0], "price") == 100.0
+
+    canceled = [r for r in caplog.records if r.msg == "order_canceled"]
+    assert len(canceled) == 1
+    assert getattr(canceled[0], "order_id") == "2"
+    assert getattr(canceled[0], "symbol") == "AAA"
+    assert getattr(canceled[0], "side") == "BUY"
+    assert getattr(canceled[0], "quantity") == 1
+    assert getattr(canceled[0], "reason") == "unfilled"
 
 
 def test_execute_orders_concurrency_cap_batches() -> None:
