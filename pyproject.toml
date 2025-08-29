@@ -25,6 +25,7 @@ dev = [
     "mypy",
     "black",
     "pandas-stubs",        
+    "pyyaml",
 ]
 
 [tool.black]
