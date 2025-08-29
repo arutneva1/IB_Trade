@@ -13,6 +13,9 @@
 - Added Phase 0 review checklist.
 
 
+## Phase 5
+- Export provider and quote provider classes via package API. [SRS AC3][SRS AC9]
+
 ## Phase 3
 - Support account snapshots via `AccountSnapshot` and `compute_account_state` exports. [SRS AC3]
 
