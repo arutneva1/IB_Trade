@@ -7,6 +7,8 @@ from datetime import datetime, timezone, timedelta
 from enum import Enum
 from typing import Callable, Mapping, Protocol, Sequence, runtime_checkable
 
+from ib_async import IB, Contract as IBContract, Order as IBOrder  # type: ignore
+
 from . import pricing
 
 
@@ -186,6 +188,58 @@ class IBKRProvider(Protocol):
         self, order_ids: Sequence[str], timeout: float | None = None
     ) -> Sequence[Fill]:
         """Wait for fills and return them."""
+
+
+class LiveIB:
+    """Stubbed provider implementation using :mod:`ib_async` types.
+
+    The class defines the same interface as :class:`FakeIB` but leaves all
+    methods unimplemented for future development. No network connections are
+    established on import or instantiation.
+    """
+
+    def __init__(self, options: IBKRProviderOptions | None = None) -> None:
+        self.options = options or IBKRProviderOptions()
+        self._ib: IB | None = None
+
+    # ------------------------------------------------------------------
+    # IBKRProvider interface
+    def connect(self) -> None:  # pragma: no cover - stub
+        raise NotImplementedError
+
+    def disconnect(self) -> None:  # pragma: no cover - stub
+        raise NotImplementedError
+
+    def resolve_contract(self, contract: Contract) -> Contract:  # pragma: no cover - stub
+        raise NotImplementedError
+
+    def get_quote(self, contract: Contract) -> Quote:  # pragma: no cover - stub
+        raise NotImplementedError
+
+    def get_account_values(self) -> Sequence[AccountValue]:  # pragma: no cover - stub
+        raise NotImplementedError
+
+    def get_positions(self) -> Sequence[Position]:  # pragma: no cover - stub
+        raise NotImplementedError
+
+    def place_order(self, order: Order) -> str:  # pragma: no cover - stub
+        raise NotImplementedError
+
+    def cancel(self, order_id: str) -> None:  # pragma: no cover - stub
+        raise NotImplementedError
+
+    def wait_for_fills(
+        self, order_ids: Sequence[str], timeout: float | None = None
+    ) -> Sequence[Fill]:  # pragma: no cover - stub
+        raise NotImplementedError
+
+    # ------------------------------------------------------------------
+    # conversion helpers
+    def _to_ib_contract(self, contract: Contract) -> IBContract:  # pragma: no cover - stub
+        raise NotImplementedError
+
+    def _to_ib_order(self, order: Order) -> IBOrder:  # pragma: no cover - stub
+        raise NotImplementedError
 
 
 class FakeIB:
@@ -380,5 +434,6 @@ __all__ = [
     "PacingError",
     "IBKRProvider",
     "IBKRProviderOptions",
+    "LiveIB",
     "FakeIB",
 ]
