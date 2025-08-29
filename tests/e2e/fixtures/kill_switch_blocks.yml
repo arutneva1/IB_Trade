@@ -1,0 +1,17 @@
+name: Kill switch blocks
+as_of: 2024-01-01T10:00:00Z
+prices:
+  AAA: 100.0
+quotes:
+  AAA:
+    bid: 99.0
+    ask: 101.0
+positions:
+  AAA: 50
+cash:
+  USD: 10000.0
+config_overrides:
+  safety:
+    kill_switch_file: KILL_SWITCH
+  rebalance:
+    min_order_usd: 0

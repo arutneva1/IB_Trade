@@ -1,0 +1,23 @@
+name: Spread aware limits
+as_of: 2024-01-01T10:00:00Z
+prices:
+  AAA: 100.0
+  BBB: 50.0
+quotes:
+  AAA:
+    bid: 99.0
+    ask: 101.0
+  BBB:
+    bid: 49.0
+    ask: 51.0
+positions:
+  AAA: 50
+  BBB: 50
+cash:
+  USD: 10000.0
+config_overrides:
+  limits:
+    style: spread_aware
+    buy_offset_frac: 0.1
+    sell_offset_frac: 0.1
+    max_offset_bps: 20

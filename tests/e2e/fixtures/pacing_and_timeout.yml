@@ -1,0 +1,22 @@
+name: Pacing and timeout
+as_of: 2024-01-01T10:00:00Z
+prices:
+  AAA: 100.0
+  BBB: 50.0
+quotes:
+  AAA:
+    bid: 99.0
+    ask: 101.0
+  BBB:
+    bid: 49.0
+    ask: 51.0
+positions:
+  AAA: 50
+  BBB: 50
+cash:
+  USD: 10000.0
+config_overrides:
+  rebalance:
+    order_type: MKT
+    min_order_usd: 0
+    prefer_rth: false
