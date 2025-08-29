@@ -1,0 +1,2 @@
+symbol,side,filled_shares,avg_price,notional,residual_drift_bps
+AAA,BUY,1.0,100.5,100.5,-10000.0

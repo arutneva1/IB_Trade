@@ -1,0 +1,9 @@
+NetLiq: 7500.00
+Cash USD: -5000.00
+Cash Buffer: -50.00
+
+| symbol | target_pct | current_pct | drift_bps | price | dollar_delta | share_delta | side | est_notional | reason |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| AAA | 80.00 | 132.45 | -5245.03 | 100.00 | -3933.77 | -39.3377 | SELL | -3933.77 |  |
+| BBB | 20.00 | 33.11 | -1311.26 | 50.00 | -983.44 | -19.6688 | SELL | -983.44 |  |
+| TOTAL | 100.00 | 165.56 | -6556.29 |  | -4917.21 |  |  | -4917.21 |  |

@@ -12,6 +12,7 @@ from ibkr_etf_rebalancer.ibkr_provider import (
     Contract,
     FakeIB,
     IBKRProvider,
+    IBKRProviderOptions,
     Order,
     OrderSide,
     Position,
@@ -92,6 +93,8 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
             contracts[ib_symbol] = contract
             ib_quotes[ib_symbol] = q
 
+        # Discard zero-quantity holdings to appease downstream validation logic
+        non_zero_positions = {s: q for s, q in scenario.positions.items() if q != 0}
         positions = [
             Position(
                 account=cfg.ibkr.account,
@@ -99,13 +102,14 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
                 quantity=qty,
                 avg_price=scenario.prices[sym],
             )
-            for sym, qty in scenario.positions.items()
+            for sym, qty in non_zero_positions.items()
         ]
-        net_liq = sum(qty * scenario.prices[sym] for sym, qty in scenario.positions.items()) + sum(
+        net_liq = sum(qty * scenario.prices[sym] for sym, qty in non_zero_positions.items()) + sum(
             scenario.cash.values()
         )
         account_values = [AccountValue(tag="NetLiquidation", value=net_liq, currency="USD")]
         ib = FakeIB(
+            options=IBKRProviderOptions(allow_market_orders=True),
             contracts=contracts,
             quotes=ib_quotes,
             account_values=account_values,
@@ -114,21 +118,38 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
 
         # ------------------------------------------------------------------
         # Targets: derive trivial portfolios from current holdings for now
-        total_val = sum(qty * scenario.prices[sym] for sym, qty in scenario.positions.items())
+        total_val = sum(qty * scenario.prices[sym] for sym, qty in non_zero_positions.items())
         weights: Dict[str, float] = {}
         if total_val > 0:
             weights = {
                 sym: qty * scenario.prices[sym] / total_val
-                for sym, qty in scenario.positions.items()
+                for sym, qty in non_zero_positions.items()
             }
+        else:
+            # When the portfolio has no holdings, assume equal weights for any
+            # quoted equities so that downstream blending logic still has
+            # non-zero exposure to work with. FX pairs are ignored here.
+            equity_syms = [s for s in scenario.prices if "." not in s]
+            if equity_syms:
+                w = 1.0 / len(equity_syms)
+                weights = {s: w for s in equity_syms}
         portfolios = {"SMURF": weights, "BADASS": weights, "GLTR": weights}
         blend = blend_targets(portfolios, cfg.models)
 
         # ------------------------------------------------------------------
+        cash_balances = dict(scenario.cash)
+        if (
+            cash_balances.get("USD", 0) <= 0
+            and "CAD" in cash_balances
+            and "USD.CAD" in scenario.prices
+        ):
+            rate = scenario.prices["USD.CAD"]
+            if rate > 0:
+                cash_balances["USD"] = cash_balances["CAD"] / rate
         snapshot = compute_account_state(
-            scenario.positions,
+            non_zero_positions,
             scenario.prices,
-            scenario.cash,
+            cash_balances,
             cash_buffer_pct=cfg.rebalance.cash_buffer_pct,
         )
 
