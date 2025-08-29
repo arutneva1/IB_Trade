@@ -141,13 +141,20 @@ def test_scenarios(fixture_path: Path) -> None:
             f"{info['symbol']}.{info['currency']}" if info["sec_type"] == "CASH" else info["symbol"]
         )
         quote = scenario.quotes[key]
-        if info["side"] == "BUY":
+        if info["sec_type"] == "CASH":
             if info["limit_price"] is not None:
-                assert info["limit_price"] <= quote.ask + 1e-6
-            rank = 0 if info["sec_type"] == "CASH" else 2
-        else:
+                if info["side"] == "BUY":
+                    assert info["limit_price"] <= quote.ask + 1e-6
+                else:
+                    assert info["limit_price"] >= quote.bid - 1e-6
+            rank = 0
+        elif info["side"] == "SELL":
             if info["limit_price"] is not None:
                 assert info["limit_price"] >= quote.bid - 1e-6
             rank = 1
+        else:
+            if info["limit_price"] is not None:
+                assert info["limit_price"] <= quote.ask + 1e-6
+            rank = 2
         assert rank >= last_rank
         last_rank = rank
