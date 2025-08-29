@@ -369,4 +369,4 @@ def plan_rebalance_with_fx(
     return final_plan, fx_plan
 
 
-__all__ = ["generate_orders", "plan_rebalance_with_fx", "OrderPlan"]
+__all__ = ["generate_orders", "plan_rebalance_with_fx", "OrderPlan", "FxPlan"]
