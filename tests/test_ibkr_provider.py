@@ -4,13 +4,51 @@ from typing import cast
 
 from ibkr_etf_rebalancer import pricing
 from ibkr_etf_rebalancer.ibkr_provider import (
+    AccountValue,
     Contract,
     FakeIB,
+    Position,
     Order,
     OrderSide,
     OrderType,
     PacingError,
 )
+
+
+@pytest.fixture
+def sample_account_values() -> list[AccountValue]:
+    return [AccountValue(tag="NetLiquidation", value=1000.0, currency="USD")]
+
+
+@pytest.fixture
+def sample_positions() -> list[Position]:
+    contract = Contract(symbol="AAA")
+    return [Position(account="DU123", contract=contract, quantity=5, avg_price=100.0)]
+
+
+@pytest.fixture
+def seeded_ib(
+    sample_account_values: list[AccountValue], sample_positions: list[Position]
+) -> FakeIB:
+    return FakeIB(account_values=sample_account_values, positions=sample_positions)
+
+
+def test_get_account_values_returns_copy(
+    seeded_ib: FakeIB, sample_account_values: list[AccountValue]
+) -> None:
+    values = cast(list[AccountValue], seeded_ib.get_account_values())
+    assert values == sample_account_values
+    assert values is not seeded_ib.state["account_values"]
+    values.pop()
+    assert seeded_ib.get_account_values() == sample_account_values
+
+
+def test_get_positions_returns_copy(seeded_ib: FakeIB, sample_positions: list[Position]) -> None:
+    positions = cast(list[Position], seeded_ib.get_positions())
+    assert positions == sample_positions
+    assert positions is not seeded_ib.state["positions"]
+    positions.pop()
+    assert seeded_ib.get_positions() == sample_positions
 
 
 def test_connect_disconnect_idempotent_state() -> None:
