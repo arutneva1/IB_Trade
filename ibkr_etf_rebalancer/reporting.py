@@ -28,7 +28,7 @@ def _build_pre_trade_dataframe(
     behaviour such as tolerance bands or minimum order size.
     """
 
-    orders = generate_orders(targets, current, prices, total_equity, **order_kwargs)
+    plan = generate_orders(targets, current, prices, total_equity, **order_kwargs)
     rows: list[dict[str, object]] = []
     symbols = sorted(set(targets) | set(current))
     for symbol in symbols:
@@ -38,7 +38,7 @@ def _build_pre_trade_dataframe(
         current_pct = current.get(symbol, 0.0)
         diff = target - current_pct
         price = prices[symbol]
-        share_delta = orders.get(symbol, 0.0)
+        share_delta = plan.orders.get(symbol, 0.0)
         est_notional = share_delta * price
         dollar_delta = diff * total_equity
         side = "BUY" if share_delta > 0 else "SELL" if share_delta < 0 else ""
@@ -53,6 +53,7 @@ def _build_pre_trade_dataframe(
                 "share_delta": share_delta,
                 "side": side,
                 "est_notional": est_notional,
+                "reason": plan.dropped.get(symbol, ""),
             }
         )
 
@@ -83,6 +84,7 @@ def _build_pre_trade_dataframe(
         "share_delta": pd.NA,
         "side": "",
         "est_notional": round(df["est_notional"].sum(), 2),
+        "reason": "",
     }
     df = pd.concat([df, pd.DataFrame([total])], ignore_index=True)
 

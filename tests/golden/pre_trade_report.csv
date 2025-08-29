@@ -2,7 +2,7 @@ NetLiq,100000.00
 Cash USD,10000.00
 Cash Buffer,5000.00
 
-symbol,target_pct,current_pct,drift_bps,price,dollar_delta,share_delta,side,est_notional
-AAA,60.0,50.0,1000.0,100.0,10000.0,100.0,BUY,10000.0
-BBB,40.0,50.0,-1000.0,80.0,-10000.0,-125.0,SELL,-10000.0
-TOTAL,100.0,100.0,0.0,,0.0,,,0.0
+symbol,target_pct,current_pct,drift_bps,price,dollar_delta,share_delta,side,est_notional,reason
+AAA,60.0,50.0,1000.0,100.0,10000.0,100.0,BUY,10000.0,
+BBB,40.0,50.0,-1000.0,80.0,-10000.0,-125.0,SELL,-10000.0,
+TOTAL,100.0,100.0,0.0,,0.0,,,0.0,

@@ -38,11 +38,20 @@ other trades and the leverage constraints.
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass, field
 from typing import Any, Dict, Mapping
 
 from .config import FXConfig, PricingConfig
 from .fx_engine import FxPlan, plan_fx_if_needed
 from .pricing import QuoteProvider
+
+
+@dataclass
+class OrderPlan:
+    """Planned equity orders and any dropped trades."""
+
+    orders: Dict[str, float] = field(default_factory=dict)
+    dropped: Dict[str, str] = field(default_factory=dict)
 
 
 def _get_band(bands: float | Mapping[str, float], symbol: str) -> float:
@@ -71,7 +80,7 @@ def generate_orders(
     allow_fractional: bool = True,
     trigger_mode: str = "per_holding",
     portfolio_total_band_bps: float = 0.0,
-) -> Dict[str, float]:
+) -> OrderPlan:
     """Create rebalance orders for the supplied portfolio.
 
     Parameters
@@ -119,9 +128,10 @@ def generate_orders(
 
     Returns
     -------
-    Dict[str, float]
-        Mapping of symbol to number of shares to buy (positive) or sell
-        (negative).  Symbols for which no trade is required are omitted.
+    OrderPlan
+        ``OrderPlan.orders`` maps ``symbol`` to number of shares to buy
+        (positive) or sell (negative).  ``OrderPlan.dropped`` records reasons
+        for any trades that were ignored.
     """
 
     valid_modes = {"per_holding", "total_drift"}
@@ -131,6 +141,7 @@ def generate_orders(
     # ------------------------------------------------------------------
     # Determine raw desired order sizes in dollars
     orders_value: Dict[str, float] = {}
+    dropped: Dict[str, str] = {}
     symbols = set(targets) | set(current)
     diffs: Dict[str, float] = {}
     outside_band: Dict[str, float] = {}
@@ -156,12 +167,15 @@ def generate_orders(
         # converting back to share counts.
         value = round(diff * total_equity, 2)
         if abs(value) < min_order:
+            dropped[symbol] = (
+                f"notional {abs(value):.2f} below min_order {min_order:.2f}"
+            )
             continue
         orders_value[symbol] = value
 
     # Nothing to do
     if not orders_value:
-        return {}
+        return OrderPlan(orders={}, dropped=dropped)
 
     # ------------------------------------------------------------------
     # Apply sells first to free up buying power
@@ -194,13 +208,16 @@ def generate_orders(
         scaled_value = value * scale
         if abs(scaled_value) < min_order:
             # Drop any orders that fell below ``min_order`` after scaling
+            dropped[symbol] = (
+                f"notional {abs(scaled_value):.2f} below min_order {min_order:.2f}"
+            )
             continue
         cash -= scaled_value
         gross += scaled_value
         orders_value[symbol] = scaled_value
 
     if not orders_value:
-        return {}
+        return OrderPlan(orders={}, dropped=dropped)
 
     # ------------------------------------------------------------------
     # Convert notional values to share counts
@@ -227,7 +244,7 @@ def generate_orders(
                     continue
         orders_shares[symbol] = shares
 
-    return orders_shares
+    return OrderPlan(orders=orders_shares, dropped=dropped)
 
 
 def plan_rebalance_with_fx(
@@ -241,7 +258,7 @@ def plan_rebalance_with_fx(
     pricing_cfg: PricingConfig,
     funding_currency: str = "CAD",
     **kwargs: Any,
-) -> tuple[Dict[str, float], FxPlan]:
+) -> tuple[OrderPlan, FxPlan]:
     """Plan equity trades and any required FX conversion."""
 
     funding_cash = float(kwargs.pop("funding_cash", kwargs.pop("cad_cash", 0.0)))
@@ -256,13 +273,17 @@ def plan_rebalance_with_fx(
     # First pass: assume funding cash is converted to size desired equity orders
     planning_current = dict(current)
     planning_current["CASH"] = (usd_cash + funding_cash) / total_equity
-    orders = generate_orders(targets, planning_current, prices, total_equity, **kwargs)
+    planning_plan = generate_orders(targets, planning_current, prices, total_equity, **kwargs)
 
     usd_buy_notional = sum(
-        shares * prices[symbol] for symbol, shares in orders.items() if shares > 0
+        shares * prices[symbol]
+        for symbol, shares in planning_plan.orders.items()
+        if shares > 0
     )
     usd_sell_notional = sum(
-        -shares * prices[symbol] for symbol, shares in orders.items() if shares < 0
+        -shares * prices[symbol]
+        for symbol, shares in planning_plan.orders.items()
+        if shares < 0
     )
     usd_cash_after_sells = usd_cash + usd_sell_notional
 
@@ -325,9 +346,9 @@ def plan_rebalance_with_fx(
     final_cash = usd_cash + fx_plan.usd_notional
     final_current = dict(current)
     final_current["CASH"] = final_cash / total_equity
-    final_orders = generate_orders(targets, final_current, prices, total_equity, **kwargs)
+    final_plan = generate_orders(targets, final_current, prices, total_equity, **kwargs)
 
-    return final_orders, fx_plan
+    return final_plan, fx_plan
 
 
-__all__ = ["generate_orders", "plan_rebalance_with_fx"]
+__all__ = ["generate_orders", "plan_rebalance_with_fx", "OrderPlan"]
