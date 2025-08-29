@@ -167,6 +167,12 @@ def test_scenarios(fixture_path: Path) -> None:
         if kill_path:
             assert placed == []
             return
+        if result2.execution.timed_out:
+            assert any(e["type"] == "canceled" for e in events)
+        exec_cap = scenario.config_overrides.get("execution", {}).get("concurrency_cap")
+        fake_ib_limit = scenario.config_overrides.get("fake_ib", {}).get("concurrency_limit")
+        if exec_cap == 1 and fake_ib_limit == 1:
+            assert [e["type"] for e in events] == ["placed", "filled", "placed", "filled"]
         last_rank = -1
         for e in placed:
             info = _parse_order(e["order"])
