@@ -138,7 +138,8 @@ def test_order_lifecycle_and_fills() -> None:
         "AAA": pricing.Quote(bid=99.0, ask=100.0, ts=now, last=99.5),
         "USD": pricing.Quote(bid=1.25, ask=1.26, ts=now, last=1.255),
     }
-    ib = FakeIB(contracts=contracts, quotes=quotes)
+    options = IBKRProviderOptions(allow_market_orders=True)
+    ib = FakeIB(options=options, contracts=contracts, quotes=quotes)
 
     # BUY limit that remains open (limit below ask)
     buy_open = Order(
@@ -224,11 +225,34 @@ def test_pacing_limit_triggers_backoff_hook() -> None:
         pacing_hook=hook,
     )
 
-    order = Order(contract=contract, side=OrderSide.BUY, quantity=1, order_type=OrderType.MARKET)
+    order = Order(
+        contract=contract,
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.LIMIT,
+        limit_price=100.0,
+    )
     ib.place_order(order)
     with pytest.raises(PacingError):
         ib.place_order(order)
     assert called == [1]
+
+
+def test_market_orders_rejected_by_default() -> None:
+    contract = Contract(symbol="AAA")
+    ib = FakeIB(contracts={"AAA": contract})
+    order = Order(contract=contract, side=OrderSide.BUY, quantity=1, order_type=OrderType.MARKET)
+    with pytest.raises(RuntimeError):
+        ib.place_order(order)
+
+
+def test_market_orders_allowed_when_enabled() -> None:
+    contract = Contract(symbol="AAA")
+    options = IBKRProviderOptions(allow_market_orders=True)
+    ib = FakeIB(options=options, contracts={"AAA": contract})
+    order = Order(contract=contract, side=OrderSide.BUY, quantity=1, order_type=OrderType.MARKET)
+    order_id = ib.place_order(order)
+    assert order_id in ib._orders
 
 
 def test_place_order_abort_on_kill_switch(tmp_path: pathlib.Path) -> None:

@@ -134,6 +134,8 @@ class IBKRProviderOptions:
         Port of the TWS or gateway API.
     client_id:
         Client ID for the API connection.
+    allow_market_orders:
+        Permit submission of ``OrderType.MARKET`` orders.
     """
 
     paper: bool = True
@@ -143,6 +145,7 @@ class IBKRProviderOptions:
     host: str = "127.0.0.1"
     port: int = 7497
     client_id: int = 0
+    allow_market_orders: bool = False
 
 
 class ProviderError(Exception):
@@ -360,6 +363,9 @@ class FakeIB:
     def place_order(self, order: Order) -> str:
         safety.check_kill_switch(self.options.kill_switch)
         safety.ensure_paper_trading(self.options.paper, self.options.live)
+
+        if order.order_type is OrderType.MARKET and not self.options.allow_market_orders:
+            raise RuntimeError("market orders not allowed")
 
         if order.quantity <= 0:
             raise ValueError("Quantity must be positive")
