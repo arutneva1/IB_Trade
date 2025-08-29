@@ -148,6 +148,8 @@ ibkr_etf_rebalancer/
 
 ## 3) Phase 2 — Spread‑Aware Limit Pricing (Still Offline)
 
+See [phase2_checklist.md](phase2_checklist.md). **Goal:** Introduce spread‑aware limit pricing with offline quotes, satisfying SRS AC13. **Critical tests/safety:** NBBO caps, tick rounding, and wide/stale escalation; no network or broker calls.
+
 ### 3.1 `limit_pricer.py`
 **Goal:** Default **LMT** calculator using NBBO (bid/ask), tick rounding, bps caps, and wide/stale escalation.  
 **Tests:**
@@ -165,6 +167,8 @@ ibkr_etf_rebalancer/
 ---
 
 ## 4) Phase 3 — Account Snapshot Model (Offline)
+
+See [phase3_checklist.md](phase3_checklist.md). **Goal:** Build account snapshot to compute weights and exposures, addressing SRS AC3. **Critical tests/safety:** currency‑separated cash math and weight calculations; offline only.
 
 ### `account_state.py`
 **Goal:** Compute current weights from positions + prices; apply `cash_buffer_pct`; read per‑currency cash (USD/CAD).
@@ -187,6 +191,8 @@ snapshot = compute_account_state(positions, prices, cash)
 ---
 
 ## 5) Phase 4 — FX Funding (Math + Plan Only)
+
+See [phase4_checklist.md](phase4_checklist.md). **Goal:** Plan CAD→USD conversions for funding, covering SRS AC5 and AC12. **Critical tests/safety:** buffer and minimum‑notional checks; no live orders.
 
 ### Integrate `fx_engine.py`
 **Goal:** Just‑in‑time CAD→USD conversion if `[fx].enabled=true` to fund USD ETF BUYs.
@@ -221,6 +227,8 @@ snapshot = compute_account_state(positions, prices, cash)
 
 ## 6) Phase 5 — IBKR Provider (ib_async) with Fakes
 
+See [phase5_checklist.md](phase5_checklist.md). **Goal:** Implement `ib_async` provider backed by `FakeIB`, meeting SRS AC3 and AC9. **Critical tests/safety:** contract resolution, pacing hooks; offline with no credentials.
+
 ### 6.1 `ibkr_provider.py`
 **Goal:** Define an adapter interface; provide **FakeIB** (deterministic, in‑memory fills) and `LiveIB` stubs.  
 **Interface covers:**
@@ -243,6 +251,8 @@ snapshot = compute_account_state(positions, prices, cash)
 ---
 
 ## 7) Phase 6 — Order Builder & Executor (Dry‑Run First)
+
+See [phase6_checklist.md](phase6_checklist.md). **Goal:** Build order sequencing and execution using fakes, satisfying SRS AC5, AC6, AC7, AC8, AC9, and AC10. **Critical tests/safety:** FX→SELLS→BUYS flow, paper‑only gating, kill switch enforcement.
 
 ### 7.0 `safety.py`
 **Goal:** Centralize kill switch, paper/live gating, confirmation prompts, and `prefer_rth` gating (SRS §5.9, §11).
@@ -293,6 +303,8 @@ snapshot = compute_account_state(positions, prices, cash)
 
 ## 8) Phase 7 — End‑to‑End Scenarios
 
+See [phase7_checklist.md](phase7_checklist.md). **Goal:** Run deterministic E2E scenarios with fakes, covering SRS AC1–AC13. **Critical tests/safety:** scenario coverage for drift, margin, FX funding; still offline.
+
 **E2E Offline (FakeIB + FakeQuoteProvider):**
 - YAML scenarios → plan → pre‑trade report → sim fills → post‑trade report.
 **Must cover:**
@@ -319,6 +331,8 @@ snapshot = compute_account_state(positions, prices, cash)
 
 ## 9) Phase 8 — CLI, Logging, DX polish
 
+See [phase8_checklist.md](phase8_checklist.md). **Goal:** Provide user‑facing CLI and logging, addressing SRS AC7 and AC10. **Critical tests/safety:** CLI flag safety, paper‑default behavior; no live orders by default.
+
 **`app.py` with `typer`:**
 ```
 python app.py --csv portfolios.csv --ini settings.ini --report-only
@@ -335,9 +349,7 @@ python app.py --csv portfolios.csv --ini settings.ini --live --yes
 
 ## 10) Phase 9 — Live Adapter Integration
 
-See `phase9_checklist.md` for the complete review checklist.
-
-**Goal:** Wire a `LiveIB` adapter using `ib_async` behind the existing provider interface while keeping higher layers unchanged.
+See [phase9_checklist.md](phase9_checklist.md). **Goal:** Wire a `LiveIB` adapter using `ib_async` behind the existing provider interface while keeping higher layers unchanged. **SRS acceptance criteria:** AC3, AC6, AC7, AC9, AC10. **Critical tests/safety:** contract mapping parity, order serialization; live mode gated behind `--live --yes` and `[ibkr].paper_only=false`.
 
 **Scope:**
 - Live adapter wiring, ops tooling, and documentation; interface for executor and pricing stays stable.
@@ -353,9 +365,7 @@ See `phase9_checklist.md` for the complete review checklist.
 
 ## 11) Phase 10 — Production Hardening
 
-See `phase10_checklist.md` for detailed tasks.
-
-**Goal:** Prepare for limited production rollout with final safety rails and observability.
+See [phase10_checklist.md](phase10_checklist.md). **Goal:** Prepare for limited production rollout with final safety rails and observability. **SRS acceptance criteria:** AC7, AC8, AC9, AC10. **Critical tests/safety:** cap violations, kill switch behavior, retry limits; paper remains default.
 
 **Safety & observability:**
 - Enforce configurable caps per order, instrument, and run; verify kill switch before any placement.
