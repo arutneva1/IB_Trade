@@ -14,6 +14,7 @@ import math
 
 from .config import LimitsConfig
 from .pricing import Quote, QuoteProvider, is_stale
+from .util import from_bps, to_bps
 
 __all__ = ["price_limit_buy", "price_limit_sell", "calc_limit_price"]
 
@@ -81,10 +82,10 @@ def price_limit_buy(
         raise ValueError("Quote ask must be greater than bid")
 
     mid = (bid + ask) / 2
-    spread_bps = (spread / mid) * 10000
+    spread_bps = to_bps(spread / mid)
 
     price = mid + cfg.buy_offset_frac * spread
-    cap = mid * (1 + cfg.max_offset_bps / 10000)
+    cap = mid * (1 + from_bps(cfg.max_offset_bps))
     price = min(price, cap)
     if cfg.use_ask_bid_cap:
         price = min(price, ask)
@@ -131,10 +132,10 @@ def price_limit_sell(
         raise ValueError("Quote ask must be greater than bid")
 
     mid = (bid + ask) / 2
-    spread_bps = (spread / mid) * 10000
+    spread_bps = to_bps(spread / mid)
 
     price = mid - cfg.sell_offset_frac * spread
-    cap = mid * (1 - cfg.max_offset_bps / 10000)
+    cap = mid * (1 - from_bps(cfg.max_offset_bps))
     price = max(price, cap)
     if cfg.use_ask_bid_cap:
         price = max(price, bid)

@@ -9,6 +9,7 @@ from typing import Any, Iterable, Mapping, TYPE_CHECKING
 import pandas as pd
 
 from .rebalance_engine import generate_orders
+from .util import to_bps
 
 if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
     from .ibkr_provider import Fill
@@ -47,7 +48,7 @@ def _build_pre_trade_dataframe(
                 "symbol": symbol,
                 "target_pct": target * 100,
                 "current_pct": current_pct * 100,
-                "drift_bps": diff * 10_000,
+                "drift_bps": to_bps(diff),
                 "price": price,
                 "dollar_delta": dollar_delta,
                 "share_delta": share_delta,
@@ -253,7 +254,7 @@ def generate_post_trade_report(
         current_shares = current.get(symbol, 0.0) * total_equity / prices[symbol]
         residual_shares = current_shares + qty
         residual_pct = residual_shares * prices[symbol] / total_equity
-        residual_drift = (targets.get(symbol, 0.0) - residual_pct) * 10_000
+        residual_drift = to_bps(targets.get(symbol, 0.0) - residual_pct)
 
         rows.append(
             {

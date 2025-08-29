@@ -19,6 +19,7 @@ from typing import Literal
 
 from .config import FXConfig
 from . import pricing
+from .util import from_bps
 
 __all__ = ["FxPlan", "plan_fx_if_needed"]
 
@@ -196,7 +197,7 @@ def plan_fx_if_needed(
             reason=f"no {funding_currency} cash available",
         )
 
-    buffered = shortfall * (1 + cfg.fx_buffer_bps / 10_000)
+    buffered = shortfall * (1 + from_bps(cfg.fx_buffer_bps))
 
     if buffered < cfg.min_fx_order_usd:
         reason = f"shortfall {buffered:.2f} below min {cfg.min_fx_order_usd}"  # noqa: E501
@@ -316,7 +317,7 @@ def plan_fx_if_needed(
 
     limit_price: float | None = None
     if cfg.order_type == "LMT":
-        offset = mid * (cfg.limit_slippage_bps / 10_000)
+        offset = mid * from_bps(cfg.limit_slippage_bps)
         price = mid + offset if side == "BUY" else mid - offset
         limit_price = _round_price(price)
 

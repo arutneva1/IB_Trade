@@ -6,6 +6,7 @@ from ibkr_etf_rebalancer.config import FXConfig, PricingConfig
 from ibkr_etf_rebalancer.fx_engine import plan_fx_if_needed
 from ibkr_etf_rebalancer.rebalance_engine import plan_rebalance_with_fx
 from ibkr_etf_rebalancer.pricing import Quote
+from ibkr_etf_rebalancer.util import from_bps
 
 
 @pytest.fixture
@@ -54,7 +55,7 @@ def test_buffer_applied_to_notional(fresh_quote: Quote, fx_cfg: FXConfig) -> Non
         fx_quote=fresh_quote,
         cfg=fx_cfg,
     )
-    expected = shortfall * (1 + fx_cfg.fx_buffer_bps / 10_000)
+    expected = shortfall * (1 + from_bps(fx_cfg.fx_buffer_bps))
     assert plan.usd_notional == pytest.approx(expected)
 
 
@@ -131,7 +132,7 @@ def test_market_rounding(fx_cfg: FXConfig) -> None:
         cfg=fx_cfg,
     )
     assert plan.est_rate == pytest.approx(1.2347)
-    expected = round(1_234.56 * (1 + fx_cfg.fx_buffer_bps / 10_000), 2)
+    expected = round(1_234.56 * (1 + from_bps(fx_cfg.fx_buffer_bps)), 2)
     assert plan.usd_notional == pytest.approx(expected)
     assert plan.qty == pytest.approx(expected)
 

@@ -44,6 +44,7 @@ from typing import Any, Dict, Mapping
 from .config import FXConfig, PricingConfig
 from .fx_engine import FxPlan, plan_fx_if_needed
 from .pricing import QuoteProvider
+from .util import to_bps
 
 
 @dataclass
@@ -156,7 +157,7 @@ def generate_orders(
     if outside_band:
         actionable = outside_band
     else:
-        total_drift_bps = round(sum(abs(d) for d in diffs.values()) * 10_000, 8)
+        total_drift_bps = round(to_bps(sum(abs(d) for d in diffs.values())), 8)
         if trigger_mode == "total_drift" and total_drift_bps > portfolio_total_band_bps:
             actionable = {sym: d for sym, d in diffs.items() if d != 0}
         else:
