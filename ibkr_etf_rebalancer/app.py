@@ -97,7 +97,7 @@ def main(
     # Run a pre-canned scenario and exit when requested.
     if scenario is not None:
         from . import safety
-        from tests.e2e.scenario import load_scenario
+        from ibkr_etf_rebalancer.scenario import load_scenario
         from tests.e2e.runner import run_scenario
 
         sc = load_scenario(scenario)

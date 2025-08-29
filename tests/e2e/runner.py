@@ -29,7 +29,7 @@ from ibkr_etf_rebalancer.reporting import generate_post_trade_report, generate_p
 from ibkr_etf_rebalancer.target_blender import BlendResult, blend_targets
 from ibkr_etf_rebalancer.util import from_bps
 
-from .scenario import Scenario
+from ibkr_etf_rebalancer.scenario import Scenario
 
 
 @dataclass

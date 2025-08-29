@@ -1,11 +1,9 @@
-"""Scenario loading and execution helpers for end-to-end tests.
+"""Scenario helpers for end-to-end testing.
 
-This module provides a small data model used by the end-to-end tests to load
-pre-canned market scenarios.  Each scenario is described by a YAML file which is
-validated with :mod:`pydantic` before being converted into a convenient data
-class.  The helper also exposes utilities to freeze time during execution and to
-derive an :class:`~ibkr_etf_rebalancer.config.AppConfig` instance with optional
-overrides.
+This module defines small data classes to describe market scenarios used in
+integration tests. The classes are lightweight containers with minimal
+behaviour but provide Pydantic-based validation and convenience helpers such as
+configuration overrides and time freezing.
 """
 
 from __future__ import annotations
@@ -20,12 +18,20 @@ import yaml
 from freezegun import freeze_time
 from pydantic import BaseModel, Field, ValidationError
 
-from ibkr_etf_rebalancer.config import AppConfig
+from .config import AppConfig
 
 
 @dataclass
 class Quote:
-    """Simple bid/ask quote container."""
+    """Bid/ask quote.
+
+    Attributes
+    ----------
+    bid:
+        Best bid price in the instrument's quote currency.
+    ask:
+        Best ask price in the instrument's quote currency.
+    """
 
     bid: float
     ask: float
@@ -33,23 +39,22 @@ class Quote:
 
 @dataclass
 class Scenario:
-    """Represents a test scenario used for E2E tests.
+    """Represents a market scenario used for tests.
 
-    Parameters
+    Attributes
     ----------
     name:
         Descriptive scenario name.
     as_of:
-        Timestamp for the scenario.  Downstream code is executed with time
-        frozen to this instant.
+        Scenario timestamp in UTC.
     prices:
-        Mapping of symbol to last traded price.
+        Mapping of symbol to last traded price in quote currency.
     quotes:
         Mapping of symbol to :class:`Quote` objects.
     positions:
-        Current holdings expressed as quantity per symbol.
+        Current holdings expressed as quantity per symbol (shares or contracts).
     cash:
-        Cash balances keyed by currency code.
+        Cash balances keyed by currency code, denominated in that currency.
     config_overrides:
         Partial configuration overriding the default test configuration.
     """
@@ -85,6 +90,10 @@ class Scenario:
             return fn(self.app_config())
 
 
+# ---------------------------------------------------------------------------
+# Pydantic validation models
+
+
 class _QuoteModel(BaseModel):
     bid: float
     ask: float
@@ -98,6 +107,10 @@ class _ScenarioModel(BaseModel):
     positions: Dict[str, float]
     cash: Dict[str, float]
     config_overrides: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+
+
+# ---------------------------------------------------------------------------
+# Public helpers
 
 
 def load_scenario(path: Path) -> Scenario:
@@ -137,6 +150,10 @@ def load_scenario(path: Path) -> Scenario:
     )
 
 
+# ---------------------------------------------------------------------------
+# Configuration helpers
+
+
 def _default_config() -> AppConfig:
     """Construct a default test-safe :class:`AppConfig`."""
 
@@ -162,3 +179,6 @@ def _deep_merge(a: Dict[str, Any], b: Dict[str, Any]) -> Dict[str, Any]:
         else:
             result[key] = value
     return result
+
+
+__all__ = ["Quote", "Scenario", "load_scenario"]
