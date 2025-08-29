@@ -120,7 +120,7 @@ def test_fx_resolve_fallback() -> None:
 
 
 class IBQuoteFakeIB(FakeIB):
-    def get_quote(self, contract: Contract) -> IBQuote:
+    def get_quote(self, contract: Contract) -> IBQuote:  # type: ignore[override]
         resolved = self.resolve_contract(contract)
         q = self._quotes[resolved.symbol]
         return IBQuote(contract=resolved, bid=q.bid, ask=q.ask, last=q.last, timestamp=q.ts)
