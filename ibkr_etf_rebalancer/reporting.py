@@ -4,11 +4,14 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Mapping, TYPE_CHECKING
 
 import pandas as pd
 
 from .rebalance_engine import generate_orders
+
+if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
+    from .ibkr_provider import Fill
 
 
 def _build_pre_trade_dataframe(
@@ -106,9 +109,12 @@ def _df_to_markdown(df: pd.DataFrame) -> str:
                 "price",
                 "dollar_delta",
                 "est_notional",
+                "avg_price",
+                "notional",
+                "residual_drift_bps",
             }:
                 cells.append(f"{val:.2f}")
-            elif col == "share_delta":
+            elif col in {"share_delta", "filled_shares"}:
                 cells.append(f"{val:.4f}")
             else:
                 cells.append(str(val))
@@ -192,29 +198,93 @@ def generate_pre_trade_report(
     return df
 
 
-def generate_post_trade_report(executions: Iterable[Mapping[str, float]]) -> pd.DataFrame:
-    """Summarise filled orders into a post‑trade report dataframe.
+def generate_post_trade_report(
+    targets: Mapping[str, float],
+    current: Mapping[str, float],
+    prices: Mapping[str, float],
+    total_equity: float,
+    fills: Iterable[Fill],
+    *,
+    output_dir: Path | None = None,
+    as_of: datetime | None = None,
+) -> pd.DataFrame | tuple[pd.DataFrame, Path, Path]:
+    """Summarise executed fills into a post‑trade report.
 
-    Each execution mapping should provide ``symbol``, ``side``,
-    ``filled_shares`` and ``avg_price``.  Additional fields may be added in
-    the future.
+    Parameters
+    ----------
+    targets, current, prices, total_equity:
+        Portfolio details used to compute residual drift after the fills.
+    fills:
+        Iterable of :class:`ibkr_provider.Fill` instances.
+    output_dir:
+        When provided, CSV and Markdown versions of the report are written to
+        this directory using a timestamped filename.
+    as_of:
+        Timestamp used for naming the output files.  Defaults to
+        ``datetime.now()``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The report data.  When ``output_dir`` is provided the tuple ``(df,
+        csv_path, md_path)`` is returned.
     """
 
+    from .ibkr_provider import OrderSide  # local import to avoid cycle
+
+    agg: dict[str, dict[str, float]] = {}
+    for fill in fills:
+        symbol = fill.contract.symbol
+        signed_qty = fill.quantity if fill.side == OrderSide.BUY else -fill.quantity
+        notional = signed_qty * fill.price
+        info = agg.setdefault(symbol, {"qty": 0.0, "notional": 0.0})
+        info["qty"] += signed_qty
+        info["notional"] += notional
+
     rows: list[dict[str, object]] = []
-    for exe in executions:
-        filled = exe.get("filled_shares", 0.0)
-        price = exe.get("avg_price", 0.0)
-        notional = filled * price
+    for symbol, info in agg.items():
+        qty = info["qty"]
+        notional = info["notional"]
+        avg_price = notional / qty if qty else 0.0
+        side = "BUY" if qty > 0 else "SELL" if qty < 0 else ""
+
+        current_shares = current.get(symbol, 0.0) * total_equity / prices[symbol]
+        residual_shares = current_shares + qty
+        residual_pct = residual_shares * prices[symbol] / total_equity
+        residual_drift = (targets.get(symbol, 0.0) - residual_pct) * 10_000
+
         rows.append(
             {
-                "symbol": exe.get("symbol"),
-                "side": exe.get("side", ""),
-                "filled_shares": filled,
-                "avg_price": price,
+                "symbol": symbol,
+                "side": side,
+                "filled_shares": qty,
+                "avg_price": avg_price,
                 "notional": notional,
+                "residual_drift_bps": residual_drift,
             }
         )
-    return pd.DataFrame(rows)
+
+    df = pd.DataFrame(rows)
+    if not df.empty:
+        for col, digits in {
+            "filled_shares": 4,
+            "avg_price": 2,
+            "notional": 2,
+            "residual_drift_bps": 2,
+        }.items():
+            df[col] = df[col].round(digits)
+
+    if output_dir is not None:
+        as_of = as_of or datetime.now()
+        stamp = as_of.strftime("%Y%m%dT%H%M%S")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        csv_path = output_dir / f"post_trade_report_{stamp}.csv"
+        md_path = output_dir / f"post_trade_report_{stamp}.md"
+        csv_path.write_text(df.to_csv(index=False))
+        md_path.write_text(_df_to_markdown(df))
+        return df, csv_path, md_path
+
+    return df
 
 
 __all__ = ["generate_pre_trade_report", "generate_post_trade_report"]

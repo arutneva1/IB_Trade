@@ -7,6 +7,7 @@ from ibkr_etf_rebalancer.reporting import (
     generate_post_trade_report,
     generate_pre_trade_report,
 )
+from ibkr_etf_rebalancer.ibkr_provider import Contract, Fill, OrderSide
 
 
 def test_pre_trade_report(tmp_path):
@@ -51,23 +52,25 @@ def test_pre_trade_report_respects_min_order():
     assert (df.loc[df["symbol"] != "TOTAL", "est_notional"] == 0).all()
 
 
-def test_post_trade_report():
-    executions = [
-        {
-            "symbol": "AAA",
-            "side": "BUY",
-            "filled_shares": 100.0,
-            "avg_price": 10.0,
-        },
-        {
-            "symbol": "BBB",
-            "side": "SELL",
-            "filled_shares": -50.0,
-            "avg_price": 20.0,
-        },
+def test_post_trade_report(tmp_path):
+    targets = {"AAA": 0.6, "BBB": 0.4, "CASH": 0.0}
+    current = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    prices = {"AAA": 10.0, "BBB": 20.0}
+
+    fills = [
+        Fill(contract=Contract("AAA"), side=OrderSide.BUY, quantity=100.0, price=10.0),
+        Fill(contract=Contract("BBB"), side=OrderSide.SELL, quantity=50.0, price=20.0),
     ]
 
-    df = generate_post_trade_report(executions)
+    with freeze_time("2024-01-01 12:00:00"):
+        df, csv_path, md_path = generate_post_trade_report(
+            targets,
+            current,
+            prices,
+            100_000.0,
+            fills,
+            output_dir=tmp_path,
+        )
 
     expected_cols = [
         "symbol",
@@ -75,12 +78,18 @@ def test_post_trade_report():
         "filled_shares",
         "avg_price",
         "notional",
+        "residual_drift_bps",
     ]
     assert list(df.columns) == expected_cols
     assert df.loc[0, "notional"] == pytest.approx(1000.0)
     assert df.loc[1, "notional"] == pytest.approx(-1000.0)
     assert df["filled_shares"].sum() == pytest.approx(50.0)
     assert df["notional"].sum() == pytest.approx(0.0)
+    assert df.loc[df["symbol"] == "AAA", "residual_drift_bps"].iloc[0] == pytest.approx(900.0)
+    assert df.loc[df["symbol"] == "BBB", "residual_drift_bps"].iloc[0] == pytest.approx(-900.0)
 
     golden_csv = Path("tests/golden/post_trade_report.csv").read_text()
-    assert df.to_csv(index=False) == golden_csv
+    golden_md = Path("tests/golden/post_trade_report.md").read_text()
+
+    assert csv_path.read_text() == golden_csv
+    assert md_path.read_text() == golden_md
