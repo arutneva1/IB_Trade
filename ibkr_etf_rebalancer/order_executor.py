@@ -198,6 +198,10 @@ def execute_orders(
             result.fills.extend(batch_fills)
             remaining = set(order_ids)
             for fill in batch_fills:
+                oid = getattr(fill, "order_id", None)
+                if oid is not None and oid in remaining:
+                    remaining.remove(oid)
+                    continue
                 for oid in list(remaining):
                     order = id_to_order[oid]
                     if (

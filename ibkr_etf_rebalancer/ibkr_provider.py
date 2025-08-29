@@ -92,6 +92,7 @@ class Fill:
     quantity: float
     price: float
     timestamp: datetime | None = None
+    order_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -482,6 +483,7 @@ class FakeIB:
                 quantity=order.quantity,
                 price=price,
                 timestamp=self._timestamp(),
+                order_id=oid,
             )
             fills.append(fill)
             self._log_event("filled", oid, fill=fill)
