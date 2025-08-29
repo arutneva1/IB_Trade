@@ -336,6 +336,12 @@ class FakeIB:
     def get_positions(self) -> Sequence[Position]:
         return list(self._positions)
 
+    @property
+    def event_log(self) -> Sequence[dict[str, object]]:
+        """Return a snapshot of the internal event log."""
+
+        return list(self._event_log)
+
     # --- event helpers -------------------------------------------------
     def _timestamp(self) -> datetime:
         """Return a monotonic timestamp."""

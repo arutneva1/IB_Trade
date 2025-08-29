@@ -196,6 +196,18 @@ def test_order_lifecycle_and_fills() -> None:
     ib.cancel(buy_open_id)
     assert buy_open_id not in ib._orders
 
+    events = ib.event_log
+    assert [(e["type"], e["order_id"]) for e in events] == [
+        ("placed", buy_open_id),
+        ("placed", sell_fill_id),
+        ("placed", fx_mkt_id),
+        ("placed", sell_mkt_id),
+        ("filled", sell_fill_id),
+        ("filled", fx_mkt_id),
+        ("filled", sell_mkt_id),
+        ("canceled", buy_open_id),
+    ]
+
 
 def test_pacing_limit_triggers_backoff_hook() -> None:
     contract = Contract(symbol="AAA")
