@@ -98,7 +98,7 @@ def main(
     if scenario is not None:
         from . import safety
         from ibkr_etf_rebalancer.scenario import load_scenario
-        from tests.e2e.runner import run_scenario
+        from .scenario_runner import run_scenario
 
         sc = load_scenario(scenario)
         cfg = sc.app_config()

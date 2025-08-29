@@ -3,6 +3,7 @@
 from .account_state import AccountSnapshot, compute_account_state
 from .ibkr_provider import FakeIB, IBKRProvider, IBKRProviderOptions, LiveIB
 from .pricing import IBKRQuoteProvider
+from .scenario_runner import ScenarioRunResult, run_scenario
 
 __all__ = [
     "AccountSnapshot",
@@ -12,4 +13,6 @@ __all__ = [
     "FakeIB",
     "LiveIB",
     "IBKRQuoteProvider",
+    "run_scenario",
+    "ScenarioRunResult",
 ]
