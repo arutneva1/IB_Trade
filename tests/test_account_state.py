@@ -1,14 +1,17 @@
 import math
 import pytest
 from hypothesis import given, strategies as st
+from hypothesis.strategies import DrawFn
 
 from ibkr_etf_rebalancer import AccountSnapshot, compute_account_state
 
+Portfolio = tuple[dict[str, float], dict[str, float], dict[str, float]]
 
-def test_weights_and_exposure_with_and_without_cash_buffer():
-    positions = {"SPY": 10, "GLD": 5}
+
+def test_weights_and_exposure_with_and_without_cash_buffer() -> None:
+    positions = {"SPY": 10.0, "GLD": 5.0}
     prices = {"SPY": 100.0, "GLD": 200.0}
-    cash = {"USD": 1000.0, "CAD": 500.0}
+    cash = {"USD": 1_000.0, "CAD": 500.0}
 
     no_buf = compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
     buf = compute_account_state(positions, prices, cash, cash_buffer_pct=10.0)
@@ -39,8 +42,8 @@ def test_weights_and_exposure_with_and_without_cash_buffer():
     assert abs(sum(buf.weights.values()) - 1.0) < 1e-6
 
 
-def test_gld_gdx_weights_and_exposure_with_buffer():
-    positions = {"GLD": 10, "GDX": 20}
+def test_gld_gdx_weights_and_exposure_with_buffer() -> None:
+    positions = {"GLD": 10.0, "GDX": 20.0}
     prices = {"GLD": 200.0, "GDX": 30.0}
     cash = {"USD": 1_000.0}
 
@@ -69,10 +72,10 @@ def test_gld_gdx_weights_and_exposure_with_buffer():
     assert abs(sum(buf.weights.values()) - 1.0) < 1e-6
 
 
-def test_cash_only_account():
+def test_cash_only_account() -> None:
     positions: dict[str, float] = {}
     prices: dict[str, float] = {}
-    cash = {"USD": 2500.0, "CAD": 0.0}
+    cash = {"USD": 2_500.0, "CAD": 0.0}
 
     result = compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
     assert result.market_values == {}
@@ -84,8 +87,8 @@ def test_cash_only_account():
     assert pytest.approx(2_500.0, rel=1e-6) == result.effective_equity
 
 
-def test_snapshot_only_includes_targets_and_existing_positions():
-    positions = {"SPY": 10, "XYZ": 5}
+def test_snapshot_only_includes_targets_and_existing_positions() -> None:
+    positions = {"SPY": 10.0, "XYZ": 5.0}
     prices = {"SPY": 100.0, "GLD": 200.0, "XYZ": 50.0, "ABC": 75.0}
     cash = {"USD": 0.0}
     _final_targets = {"SPY", "GLD"}
@@ -98,8 +101,8 @@ def test_snapshot_only_includes_targets_and_existing_positions():
     assert "ABC" not in snapshot.weights  # neither targeted nor held
 
 
-def test_weights_use_netliq_minus_cash_buffer_amount():
-    positions = {"SPY": 10}
+def test_weights_use_netliq_minus_cash_buffer_amount() -> None:
+    positions = {"SPY": 10.0}
     prices = {"SPY": 100.0}
     cash = {"USD": 100.0}
 
@@ -116,11 +119,13 @@ def test_weights_use_netliq_minus_cash_buffer_amount():
 @pytest.mark.parametrize(
     "positions, prices, cad_cash",
     [
-        ({"SPY": 10}, {"SPY": 100.0}, 1_000.0),
-        ({"SPY": 10, "GLD": 5}, {"SPY": 100.0, "GLD": 200.0}, 2_500.0),
+        ({"SPY": 10.0}, {"SPY": 100.0}, 1_000.0),
+        ({"SPY": 10.0, "GLD": 5.0}, {"SPY": 100.0, "GLD": 200.0}, 2_500.0),
     ],
 )
-def test_cad_cash_is_ignored_in_weights(positions, prices, cad_cash):
+def test_cad_cash_is_ignored_in_weights(
+    positions: dict[str, float], prices: dict[str, float], cad_cash: float
+) -> None:
     cash = {"USD": 0.0, "CAD": cad_cash}
     snapshot = compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
 
@@ -137,18 +142,20 @@ def test_cad_cash_is_ignored_in_weights(positions, prices, cad_cash):
     "positions, prices, usd_cash",
     [
         (
-            {"GLD": 10, "GDX": 20},
+            {"GLD": 10.0, "GDX": 20.0},
             {"GLD": 180.0, "GDX": 40.0},
             1_000.0,
         ),
         (
-            {"GLD": 5, "GDX": 10},
+            {"GLD": 5.0, "GDX": 10.0},
             {"GLD": 180.0, "GDX": 40.0},
             0.0,
         ),
     ],
 )
-def test_overlapping_etfs_market_values_and_weights(positions, prices, usd_cash):
+def test_overlapping_etfs_market_values_and_weights(
+    positions: dict[str, float], prices: dict[str, float], usd_cash: float
+) -> None:
     cash = {"USD": usd_cash}
     snapshot = compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
 
@@ -171,30 +178,30 @@ def test_overlapping_etfs_market_values_and_weights(positions, prices, usd_cash)
         {"SPY": math.nan},
     ],
 )
-def test_invalid_prices_raise(prices):
-    positions = {"SPY": 10}
+def test_invalid_prices_raise(prices: dict[str, float]) -> None:
+    positions = {"SPY": 10.0}
     cash = {"USD": 0.0}
     with pytest.raises(ValueError):
         compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
 
 
-def test_zero_quantity_raises():
-    positions = {"SPY": 0}
+def test_zero_quantity_raises() -> None:
+    positions = {"SPY": 0.0}
     prices = {"SPY": 100.0}
     cash = {"USD": 0.0}
     with pytest.raises(ValueError):
         compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
 
 
-def test_negative_quantity_raises():
-    positions = {"SPY": -10}
+def test_negative_quantity_raises() -> None:
+    positions = {"SPY": -10.0}
     prices = {"SPY": 100.0}
     cash = {"USD": 0.0}
     with pytest.raises(ValueError):
         compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
 
 
-def test_no_positions_raises():
+def test_no_positions_raises() -> None:
     positions: dict[str, float] = {}
     prices: dict[str, float] = {}
     cash = {"USD": 0.0}
@@ -207,7 +214,7 @@ def test_no_positions_raises():
 
 
 @st.composite
-def portfolios(draw):
+def portfolios(draw: DrawFn) -> Portfolio:
     symbols = draw(
         st.lists(
             st.sampled_from(["AAA", "BBB", "CCC", "DDD", "EEE"]),
@@ -216,8 +223,8 @@ def portfolios(draw):
             unique=True,
         )
     )
-    positions = {}
-    prices = {}
+    positions: dict[str, float] = {}
+    prices: dict[str, float] = {}
     for sym in symbols:
         positions[sym] = draw(
             st.floats(min_value=1.0, max_value=1_000.0, allow_nan=False, allow_infinity=False)
@@ -235,7 +242,7 @@ def portfolios(draw):
 
 
 @given(portfolios())
-def test_weights_sum_to_unity_excluding_cash(portfolio):
+def test_weights_sum_to_unity_excluding_cash(portfolio: Portfolio) -> None:
     positions, prices, cash = portfolio
     snapshot = compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
     cash_weight = snapshot.weights["CASH"]
@@ -244,14 +251,14 @@ def test_weights_sum_to_unity_excluding_cash(portfolio):
 
 
 @given(portfolios())
-def test_market_values_non_negative(portfolio):
+def test_market_values_non_negative(portfolio: Portfolio) -> None:
     positions, prices, cash = portfolio
     snapshot = compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
     assert all(v >= 0.0 for v in snapshot.market_values.values())
 
 
-def test_negative_usd_cash_reflects_leverage():
-    positions = {"SPY": 200}
+def test_negative_usd_cash_reflects_leverage() -> None:
+    positions = {"SPY": 200.0}
     prices = {"SPY": 100.0}
     cash = {"USD": -10_000.0, "CAD": 0.0}
 
