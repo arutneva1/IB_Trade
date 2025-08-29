@@ -158,6 +158,9 @@ def test_scenarios(fixture_path: Path) -> None:
 
         _assert_csv_almost_equal(files2["pre_csv"], golden_dir / files2["pre_csv"].name)
         _assert_csv_almost_equal(files2["post_csv"], golden_dir / files2["post_csv"].name)
+        _, post_df = _read_report(files2["post_csv"])
+        if fixture_path.stem == "fractional_disallowed" and not post_df.empty:
+            assert (post_df["residual_drift_bps"].abs() <= 10).all()
         _assert_md_almost_equal(files2["pre_md"], golden_dir / files2["pre_md"].name)
         _assert_md_almost_equal(files2["post_md"], golden_dir / files2["post_md"].name)
         _assert_json_almost_equal(files2["event_log"], golden_dir / files2["event_log"].name)
