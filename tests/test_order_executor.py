@@ -244,6 +244,51 @@ def test_execute_orders_partial_fill_cancels_remaining() -> None:
     assert events == ["placed", "placed", "filled", "canceled"]
 
 
+def test_execute_orders_reinvocation_skips_prior_fills_and_cancels() -> None:
+    now = datetime.now(timezone.utc)
+    contracts, quotes = _basic_contracts(now)
+    ib = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts, quotes=quotes
+    )
+    sell_ok = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.SELL,
+        quantity=1,
+        order_type=OrderType.LIMIT,
+        limit_price=98.0,
+    )
+    sell_never = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.SELL,
+        quantity=1,
+        order_type=OrderType.LIMIT,
+        limit_price=120.0,
+    )
+    first = cast(
+        OrderExecutionResult,
+        execute_orders(
+            cast(IBKRProvider, ib),
+            sell_orders=[sell_ok, sell_never],
+            options=OrderExecutionOptions(yes=True),
+        ),
+    )
+    assert [f.contract.symbol for f in first.fills] == ["AAA"]
+    assert first.canceled == [sell_never]
+    event_count = len(ib.event_log)
+    second = cast(
+        OrderExecutionResult,
+        execute_orders(
+            cast(IBKRProvider, ib),
+            sell_orders=[sell_ok, sell_never],
+            options=OrderExecutionOptions(yes=True),
+            previous_fills=first,
+        ),
+    )
+    assert second.fills == first.fills
+    assert second.canceled == first.canceled
+    assert len(ib.event_log) == event_count
+
+
 def test_execute_orders_partial_sell_proceeds_scale_buy(monkeypatch: pytest.MonkeyPatch) -> None:
     now = datetime.now(timezone.utc)
     contracts, quotes = _basic_contracts(now)

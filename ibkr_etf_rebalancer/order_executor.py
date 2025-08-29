@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, replace, field
 from datetime import datetime, timezone
 import logging
 import time
@@ -109,6 +109,7 @@ class OrderExecutionResult:
     canceled: list[Order]
     timed_out: bool = False
     sell_proceeds: float = 0.0
+    order_ids: dict[str, Order] = field(default_factory=dict)
 
 
 def execute_orders(
@@ -121,6 +122,7 @@ def execute_orders(
     options: OrderExecutionOptions | None = None,
     available_cash: float | None = None,
     max_leverage: float = 1.0,
+    previous_fills: OrderExecutionResult | None = None,
 ) -> OrderExecutionResult | Sequence[Order]:
     """Place FX, then SELL, then BUY orders using ``ib``.
 
@@ -163,13 +165,28 @@ def execute_orders(
     sell_orders = sell_orders or ()
     buy_orders = buy_orders or ()
 
+    result = OrderExecutionResult(
+        fills=list(previous_fills.fills) if previous_fills else [],
+        canceled=list(previous_fills.canceled) if previous_fills else [],
+        timed_out=previous_fills.timed_out if previous_fills else False,
+        sell_proceeds=previous_fills.sell_proceeds if previous_fills else 0.0,
+        order_ids=dict(previous_fills.order_ids) if previous_fills else {},
+    )
+
+    completed_orders: set[Order] = set(result.canceled)
+    for fill in result.fills:
+        if fill.order_id and fill.order_id in result.order_ids:
+            completed_orders.add(result.order_ids[fill.order_id])
+
+    fx_orders = [o for o in fx_orders if o not in completed_orders]
+    sell_orders = [o for o in sell_orders if o not in completed_orders]
+    buy_orders = [o for o in buy_orders if o not in completed_orders]
+
     planned = list(fx_orders) + list(sell_orders) + list(buy_orders)
 
     logger.info("planned_orders", extra={"count": len(planned)})
     if options.report_only or options.dry_run or ib.options.dry_run:
         return planned
-
-    result = OrderExecutionResult(fills=[], canceled=[])
 
     def _translate_error(exc: Exception) -> ExecutionError:
         if isinstance(exc, ProviderPacingError):
@@ -198,6 +215,7 @@ def execute_orders(
                 raise _translate_error(exc) from exc
             logger.info("orders_submitted", extra={"group": group_name, "count": len(batch)})
             id_to_order = dict(zip(order_ids, batch))
+            result.order_ids.update(id_to_order)
             timed_out = False
             try:
                 batch_fills = list(ib.wait_for_fills(order_ids))
@@ -211,6 +229,7 @@ def execute_orders(
             for fill in batch_fills:
                 oid = getattr(fill, "order_id", None)
                 if oid is not None and oid in remaining:
+                    completed_orders.add(id_to_order[oid])
                     remaining.remove(oid)
                     continue
                 for oid in list(remaining):
@@ -220,11 +239,13 @@ def execute_orders(
                         and fill.side == order.side
                         and fill.quantity == order.quantity
                     ):
+                        completed_orders.add(order)
                         remaining.remove(oid)
                         break
             for oid in remaining:
                 ib.cancel(oid)
                 result.canceled.append(id_to_order[oid])
+                completed_orders.add(id_to_order[oid])
             if timed_out:
                 result.timed_out = True
             logger.info("orders_filled", extra={"group": group_name, "count": len(batch_fills)})
