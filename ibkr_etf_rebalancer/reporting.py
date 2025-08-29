@@ -114,6 +114,7 @@ def _df_to_markdown(df: pd.DataFrame) -> str:
                 "est_notional",
                 "avg_price",
                 "notional",
+                "avg_slippage",
                 "residual_drift_bps",
             }:
                 cells.append(f"{val:.2f}")
@@ -207,6 +208,7 @@ def generate_post_trade_report(
     prices: Mapping[str, float],
     total_equity: float,
     fills: Iterable[Fill],
+    limit_prices: Mapping[str, float | None] | None = None,
     *,
     output_dir: Path | None = None,
     as_of: datetime | None = None,
@@ -219,6 +221,8 @@ def generate_post_trade_report(
         Portfolio details used to compute residual drift after the fills.
     fills:
         Iterable of :class:`ibkr_provider.Fill` instances.
+    limit_prices:
+        Mapping of order IDs to limit prices used to compute slippage.
     output_dir:
         When provided, CSV and Markdown versions of the report are written to
         this directory using a timestamped filename.
@@ -235,14 +239,26 @@ def generate_post_trade_report(
 
     from .ibkr_provider import OrderSide  # local import to avoid cycle
 
+    limit_prices = limit_prices or {}
     agg: dict[str, dict[str, float]] = {}
     for fill in fills:
         symbol = fill.contract.symbol
         signed_qty = fill.quantity if fill.side == OrderSide.BUY else -fill.quantity
         notional = signed_qty * fill.price
-        info = agg.setdefault(symbol, {"qty": 0.0, "notional": 0.0})
+        info = agg.setdefault(
+            symbol,
+            {"qty": 0.0, "notional": 0.0, "slip": 0.0, "volume": 0.0},
+        )
         info["qty"] += signed_qty
         info["notional"] += notional
+        limit = None
+        if getattr(fill, "order_id", None) is not None:
+            limit = limit_prices.get(fill.order_id)
+        if limit is not None:
+            side_mult = 1.0 if fill.side == OrderSide.BUY else -1.0
+            per_share_slip = side_mult * (fill.price - limit)
+            info["slip"] += per_share_slip * fill.quantity
+            info["volume"] += fill.quantity
 
     rows: list[dict[str, object]] = []
     for symbol, info in agg.items():
@@ -250,6 +266,8 @@ def generate_post_trade_report(
         notional = info["notional"]
         avg_price = notional / qty if qty else 0.0
         side = "BUY" if qty > 0 else "SELL" if qty < 0 else ""
+        volume = info["volume"]
+        avg_slip = info["slip"] / volume if volume else 0.0
 
         current_shares = current.get(symbol, 0.0) * total_equity / prices[symbol]
         residual_shares = current_shares + qty
@@ -263,6 +281,7 @@ def generate_post_trade_report(
                 "filled_shares": qty,
                 "avg_price": avg_price,
                 "notional": notional,
+                "avg_slippage": avg_slip,
                 "residual_drift_bps": residual_drift,
             }
         )
@@ -273,6 +292,7 @@ def generate_post_trade_report(
             "filled_shares": 4,
             "avg_price": 2,
             "notional": 2,
+            "avg_slippage": 2,
             "residual_drift_bps": 2,
         }.items():
             df[col] = df[col].round(digits)

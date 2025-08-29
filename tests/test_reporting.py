@@ -58,9 +58,14 @@ def test_post_trade_report(tmp_path):
     prices = {"AAA": 10.0, "BBB": 20.0}
 
     fills = [
-        Fill(contract=Contract("AAA"), side=OrderSide.BUY, quantity=100.0, price=10.0),
-        Fill(contract=Contract("BBB"), side=OrderSide.SELL, quantity=50.0, price=20.0),
+        Fill(
+            contract=Contract("AAA"), side=OrderSide.BUY, quantity=100.0, price=10.0, order_id="1"
+        ),
+        Fill(
+            contract=Contract("BBB"), side=OrderSide.SELL, quantity=50.0, price=20.0, order_id="2"
+        ),
     ]
+    limits = {"1": 9.5, "2": 19.5}
 
     with freeze_time("2024-01-01 12:00:00"):
         df, csv_path, md_path = generate_post_trade_report(
@@ -69,6 +74,7 @@ def test_post_trade_report(tmp_path):
             prices,
             100_000.0,
             fills,
+            limits,
             output_dir=tmp_path,
         )
 
@@ -78,6 +84,7 @@ def test_post_trade_report(tmp_path):
         "filled_shares",
         "avg_price",
         "notional",
+        "avg_slippage",
         "residual_drift_bps",
     ]
     assert list(df.columns) == expected_cols
@@ -87,6 +94,8 @@ def test_post_trade_report(tmp_path):
     assert df["notional"].sum() == pytest.approx(0.0)
     assert df.loc[df["symbol"] == "AAA", "residual_drift_bps"].iloc[0] == pytest.approx(900.0)
     assert df.loc[df["symbol"] == "BBB", "residual_drift_bps"].iloc[0] == pytest.approx(-900.0)
+    assert df.loc[df["symbol"] == "AAA", "avg_slippage"].iloc[0] == pytest.approx(0.5)
+    assert df.loc[df["symbol"] == "BBB", "avg_slippage"].iloc[0] == pytest.approx(-0.5)
 
     golden_csv = Path("tests/golden/post_trade_report.csv").read_text()
     golden_md = Path("tests/golden/post_trade_report.md").read_text()

@@ -252,6 +252,7 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
                 scenario.prices,
                 snapshot.total_equity,
                 execution.fills,
+                execution.limit_prices,
                 output_dir=output_dir,
                 as_of=as_of,
             ),
