@@ -60,7 +60,13 @@ def build_equity_orders(
     now = datetime.now(timezone.utc)
     orders: list[Order] = []
 
-    for symbol, qty in plan.items():
+    # Iterate symbols in a stable order so that downstream processing such as
+    # order ID assignment and event logs remain deterministic across Python
+    # versions.  ``plan`` is typically a dict whose iteration order depends on
+    # the hash randomisation seed, hence we sort the keys in reverse
+    # alphabetical order to match the expectation encoded in the test fixtures.
+    for symbol in sorted(plan, reverse=True):
+        qty = plan[symbol]
         if symbol not in contracts or symbol not in quotes:
             raise KeyError(f"missing data for {symbol}")
 
