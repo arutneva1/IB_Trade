@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timezone
+from dataclasses import dataclass, replace
+from datetime import datetime, timezone, timedelta
 from enum import Enum
-from typing import Mapping, Protocol, Sequence, runtime_checkable
+from typing import Callable, Mapping, Protocol, Sequence, runtime_checkable
 
 from . import pricing
 
@@ -182,7 +182,9 @@ class IBKRProvider(Protocol):
     def cancel(self, order_id: str) -> None:
         """Cancel an open order."""
 
-    def wait_for_fills(self, order_id: str, timeout: float | None = None) -> Sequence[Fill]:
+    def wait_for_fills(
+        self, order_ids: Sequence[str], timeout: float | None = None
+    ) -> Sequence[Fill]:
         """Wait for fills and return them."""
 
 
@@ -204,6 +206,8 @@ class FakeIB:
         account_values: Sequence[AccountValue] | None = None,
         positions: Sequence[Position] | None = None,
         symbol_overrides: Mapping[str, str | Contract] | None = None,
+        concurrency_limit: int | None = None,
+        pacing_hook: Callable[[int], None] | None = None,
     ) -> None:
         self.options = options or IBKRProviderOptions()
         self._contracts: dict[str, Contract] = dict(contracts or {})
@@ -214,6 +218,10 @@ class FakeIB:
         self._connected = False
         self._next_order_id = 0
         self._orders: dict[str, Order] = {}
+        self._event_log: list[dict[str, object]] = []
+        self._last_ts = datetime.now(timezone.utc)
+        self._concurrency_limit = concurrency_limit
+        self._pacing_hook = pacing_hook
 
     # ------------------------------------------------------------------
     # state helpers
@@ -271,31 +279,88 @@ class FakeIB:
     def get_positions(self) -> Sequence[Position]:
         return list(self._positions)
 
+    # --- event helpers -------------------------------------------------
+    def _timestamp(self) -> datetime:
+        """Return a monotonic timestamp."""
+        now = datetime.now(timezone.utc)
+        if now <= self._last_ts:
+            now = self._last_ts + timedelta(microseconds=1)
+        self._last_ts = now
+        return now
+
+    def _log_event(self, event_type: str, order_id: str, **data: object) -> None:
+        event = {"ts": self._timestamp(), "type": event_type, "order_id": order_id}
+        event.update(data)
+        self._event_log.append(event)
+
+    # ------------------------------------------------------------------
     def place_order(self, order: Order) -> str:
+        if order.quantity <= 0:
+            raise ValueError("Quantity must be positive")
+
+        resolved = self.resolve_contract(order.contract)
+        order = replace(order, contract=resolved)
+
+        if self._concurrency_limit is not None and len(self._orders) >= self._concurrency_limit:
+            if self._pacing_hook is not None:
+                self._pacing_hook(len(self._orders))
+            raise PacingError("pacing limit exceeded")
+
         self._next_order_id += 1
         order_id = str(self._next_order_id)
         self._orders[order_id] = order
+        self._log_event("placed", order_id, order=order)
         return order_id
 
     def cancel(self, order_id: str) -> None:
-        self._orders.pop(order_id, None)
-
-    def wait_for_fills(self, order_id: str, timeout: float | None = None) -> Sequence[Fill]:
         order = self._orders.pop(order_id, None)
-        if order is None:
-            return []
-        quote = self._quotes.get(order.contract.symbol)
-        price = 0.0
-        if quote is not None:
-            price = (quote.bid if order.side is OrderSide.SELL else quote.ask) or quote.last or 0.0
-        fill = Fill(
-            contract=order.contract,
-            side=order.side,
-            quantity=order.quantity,
-            price=price,
-            timestamp=datetime.now(timezone.utc),
-        )
-        return [fill]
+        if order is not None:
+            self._log_event("canceled", order_id, order=order)
+
+    def wait_for_fills(
+        self, order_ids: Sequence[str], timeout: float | None = None
+    ) -> Sequence[Fill]:
+        fills: list[Fill] = []
+        for oid in order_ids:
+            order = self._orders.get(oid)
+            if order is None:
+                continue
+
+            quote = self._quotes.get(order.contract.symbol)
+            price: float | None = None
+
+            if order.order_type is OrderType.MARKET:
+                if quote is not None:
+                    price = quote.ask if order.side is OrderSide.BUY else quote.bid
+                if price is None and quote is not None:
+                    price = quote.last
+            else:  # LIMIT
+                limit = order.limit_price
+                if quote is not None and limit is not None:
+                    if order.side is OrderSide.BUY:
+                        market = quote.ask if quote.ask is not None else quote.last
+                        if market is not None and market <= limit:
+                            price = min(market, limit)
+                    else:  # SELL
+                        market = quote.bid if quote.bid is not None else quote.last
+                        if market is not None and market >= limit:
+                            price = max(market, limit)
+
+            if price is None:
+                continue
+
+            fill = Fill(
+                contract=order.contract,
+                side=order.side,
+                quantity=order.quantity,
+                price=price,
+                timestamp=self._timestamp(),
+            )
+            fills.append(fill)
+            self._log_event("filled", oid, fill=fill)
+            self._orders.pop(oid, None)
+
+        return fills
 
 
 __all__ = [
