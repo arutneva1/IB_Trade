@@ -138,7 +138,11 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
 
         # ------------------------------------------------------------------
         cash_balances = dict(scenario.cash)
-        if cash_balances.get("USD", 0) <= 0 and "CAD" in cash_balances and "USD.CAD" in scenario.prices:
+        if (
+            cash_balances.get("USD", 0) <= 0
+            and "CAD" in cash_balances
+            and "USD.CAD" in scenario.prices
+        ):
             rate = scenario.prices["USD.CAD"]
             if rate > 0:
                 cash_balances["USD"] = cash_balances["CAD"] / rate
