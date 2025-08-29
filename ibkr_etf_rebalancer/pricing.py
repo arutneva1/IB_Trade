@@ -18,6 +18,7 @@ __all__ = [
     "QuoteProvider",
     "FakeQuoteProvider",
     "IBKRQuoteProvider",
+    "Pricing",
 ]
 
 if TYPE_CHECKING:  # pragma: no cover - used for type hints only
@@ -235,3 +236,31 @@ class IBKRQuoteProvider:
             return self._snapshots[symbol]
 
         raise ValueError(f"No price available for {symbol}")
+
+
+class Pricing:
+    """Facade that selects an appropriate quote provider.
+
+    When an :class:`IBKRProvider` instance is supplied, quotes are sourced
+    through :class:`IBKRQuoteProvider`.  Otherwise a
+    :class:`FakeQuoteProvider` backed by the supplied *quotes* mapping is
+    used.  The chosen provider is exposed via the :attr:`quote_provider`
+    attribute.
+    """
+
+    def __init__(
+        self,
+        ibkr: "IBKRProvider" | None,
+        quotes: Mapping[str, Quote] | None = None,
+        *,
+        stale_quote_seconds: int = 10,
+        snapshots: Mapping[str, float] | None = None,
+    ) -> None:
+        if ibkr is not None:
+            self.quote_provider: QuoteProvider = IBKRQuoteProvider(
+                ibkr,
+                stale_quote_seconds=stale_quote_seconds,
+                snapshots=snapshots,
+            )
+        else:
+            self.quote_provider = FakeQuoteProvider(dict(quotes or {}), dict(snapshots or {}))
