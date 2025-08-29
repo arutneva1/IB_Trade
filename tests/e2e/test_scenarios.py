@@ -71,6 +71,28 @@ def _assert_csv_almost_equal(actual: Path, expected: Path) -> None:
     pd.testing.assert_frame_equal(df_a, df_e, rtol=1e-6, atol=1e-6)
 
 
+def _assert_json_almost_equal(actual: Path, expected: Path) -> None:
+    def _compare(a: Any, e: Any) -> None:
+        if isinstance(a, dict):
+            assert a.keys() == e.keys()
+            for k in a:
+                _compare(a[k], e[k])
+        elif isinstance(a, list):
+            assert len(a) == len(e)
+
+            def _key(obj: Any) -> str:
+                return json.dumps(obj, sort_keys=True)
+
+            for x, y in zip(sorted(a, key=_key), sorted(e, key=_key)):
+                _compare(x, y)
+        elif isinstance(a, (int, float)) and isinstance(e, (int, float)):
+            assert float(a) == pytest.approx(float(e), rel=1e-6, abs=1e-6)
+        else:
+            assert a == e
+
+    _compare(json.loads(actual.read_text()), json.loads(expected.read_text()))
+
+
 _ORDER_RE = re.compile(
     r"Contract\(symbol='(?P<symbol>[^']+)', sec_type='(?P<sec_type>[^']+)', currency='(?P<currency>[^']+)'"
 )
@@ -131,6 +153,7 @@ def test_scenarios(fixture_path: Path) -> None:
     _assert_csv_almost_equal(files2["post_csv"], golden_dir / files2["post_csv"].name)
     _assert_md_almost_equal(files2["pre_md"], golden_dir / files2["pre_md"].name)
     _assert_md_almost_equal(files2["post_md"], golden_dir / files2["post_md"].name)
+    _assert_json_almost_equal(files2["event_log"], golden_dir / files2["event_log"].name)
 
     events = json.loads(files2["event_log"].read_text())
     placed = [e for e in events if e["type"] == "placed"]
