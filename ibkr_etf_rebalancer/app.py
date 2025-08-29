@@ -103,7 +103,10 @@ def main(
         sc = load_scenario(scenario)
         cfg = sc.app_config()
         safety.check_kill_switch(cfg.safety.kill_switch_file)
-        safety.ensure_paper_trading(options.paper, options.live)
+        # Scenarios always run in paper mode using fake providers and should
+        # never attempt a real broker connection. Ignore any user supplied
+        # ``--live`` or ``--no-paper`` flags and force paper trading.
+        safety.ensure_paper_trading(paper=True, live=False)
         if cfg.safety.require_confirm:
             safety.require_confirmation("Proceed with scenario execution?", options.yes)
 
