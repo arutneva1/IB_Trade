@@ -7,6 +7,7 @@
 - Expanded Phase 1 checklist with module-specific items, leverage test, and PR gate updates.
 - Added Phase 0 review checklist.
 - Added integration test covering FX → SELL → BUY order sequencing with `FakeIB`.
+- Updated pull request description to cite SRS AC5 and AC6 for order building and execution changes.
 
 
 ## Phase 6
