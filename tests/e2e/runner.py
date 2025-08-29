@@ -66,7 +66,8 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
     * Persist the broker event log.
     """
 
-    def _run(cfg: AppConfig) -> ScenarioRunResult:
+    with scenario.frozen_time():
+        cfg: AppConfig = scenario.app_config()
         as_of = scenario.as_of
         stamp = as_of.strftime("%Y%m%dT%H%M%S")
         output_dir = Path(cfg.io.report_dir)
@@ -255,5 +256,3 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
             post_report_md=post_md,
             event_log=event_log_path,
         )
-
-    return scenario.execute(_run)
