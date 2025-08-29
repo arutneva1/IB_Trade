@@ -167,6 +167,9 @@ def test_scenarios(fixture_path: Path) -> None:
 
         events = json.loads(files2["event_log"].read_text())
         placed = [e for e in events if e["type"] == "placed"]
+        if fixture_path.stem == "no_trade_within_band":
+            assert events == []
+            assert placed == []
         if kill_path:
             assert placed == []
             return
