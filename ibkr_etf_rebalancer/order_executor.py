@@ -101,10 +101,7 @@ def execute_orders(
             batches = [list(group)]
         else:
             nonzero_cap = cap
-            batches = [
-                list(group[i : i + nonzero_cap])
-                for i in range(0, len(group), nonzero_cap)
-            ]
+            batches = [list(group[i : i + nonzero_cap]) for i in range(0, len(group), nonzero_cap)]
         for batch in batches:
             order_ids = [ib.place_order(o) for o in batch]
             logger.info("orders_submitted", extra={"group": group_name, "count": len(batch)})
