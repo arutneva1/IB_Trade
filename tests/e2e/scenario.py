@@ -1,4 +1,12 @@
-"""Scenario loading and execution helpers for end-to-end tests."""
+"""Scenario loading and execution helpers for end-to-end tests.
+
+This module provides a small data model used by the end-to-end tests to load
+pre-canned market scenarios.  Each scenario is described by a YAML file which is
+validated with :mod:`pydantic` before being converted into a convenient data
+class.  The helper also exposes utilities to freeze time during execution and to
+derive an :class:`~ibkr_etf_rebalancer.config.AppConfig` instance with optional
+overrides.
+"""
 
 from __future__ import annotations
 
@@ -10,7 +18,7 @@ from typing import Any, Callable, Dict, Iterator
 
 import yaml
 from freezegun import freeze_time
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from ibkr_etf_rebalancer.config import AppConfig
 
@@ -27,12 +35,13 @@ class Quote:
 class Scenario:
     """Represents a test scenario used for E2E tests.
 
-    Attributes
+    Parameters
     ----------
     name:
         Descriptive scenario name.
     as_of:
-        Timestamp for the scenario. Time is frozen to this value when executed.
+        Timestamp for the scenario.  Downstream code is executed with time
+        frozen to this instant.
     prices:
         Mapping of symbol to last traded price.
     quotes:
@@ -92,10 +101,30 @@ class _ScenarioModel(BaseModel):
 
 
 def load_scenario(path: Path) -> Scenario:
-    """Load and validate a scenario definition from *path*."""
+    """Load and validate a scenario definition from *path*.
 
-    raw = yaml.safe_load(path.read_text())
-    data = _ScenarioModel.model_validate(raw)
+    Parameters
+    ----------
+    path:
+        Filesystem path pointing at the YAML scenario description.
+
+    Raises
+    ------
+    ValueError
+        If the file cannot be parsed or fails validation.  The original
+        exception is attached as the cause.
+    """
+
+    try:
+        raw = yaml.safe_load(path.read_text())
+    except yaml.YAMLError as exc:  # pragma: no cover - yaml errors are rare
+        raise ValueError(f"failed to parse scenario file {path}: {exc}") from exc
+
+    try:
+        data = _ScenarioModel.model_validate(raw)
+    except ValidationError as exc:
+        raise ValueError(f"invalid scenario definition in {path}: {exc}") from exc
+
     quotes = {k: Quote(**q.model_dump()) for k, q in data.quotes.items()}
     return Scenario(
         name=data.name,
