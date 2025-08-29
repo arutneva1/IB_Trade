@@ -108,22 +108,22 @@ def test_get_quote_fresh_stale_bid_only_ask_only() -> None:
     ib = FakeIB(contracts=contracts, quotes=quotes)
 
     # fresh quote
-    q = ib.get_quote(contracts["AAA"])
+    q = cast(pricing.Quote, ib.get_quote(contracts["AAA"]))
     assert q.bid == pytest.approx(100.0)
     assert q.ask == pytest.approx(101.0)
     assert q.ts.tzinfo is timezone.utc
 
     # stale quote with naive timestamp becomes UTC-aware
-    q = ib.get_quote(contracts["OLD"])
+    q = cast(pricing.Quote, ib.get_quote(contracts["OLD"]))
     assert q.ts == past_naive.replace(tzinfo=timezone.utc)
 
     # bid-only
-    q = ib.get_quote(contracts["BID"])
+    q = cast(pricing.Quote, ib.get_quote(contracts["BID"]))
     assert q.bid == pytest.approx(99.0)
     assert q.ask is None
 
     # ask-only
-    q = ib.get_quote(contracts["ASK"])
+    q = cast(pricing.Quote, ib.get_quote(contracts["ASK"]))
     assert q.ask == pytest.approx(1.5)
     assert q.bid is None
 
