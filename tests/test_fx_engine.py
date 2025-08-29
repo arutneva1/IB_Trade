@@ -288,3 +288,39 @@ def test_prefer_market_hours_blocks_off_hours(fresh_quote: Quote, fx_cfg: FXConf
     )
     assert plan.need_fx is False
     assert "outside market hours" in plan.reason
+
+
+def test_prefer_market_hours_blocks_after_friday_close(
+    fresh_quote: Quote, fx_cfg: FXConfig
+) -> None:
+    cfg = fx_cfg.model_copy(update={"prefer_market_hours": True})
+    # Friday after the 22:00 UTC close
+    friday = datetime(2024, 1, 5, 22, 30, tzinfo=timezone.utc)
+    plan = plan_fx_if_needed(
+        usd_needed=5_000,
+        usd_cash=0,
+        funding_cash=20_000,
+        fx_quote=fresh_quote,
+        cfg=cfg,
+        now=friday,
+    )
+    assert plan.need_fx is False
+    assert "outside market hours" in plan.reason
+
+
+def test_prefer_market_hours_blocks_before_sunday_open(
+    fresh_quote: Quote, fx_cfg: FXConfig
+) -> None:
+    cfg = fx_cfg.model_copy(update={"prefer_market_hours": True})
+    # Sunday before the 22:00 UTC open
+    sunday = datetime(2024, 1, 7, 21, 30, tzinfo=timezone.utc)
+    plan = plan_fx_if_needed(
+        usd_needed=5_000,
+        usd_cash=0,
+        funding_cash=20_000,
+        fx_quote=fresh_quote,
+        cfg=cfg,
+        now=sunday,
+    )
+    assert plan.need_fx is False
+    assert "outside market hours" in plan.reason
