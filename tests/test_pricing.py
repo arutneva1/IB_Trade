@@ -125,7 +125,5 @@ def test_fake_quote_provider_get_price_missing_symbol(
 def test_fake_quote_provider_invalid_price_source(
     fake_quote_provider: FakeQuoteProvider,
 ) -> None:
-    with pytest.raises(
-        ValueError, match="price_source must be 'last', 'midpoint', or 'bidask'"
-    ):
+    with pytest.raises(ValueError, match="price_source must be 'last', 'midpoint', or 'bidask'"):
         fake_quote_provider.get_price("FRESH", "invalid")  # type: ignore[arg-type]

@@ -110,9 +110,7 @@ def test_fx_resolve_fallback() -> None:
     now = datetime.now(timezone.utc)
     # Only provide a contract for the full FX pair so the base symbol fails
     contracts = {
-        "USD.CAD": Contract(
-            symbol="USD.CAD", sec_type="CASH", currency="CAD", exchange="IDEALPRO"
-        )
+        "USD.CAD": Contract(symbol="USD.CAD", sec_type="CASH", currency="CAD", exchange="IDEALPRO")
     }
     quotes = {"USD.CAD": Quote(bid=1.25, ask=1.26, ts=now, last=1.255)}
     ib = FakeIB(contracts=contracts, quotes=quotes)
@@ -140,9 +138,7 @@ def test_get_quote_converts_ib_quote() -> None:
 
 
 def test_ibkr_provider_invalid_price_source(ibkr_quote_provider: IBKRQuoteProvider) -> None:
-    with pytest.raises(
-        ValueError, match="price_source must be 'last', 'midpoint', or 'bidask'"
-    ):
+    with pytest.raises(ValueError, match="price_source must be 'last', 'midpoint', or 'bidask'"):
         ibkr_quote_provider.get_price("AAA", "invalid")  # type: ignore[arg-type]
 
 
