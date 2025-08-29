@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterator
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 from freezegun import freeze_time
 from pydantic import BaseModel, Field
 
