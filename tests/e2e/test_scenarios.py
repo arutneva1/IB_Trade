@@ -1,11 +1,12 @@
 import json
 import hashlib
+import io
 import re
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import pytest
-import io
 
 from .scenario import load_scenario
 from .runner import run_scenario
@@ -77,7 +78,7 @@ _SIDE_RE = re.compile(r"OrderSide.(?P<side>BUY|SELL)")
 _LIMIT_RE = re.compile(r"limit_price=(?P<price>[0-9.]+)")
 
 
-def _parse_order(text: str) -> dict:
+def _parse_order(text: str) -> dict[str, Any]:
     m = _ORDER_RE.search(text)
     if not m:
         raise AssertionError(f"cannot parse order: {text}")
@@ -133,7 +134,6 @@ def test_scenarios(fixture_path: Path) -> None:
 
     events = json.loads(files2["event_log"].read_text())
     placed = [e for e in events if e["type"] == "placed"]
-    rank_map = {"FX": 0, "SELL": 1, "BUY": 2}
     last_rank = -1
     for e in placed:
         info = _parse_order(e["order"])
