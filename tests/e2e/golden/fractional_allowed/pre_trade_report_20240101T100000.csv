@@ -1,0 +1,6 @@
+NetLiq,100005.00
+Cash USD,100005.00
+
+symbol,target_pct,current_pct,drift_bps,price,dollar_delta,share_delta,side,est_notional,reason
+AAA,100.0,0.0,10000.0,100.0,100005.0,1000.05,BUY,100005.0,
+TOTAL,100.0,0.0,10000.0,,100005.0,,,100005.0,
