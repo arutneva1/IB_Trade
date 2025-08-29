@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Protocol, Sequence, runtime_checkable
+from typing import Mapping, Protocol, Sequence, runtime_checkable
+
+from . import pricing
 
 
 class OrderSide(str, Enum):
@@ -184,6 +186,118 @@ class IBKRProvider(Protocol):
         """Wait for fills and return them."""
 
 
+class FakeIB:
+    """In-memory implementation of :class:`IBKRProvider` for tests.
+
+    The class exposes its internal state so tests can inspect and modify it
+    directly. Quotes are stored as :class:`pricing.Quote` objects and returned
+    with UTC timestamps, allowing stale quote simulation by seeding old
+    timestamps.
+    """
+
+    def __init__(
+        self,
+        options: IBKRProviderOptions | None = None,
+        *,
+        contracts: Mapping[str, Contract] | None = None,
+        quotes: Mapping[str, pricing.Quote] | None = None,
+        account_values: Sequence[AccountValue] | None = None,
+        positions: Sequence[Position] | None = None,
+        symbol_overrides: Mapping[str, str | Contract] | None = None,
+    ) -> None:
+        self.options = options or IBKRProviderOptions()
+        self._contracts: dict[str, Contract] = dict(contracts or {})
+        self._quotes: dict[str, pricing.Quote] = dict(quotes or {})
+        self._account_values: list[AccountValue] = list(account_values or [])
+        self._positions: list[Position] = list(positions or [])
+        self._symbol_overrides: dict[str, str | Contract] = dict(symbol_overrides or {})
+        self._connected = False
+        self._next_order_id = 0
+        self._orders: dict[str, Order] = {}
+
+    # ------------------------------------------------------------------
+    # state helpers
+    @property
+    def state(self) -> dict[str, object]:
+        """Return a snapshot of internal state for tests."""
+
+        return {
+            "connected": self._connected,
+            "contracts": self._contracts,
+            "quotes": self._quotes,
+            "account_values": self._account_values,
+            "positions": self._positions,
+        }
+
+    # ------------------------------------------------------------------
+    # IBKRProvider interface
+    def connect(self) -> None:
+        self._connected = True
+
+    def disconnect(self) -> None:
+        self._connected = False
+
+    def resolve_contract(self, contract: Contract) -> Contract:
+        symbol = contract.symbol
+        override = self._symbol_overrides.get(symbol)
+        if override is not None:
+            if isinstance(override, Contract):
+                return override
+            if isinstance(override, str):
+                symbol = override
+            else:  # pragma: no cover - defensive
+                raise ResolutionError(f"Unsupported override type for {symbol!r}")
+        if symbol not in self._contracts:
+            msg = f"Unknown symbol: {symbol}"
+            raise ResolutionError(msg)
+        return self._contracts[symbol]
+
+    def get_quote(self, contract: Contract) -> pricing.Quote:
+        resolved = self.resolve_contract(contract)
+        if resolved.symbol not in self._quotes:
+            msg = f"No quote for {resolved.symbol}"
+            raise KeyError(msg)
+        quote = self._quotes[resolved.symbol]
+        ts = quote.ts
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        else:
+            ts = ts.astimezone(timezone.utc)
+        return pricing.Quote(quote.bid, quote.ask, ts, last=quote.last)
+
+    def get_account_values(self) -> Sequence[AccountValue]:
+        return list(self._account_values)
+
+    def get_positions(self) -> Sequence[Position]:
+        return list(self._positions)
+
+    def place_order(self, order: Order) -> str:
+        self._next_order_id += 1
+        order_id = str(self._next_order_id)
+        self._orders[order_id] = order
+        return order_id
+
+    def cancel(self, order_id: str) -> None:
+        self._orders.pop(order_id, None)
+
+    def wait_for_fills(self, order_id: str, timeout: float | None = None) -> Sequence[Fill]:
+        order = self._orders.pop(order_id, None)
+        if order is None:
+            return []
+        quote = self._quotes.get(order.contract.symbol)
+        price = 0.0
+        if quote is not None:
+            price = (quote.bid if order.side is OrderSide.SELL else quote.ask) or quote.last or 0.0
+        fill = Fill(
+            contract=order.contract,
+            side=order.side,
+            quantity=order.quantity,
+            price=price,
+            timestamp=datetime.now(timezone.utc),
+        )
+        return [fill]
+
+
 __all__ = [
     "Contract",
     "Order",
@@ -201,4 +315,5 @@ __all__ = [
     "PacingError",
     "IBKRProvider",
     "IBKRProviderOptions",
+    "FakeIB",
 ]
