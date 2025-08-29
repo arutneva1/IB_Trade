@@ -21,3 +21,4 @@ repos:
           - hypothesis           # tests use hypothesis
           - freezegun            # tests import freezegun
           - typer                # CLI utilities
+          - types-PyYAML         # yaml typing
