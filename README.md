@@ -50,6 +50,19 @@ Phase 5 adds provider abstractions (`IBKRProvider`, `FakeIB`, `LiveIB`) and the
 `IBKRQuoteProvider` for market data. These exports support account snapshot
 retrieval and pacing safeguards. [SRS AC3][SRS AC9]
 
+## E2E scenarios
+
+End-to-end scenarios exercise the full workflow using fake brokers and quotes.
+Run a scenario with:
+
+```bash
+python -m ibkr_etf_rebalancer.app scenario tests/e2e/fixtures/no_trade_within_band.yml --paper
+```
+
+This writes pre- and post-trade reports (CSV and Markdown) and an event log to
+the directory configured by `io.report_dir` in the configuration file (default
+`reports/`).
+
 ## Further Documentation
 
 - [System Requirements Specification](srs.md)
