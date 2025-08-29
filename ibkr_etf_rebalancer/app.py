@@ -52,7 +52,7 @@ from .reporting import generate_pre_trade_report
 from .target_blender import blend_targets
 
 
-app = typer.Typer(help="Utilities for running pre-trade reports")
+app = typer.Typer(help="Utilities for running pre-trade reports and scenarios")
 
 
 @dataclass
@@ -182,6 +182,35 @@ def pre_trade(
         typer.echo(f"Markdown report written to {md_path}")
     else:  # pragma: no cover - defensive
         typer.echo(result.to_string(index=False))
+
+
+@app.command("scenario")
+def scenario(
+    ctx: typer.Context,
+    path: Path = typer.Argument(..., exists=True, readable=True, help="Path to scenario YAML"),
+) -> None:
+    """Run an end-to-end scenario defined in a YAML file."""
+
+    # Access global CLI options for future routing to downstream components.
+    options: CLIOptions = ctx.obj if isinstance(ctx.obj, CLIOptions) else CLIOptions()
+    _ibkr_opts = IBKRProviderOptions(
+        paper=options.paper, live=options.live, dry_run=options.dry_run
+    )
+    _exec_opts = OrderExecutionOptions(
+        report_only=options.report_only, dry_run=options.dry_run, yes=options.yes
+    )
+
+    from tests.e2e.scenario import load_scenario
+    from tests.e2e.runner import run_scenario
+
+    scenario_def = load_scenario(path)
+    result = run_scenario(scenario_def)
+
+    typer.echo(f"Pre-trade CSV report written to {result.pre_report_csv}")
+    typer.echo(f"Pre-trade Markdown report written to {result.pre_report_md}")
+    typer.echo(f"Post-trade CSV report written to {result.post_report_csv}")
+    typer.echo(f"Post-trade Markdown report written to {result.post_report_md}")
+    typer.echo(f"Event log written to {result.event_log}")
 
 
 if __name__ == "__main__":  # pragma: no cover
