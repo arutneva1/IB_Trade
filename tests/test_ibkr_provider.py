@@ -1,0 +1,171 @@
+import pytest
+from datetime import datetime, timedelta, timezone
+from typing import cast
+
+from ibkr_etf_rebalancer import pricing
+from ibkr_etf_rebalancer.ibkr_provider import (
+    Contract,
+    FakeIB,
+    Order,
+    OrderSide,
+    OrderType,
+    PacingError,
+)
+
+
+def test_connect_disconnect_idempotent_state() -> None:
+    ib = FakeIB()
+    ib.connect()
+    ib.connect()
+    assert ib.state["connected"] is True
+    ib.disconnect()
+    ib.disconnect()
+    assert ib.state["connected"] is False
+
+
+def test_resolve_contract_with_symbol_overrides() -> None:
+    contracts = {
+        "AAA": Contract(symbol="AAA"),
+        "BBB": Contract(symbol="BBB"),
+        "USD": Contract(symbol="USD", sec_type="CASH", currency="CAD", exchange="IDEALPRO"),
+    }
+    overrides: dict[str, str | Contract] = {
+        "BBB": "AAA",  # string override
+        "FX": Contract(symbol="USD", sec_type="CASH", currency="CAD", exchange="IDEALPRO"),
+    }
+    ib = FakeIB(contracts=contracts, symbol_overrides=overrides)
+
+    assert ib.resolve_contract(Contract(symbol="AAA")) == contracts["AAA"]
+    # BBB is overridden to AAA symbol
+    assert ib.resolve_contract(Contract(symbol="BBB")) == contracts["AAA"]
+    # FX is overridden to the provided Contract instance
+    assert ib.resolve_contract(Contract(symbol="FX")) == overrides["FX"]
+
+
+def test_get_quote_fresh_stale_bid_only_ask_only() -> None:
+    now = datetime.now(timezone.utc)
+    past_naive = datetime.utcnow() - timedelta(hours=1)
+    contracts = {
+        "AAA": Contract("AAA"),
+        "OLD": Contract("OLD"),
+        "BID": Contract("BID"),
+        "ASK": Contract("ASK"),
+    }
+    quotes = {
+        "AAA": pricing.Quote(bid=100.0, ask=101.0, ts=now),
+        "OLD": pricing.Quote(bid=10.0, ask=11.0, ts=past_naive),
+        "BID": pricing.Quote(bid=99.0, ask=None, ts=now),
+        "ASK": pricing.Quote(bid=None, ask=1.5, ts=now),
+    }
+    ib = FakeIB(contracts=contracts, quotes=quotes)
+
+    # fresh quote
+    q = ib.get_quote(contracts["AAA"])
+    assert q.bid == pytest.approx(100.0)
+    assert q.ask == pytest.approx(101.0)
+    assert q.ts.tzinfo is timezone.utc
+
+    # stale quote with naive timestamp becomes UTC-aware
+    q = ib.get_quote(contracts["OLD"])
+    assert q.ts == past_naive.replace(tzinfo=timezone.utc)
+
+    # bid-only
+    q = ib.get_quote(contracts["BID"])
+    assert q.bid == pytest.approx(99.0)
+    assert q.ask is None
+
+    # ask-only
+    q = ib.get_quote(contracts["ASK"])
+    assert q.ask == pytest.approx(1.5)
+    assert q.bid is None
+
+
+def test_order_lifecycle_and_fills() -> None:
+    now = datetime.now(timezone.utc)
+    contracts = {
+        "AAA": Contract(symbol="AAA"),
+        "USD": Contract(symbol="USD", sec_type="CASH", currency="CAD", exchange="IDEALPRO"),
+    }
+    quotes = {
+        "AAA": pricing.Quote(bid=99.0, ask=100.0, ts=now, last=99.5),
+        "USD": pricing.Quote(bid=1.25, ask=1.26, ts=now, last=1.255),
+    }
+    ib = FakeIB(contracts=contracts, quotes=quotes)
+
+    # BUY limit that remains open (limit below ask)
+    buy_open = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=10,
+        order_type=OrderType.LIMIT,
+        limit_price=99.0,
+    )
+    buy_open_id = ib.place_order(buy_open)
+
+    # SELL limit that fills (limit below market bid)
+    sell_fill = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.SELL,
+        quantity=5,
+        order_type=OrderType.LIMIT,
+        limit_price=98.0,
+    )
+    sell_fill_id = ib.place_order(sell_fill)
+
+    # FX market BUY
+    fx_mkt = Order(
+        contract=contracts["USD"],
+        side=OrderSide.BUY,
+        quantity=1000,
+        order_type=OrderType.MARKET,
+    )
+    fx_mkt_id = ib.place_order(fx_mkt)
+
+    # Equity market SELL
+    sell_mkt = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.SELL,
+        quantity=2,
+        order_type=OrderType.MARKET,
+    )
+    sell_mkt_id = ib.place_order(sell_mkt)
+
+    fills = ib.wait_for_fills([sell_fill_id, fx_mkt_id, sell_mkt_id, buy_open_id])
+    assert [f.side for f in fills] == [OrderSide.SELL, OrderSide.BUY, OrderSide.SELL]
+
+    prices = [f.price for f in fills]
+    assert prices[0] == pytest.approx(99.0)
+    assert prices[1] == pytest.approx(1.26)
+    assert prices[2] == pytest.approx(99.0)
+
+    ts = [cast(datetime, f.timestamp) for f in fills]
+    assert ts == sorted(ts)
+    for earlier, later in zip(ts, ts[1:]):
+        assert earlier < later
+
+    # open order remains until canceled
+    assert buy_open_id in ib._orders
+    ib.cancel(buy_open_id)
+    assert buy_open_id not in ib._orders
+
+
+def test_pacing_limit_triggers_backoff_hook() -> None:
+    contract = Contract(symbol="AAA")
+    quote = pricing.Quote(bid=99.0, ask=100.0, ts=datetime.now(timezone.utc))
+    called: list[int] = []
+
+    def hook(n: int) -> None:
+        called.append(n)
+
+    ib = FakeIB(
+        contracts={"AAA": contract},
+        quotes={"AAA": quote},
+        concurrency_limit=1,
+        pacing_hook=hook,
+    )
+
+    order = Order(contract=contract, side=OrderSide.BUY, quantity=1, order_type=OrderType.MARKET)
+    ib.place_order(order)
+    with pytest.raises(PacingError):
+        ib.place_order(order)
+    assert called == [1]
