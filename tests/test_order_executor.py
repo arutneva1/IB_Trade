@@ -180,6 +180,35 @@ def test_execute_orders_concurrency_cap_batches() -> None:
     assert events == ["placed", "filled", "placed", "filled"]
 
 
+def test_execute_orders_provider_concurrency_limit_no_cap() -> None:
+    now = datetime.now(timezone.utc)
+    contracts, quotes = _basic_contracts(now)
+    pacing: list[int] = []
+    ib = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True),
+        contracts=contracts,
+        quotes=quotes,
+        concurrency_limit=1,
+        pacing_hook=lambda n: pacing.append(n),
+    )
+    orders = [
+        Order(
+            contract=contracts["AAA"],
+            side=OrderSide.BUY,
+            quantity=1,
+            order_type=OrderType.MARKET,
+        )
+        for _ in range(3)
+    ]
+    with pytest.raises(PacingError):
+        execute_orders(
+            cast(IBKRProvider, ib),
+            buy_orders=orders,
+            options=OrderExecutionOptions(concurrency_cap=None, yes=True),
+        )
+    assert pacing == [1]
+
+
 def test_execute_orders_partial_fill_cancels_remaining() -> None:
     now = datetime.now(timezone.utc)
     contracts, quotes = _basic_contracts(now)
