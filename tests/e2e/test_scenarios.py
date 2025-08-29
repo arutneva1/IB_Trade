@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 from ibkr_etf_rebalancer.scenario import load_scenario
-from .runner import run_scenario
+from ibkr_etf_rebalancer.scenario_runner import run_scenario
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 GOLDEN_DIR = Path(__file__).parent / "golden"

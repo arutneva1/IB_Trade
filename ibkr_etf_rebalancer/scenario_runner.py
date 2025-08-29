@@ -5,9 +5,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, cast
 
-from ibkr_etf_rebalancer.account_state import AccountSnapshot, compute_account_state
-from ibkr_etf_rebalancer.config import AppConfig
-from ibkr_etf_rebalancer.ibkr_provider import (
+from .account_state import AccountSnapshot, compute_account_state
+from .config import AppConfig
+from .ibkr_provider import (
     AccountValue,
     Contract,
     FakeIB,
@@ -17,19 +17,18 @@ from ibkr_etf_rebalancer.ibkr_provider import (
     OrderSide,
     Position,
 )
-from ibkr_etf_rebalancer.order_builder import build_fx_order, build_orders
-from ibkr_etf_rebalancer.order_executor import (
+from .order_builder import build_fx_order, build_orders
+from .order_executor import (
     OrderExecutionOptions,
     OrderExecutionResult,
     execute_orders,
 )
-from ibkr_etf_rebalancer.pricing import FakeQuoteProvider, Quote
-from ibkr_etf_rebalancer.rebalance_engine import FxPlan, OrderPlan, plan_rebalance_with_fx
-from ibkr_etf_rebalancer.reporting import generate_post_trade_report, generate_pre_trade_report
-from ibkr_etf_rebalancer.target_blender import BlendResult, blend_targets
-from ibkr_etf_rebalancer.util import from_bps
-
-from ibkr_etf_rebalancer.scenario import Scenario
+from .pricing import FakeQuoteProvider, Quote
+from .rebalance_engine import FxPlan, OrderPlan, plan_rebalance_with_fx
+from .reporting import generate_post_trade_report, generate_pre_trade_report
+from .scenario import Scenario
+from .target_blender import BlendResult, blend_targets
+from .util import from_bps
 
 
 @dataclass
