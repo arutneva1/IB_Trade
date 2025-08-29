@@ -1,0 +1,16 @@
+name: Fractional disallowed
+as_of: 2024-01-01T10:00:00Z
+prices:
+  AAA: 100.0
+quotes:
+  AAA:
+    bid: 99.5
+    ask: 100.5
+positions:
+  AAA: 0.0
+cash:
+  USD: 50.0
+config_overrides:
+  rebalance:
+    allow_fractional: false
+    min_order_usd: 0

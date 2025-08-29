@@ -1,0 +1,21 @@
+name: Underweights scaled
+as_of: 2024-01-01T10:00:00Z
+prices:
+  AAA: 100.0
+  BBB: 50.0
+quotes:
+  AAA:
+    bid: 99.0
+    ask: 101.0
+  BBB:
+    bid: 49.0
+    ask: 51.0
+positions:
+  AAA: 40
+  BBB: 60
+cash:
+  USD: 100.0
+config_overrides:
+  rebalance:
+    min_order_usd: 0
+    cash_buffer_pct: 0

@@ -1,0 +1,21 @@
+name: No trade within band
+as_of: 2024-01-01T10:00:00Z
+prices:
+  AAA: 100.0
+  BBB: 50.0
+quotes:
+  AAA:
+    bid: 99.5
+    ask: 100.5
+  BBB:
+    bid: 49.5
+    ask: 50.5
+positions:
+  AAA: 60
+  BBB: 40
+cash:
+  USD: 10000.0
+config_overrides:
+  rebalance:
+    per_holding_band_bps: 1000
+    min_order_usd: 0

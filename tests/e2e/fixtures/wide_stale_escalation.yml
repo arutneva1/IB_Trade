@@ -1,0 +1,18 @@
+name: Wide stale escalation
+as_of: 2024-01-01T10:00:00Z
+prices:
+  AAA: 100.0
+quotes:
+  AAA:
+    bid: 90.0
+    ask: 110.0
+positions:
+  AAA: 50
+cash:
+  USD: 10000.0
+config_overrides:
+  limits:
+    style: spread_aware
+    wide_spread_bps: 1
+    stale_quote_seconds: 0
+    escalate_action: market
