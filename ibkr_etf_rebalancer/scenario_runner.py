@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, cast
+from types import SimpleNamespace
 
 from .account_state import AccountSnapshot, compute_account_state
 from .config import AppConfig
@@ -198,10 +199,11 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
         )
 
         order_quotes = {sym: quote_provider.get_quote(sym) for sym in plan.orders}
+        order_cfg = SimpleNamespace(**cfg.rebalance.model_dump(), limits=cfg.limits)
         orders = build_orders(
             plan.orders,
             order_quotes,
-            cfg.rebalance,
+            order_cfg,
             contracts,
             allow_fractional=cfg.rebalance.allow_fractional,
             allow_margin=cfg.rebalance.allow_margin,
