@@ -1,0 +1,26 @@
+[
+  {
+    "ts": "2024-01-01 10:00:00.000001+00:00",
+    "type": "placed",
+    "order_id": "1",
+    "order": "Order(contract=Contract(symbol='USD', sec_type='CASH', currency='CAD', exchange='IDEALPRO', con_id=1), side=<OrderSide.BUY: 'BUY'>, quantity=59.38, order_type=<OrderType.MARKET: 'MKT'>, tif=<TimeInForce.DAY: 'DAY'>, route=<OrderRoute.SMART: 'SMART'>, limit_price=None, rth=<RTH.RTH_ONLY: 1>)"
+  },
+  {
+    "ts": "2024-01-01 10:00:00.000002+00:00",
+    "type": "canceled",
+    "order_id": "1",
+    "order": "Order(contract=Contract(symbol='USD', sec_type='CASH', currency='CAD', exchange='IDEALPRO', con_id=1), side=<OrderSide.BUY: 'BUY'>, quantity=59.38, order_type=<OrderType.MARKET: 'MKT'>, tif=<TimeInForce.DAY: 'DAY'>, route=<OrderRoute.SMART: 'SMART'>, limit_price=None, rth=<RTH.RTH_ONLY: 1>)"
+  },
+  {
+    "ts": "2024-01-01 10:00:00.000003+00:00",
+    "type": "placed",
+    "order_id": "2",
+    "order": "Order(contract=Contract(symbol='AAA', sec_type='STK', currency='USD', exchange='SMART', con_id=2), side=<OrderSide.BUY: 'BUY'>, quantity=8, order_type=<OrderType.LIMIT: 'LMT'>, tif=<TimeInForce.DAY: 'DAY'>, route=<OrderRoute.SMART: 'SMART'>, limit_price=101.0, rth=<RTH.RTH_ONLY: 1>)"
+  },
+  {
+    "ts": "2024-01-01 10:00:00.000005+00:00",
+    "type": "filled",
+    "order_id": "2",
+    "fill": "Fill(contract=Contract(symbol='AAA', sec_type='STK', currency='USD', exchange='SMART', con_id=2), side=<OrderSide.BUY: 'BUY'>, quantity=8, price=101.0, timestamp=FakeDatetime(2024, 1, 1, 10, 0, 0, 4, tzinfo=datetime.timezone.utc), order_id='2')"
+  }
+]

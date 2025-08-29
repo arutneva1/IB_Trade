@@ -33,8 +33,8 @@ class Quote:
         Best ask price in the instrument's quote currency.
     """
 
-    bid: float
-    ask: float
+    bid: float | None = None
+    ask: float | None = None
 
 
 @dataclass
@@ -95,8 +95,8 @@ class Scenario:
 
 
 class _QuoteModel(BaseModel):
-    bid: float
-    ask: float
+    bid: float | None = None
+    ask: float | None = None
 
 
 class _ScenarioModel(BaseModel):
