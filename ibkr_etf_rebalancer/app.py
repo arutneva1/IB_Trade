@@ -61,31 +61,63 @@ class CLIOptions:
 
     report_only: bool = False
     dry_run: bool = False
-    paper: bool = False
+    paper: bool = True
     live: bool = False
     yes: bool = False
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
     report_only: bool = typer.Option(
         False, "--report-only", help="Generate reports without placing orders"
     ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Simulate actions without side effects"),
-    paper: bool = typer.Option(False, "--paper", help="Use the paper trading environment"),
+    paper: bool = typer.Option(
+        True, "--paper/--no-paper", help="Use the paper trading environment"
+    ),
     live: bool = typer.Option(False, "--live", help="Use the live trading environment"),
     yes: bool = typer.Option(False, "--yes", help="Assume yes for all confirmations"),
+    scenario: Path | None = typer.Option(
+        None,
+        "--scenario",
+        exists=True,
+        readable=True,
+        help="Run YAML scenario and exit",
+    ),
 ) -> None:
     """IBKR ETF rebalancer command line utilities."""
-    # Store the options on the Typer context so subcommands can access them.
-    ctx.obj = CLIOptions(
+    options = CLIOptions(
         report_only=report_only,
         dry_run=dry_run,
         paper=paper,
         live=live,
         yes=yes,
     )
+    # Run a pre-canned scenario and exit when requested.
+    if scenario is not None:
+        from . import safety
+        from tests.e2e.scenario import load_scenario
+        from tests.e2e.runner import run_scenario
+
+        sc = load_scenario(scenario)
+        cfg = sc.app_config()
+        safety.check_kill_switch(cfg.safety.kill_switch_file)
+        safety.ensure_paper_trading(options.paper, options.live)
+        if cfg.safety.require_confirm:
+            safety.require_confirmation("Proceed with scenario execution?", options.yes)
+
+        result = run_scenario(sc)
+
+        typer.echo(f"Pre-trade CSV report written to {result.pre_report_csv}")
+        typer.echo(f"Pre-trade Markdown report written to {result.pre_report_md}")
+        typer.echo(f"Post-trade CSV report written to {result.post_report_csv}")
+        typer.echo(f"Post-trade Markdown report written to {result.post_report_md}")
+        typer.echo(f"Event log written to {result.event_log}")
+        raise typer.Exit()
+
+    # Store the options on the Typer context so subcommands can access them.
+    ctx.obj = options
 
 
 def _parse_cash(values: Iterable[str]) -> dict[str, float]:
@@ -182,35 +214,6 @@ def pre_trade(
         typer.echo(f"Markdown report written to {md_path}")
     else:  # pragma: no cover - defensive
         typer.echo(result.to_string(index=False))
-
-
-@app.command("scenario")
-def scenario(
-    ctx: typer.Context,
-    path: Path = typer.Argument(..., exists=True, readable=True, help="Path to scenario YAML"),
-) -> None:
-    """Run an end-to-end scenario defined in a YAML file."""
-
-    # Access global CLI options for future routing to downstream components.
-    options: CLIOptions = ctx.obj if isinstance(ctx.obj, CLIOptions) else CLIOptions()
-    _ibkr_opts = IBKRProviderOptions(
-        paper=options.paper, live=options.live, dry_run=options.dry_run
-    )
-    _exec_opts = OrderExecutionOptions(
-        report_only=options.report_only, dry_run=options.dry_run, yes=options.yes
-    )
-
-    from tests.e2e.scenario import load_scenario
-    from tests.e2e.runner import run_scenario
-
-    scenario_def = load_scenario(path)
-    result = run_scenario(scenario_def)
-
-    typer.echo(f"Pre-trade CSV report written to {result.pre_report_csv}")
-    typer.echo(f"Pre-trade Markdown report written to {result.pre_report_md}")
-    typer.echo(f"Post-trade CSV report written to {result.post_report_csv}")
-    typer.echo(f"Post-trade Markdown report written to {result.post_report_md}")
-    typer.echo(f"Event log written to {result.event_log}")
 
 
 if __name__ == "__main__":  # pragma: no cover

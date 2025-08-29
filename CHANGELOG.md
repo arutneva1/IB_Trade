@@ -9,6 +9,7 @@
 - Added integration test covering FX → SELL → BUY order sequencing with `FakeIB`.
 - Updated pull request description to cite SRS AC5 and AC6 for order building and execution changes.
 - feat(e2e): add offline scenario runner and YAML-driven tests [AC1–AC13]
+- feat(cli): add `--scenario` option to run YAML scenarios with paper mode default and kill-switch checks
 
 
 ## Phase 6

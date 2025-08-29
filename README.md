@@ -31,6 +31,11 @@ python -m ibkr_etf_rebalancer.app pre-trade \
     --output-dir reports
 ```
 
+Global flags control behaviour: `--report-only`, `--dry-run`,
+`--paper/--no-paper` (paper is the default), `--live`, `--yes`, and
+`--scenario PATH` to execute a YAML-defined end-to-end scenario instead of
+loading CSV/INI inputs.
+
 The configuration file can include an `[fx]` section to plan CAD→USD conversions ahead of ETF trades. This feature lets you enable FX planning and set per-order limits and acceptable slippage:
 
 ```ini
@@ -56,7 +61,7 @@ End-to-end scenarios exercise the full workflow using fake brokers and quotes.
 Run a scenario with:
 
 ```bash
-python -m ibkr_etf_rebalancer.app scenario tests/e2e/fixtures/no_trade_within_band.yml --paper
+python -m ibkr_etf_rebalancer.app --scenario tests/e2e/fixtures/no_trade_within_band.yml
 ```
 
 This writes pre- and post-trade reports (CSV and Markdown) and an event log to
