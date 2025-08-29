@@ -9,7 +9,7 @@ from ibkr_etf_rebalancer.pricing import (
     QuoteProvider,
     is_stale,
 )
-from ibkr_etf_rebalancer.ibkr_provider import Contract, FakeIB, IBKRProvider
+from ibkr_etf_rebalancer.ibkr_provider import Contract, FakeIB, IBKRProvider, Quote as IBQuote
 
 
 @pytest.fixture
@@ -104,3 +104,58 @@ def test_quote_provider_swap() -> None:
 
     check(fake_provider)
     check(ib_provider)
+
+
+def test_fx_resolve_fallback() -> None:
+    now = datetime.now(timezone.utc)
+    # Only provide a contract for the full FX pair so the base symbol fails
+    contracts = {
+        "USD.CAD": Contract(symbol="USD.CAD", sec_type="CASH", currency="CAD", exchange="IDEALPRO")
+    }
+    quotes = {"USD.CAD": Quote(bid=1.25, ask=1.26, ts=now, last=1.255)}
+    ib = FakeIB(contracts=contracts, quotes=quotes)
+    provider = IBKRQuoteProvider(cast(IBKRProvider, ib))
+    quote = provider.get_quote("USD.CAD")
+    assert quote.bid == pytest.approx(1.25)
+
+
+class IBQuoteFakeIB(FakeIB):
+    def get_quote(self, contract: Contract) -> IBQuote:
+        resolved = self.resolve_contract(contract)
+        q = self._quotes[resolved.symbol]
+        return IBQuote(contract=resolved, bid=q.bid, ask=q.ask, last=q.last, timestamp=q.ts)
+
+
+def test_get_quote_converts_ib_quote() -> None:
+    now = datetime.now(timezone.utc)
+    contracts = {"AAA": Contract(symbol="AAA")}
+    quotes = {"AAA": Quote(bid=100.0, ask=101.0, ts=now, last=100.5)}
+    ib = IBQuoteFakeIB(contracts=contracts, quotes=quotes)
+    provider = IBKRQuoteProvider(cast(IBKRProvider, ib))
+    quote = provider.get_quote("AAA")
+    assert isinstance(quote, Quote)
+    assert quote.last == pytest.approx(100.5)
+
+
+def test_ibkr_provider_invalid_price_source(ibkr_quote_provider: IBKRQuoteProvider) -> None:
+    with pytest.raises(ValueError, match="price_source must be 'last', 'midpoint', or 'bidask'"):
+        ibkr_quote_provider.get_price("AAA", "invalid")  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "quote_kwargs, expected",
+    [
+        ({"bid": 100.0, "ask": None, "last": None}, 100.0),
+        ({"bid": None, "ask": 101.0, "last": None}, 101.0),
+    ],
+)
+def test_ibkr_provider_bidask_returns_available_side(
+    quote_kwargs: dict[str, float | None], expected: float
+) -> None:
+    now = datetime.now(timezone.utc)
+    contracts = {"SYM": Contract(symbol="SYM")}
+    quotes = {"SYM": Quote(ts=now, **quote_kwargs)}
+    ib = FakeIB(contracts=contracts, quotes=quotes)
+    provider = IBKRQuoteProvider(cast(IBKRProvider, ib))
+    price = provider.get_price("SYM", "bidask")
+    assert price == pytest.approx(expected)
