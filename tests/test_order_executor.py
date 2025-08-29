@@ -1,5 +1,12 @@
+from __future__ import annotations
+
 from datetime import datetime, timezone
-from typing import cast
+from typing import List, cast
+import builtins
+import pathlib
+
+import pytest
+from freezegun import freeze_time
 
 from ibkr_etf_rebalancer import pricing
 from ibkr_etf_rebalancer.ibkr_provider import (
@@ -12,12 +19,13 @@ from ibkr_etf_rebalancer.ibkr_provider import (
     OrderSide,
     OrderType,
 )
-from ibkr_etf_rebalancer.order_executor import execute_orders
+from ibkr_etf_rebalancer.order_executor import (
+    OrderExecutionOptions,
+    execute_orders,
+)
 
 
-def test_execute_orders_sequences_fx_sell_buy() -> None:
-    now = datetime.now(timezone.utc)
-
+def _basic_contracts(now: datetime) -> tuple[dict[str, Contract], dict[str, pricing.Quote]]:
     contracts = {
         "AAA": Contract(symbol="AAA"),
         "USD": Contract(symbol="USD", sec_type="CASH", currency="CAD", exchange="IDEALPRO"),
@@ -26,6 +34,28 @@ def test_execute_orders_sequences_fx_sell_buy() -> None:
         "AAA": pricing.Quote(bid=99.0, ask=100.0, ts=now, last=99.5),
         "USD": pricing.Quote(bid=1.25, ask=1.26, ts=now, last=1.255),
     }
+    return contracts, quotes
+
+
+def test_execute_orders_dry_run_no_provider_calls() -> None:
+    now = datetime.now(timezone.utc)
+    contracts, _ = _basic_contracts(now)
+    ib = FakeIB(options=IBKRProviderOptions())
+    order = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.MARKET,
+    )
+    opts = OrderExecutionOptions(dry_run=True, yes=True)
+    planned = execute_orders(cast(IBKRProvider, ib), buy_orders=[order], options=opts)
+    assert planned == [order]
+    assert ib.event_log == []
+
+
+def test_execute_orders_sequences_fx_sell_buy_event_log() -> None:
+    now = datetime.now(timezone.utc)
+    contracts, quotes = _basic_contracts(now)
     opts = IBKRProviderOptions(allow_market_orders=True)
     ib = FakeIB(options=opts, contracts=contracts, quotes=quotes)
 
@@ -57,12 +87,13 @@ def test_execute_orders_sequences_fx_sell_buy() -> None:
         limit_price=101.0,
     )
 
-    fills = execute_orders(
+    fills = cast(List[Fill], execute_orders(
         cast(IBKRProvider, ib),
         fx_orders=[fx_order],
         sell_orders=[sell1, sell2],
         buy_orders=[buy],
-    )
+        options=OrderExecutionOptions(yes=True),
+    ))
 
     assert [f.contract.symbol for f in fills] == ["USD", "AAA", "AAA", "AAA"]
     assert [f.side for f in fills] == [
@@ -94,3 +125,119 @@ def test_execute_orders_sequences_fx_sell_buy() -> None:
         ("placed", "AAA", OrderSide.BUY),
         ("filled", "AAA", OrderSide.BUY),
     ]
+
+
+def test_execute_orders_concurrency_cap_batches() -> None:
+    now = datetime.now(timezone.utc)
+    contracts, quotes = _basic_contracts(now)
+    pacing: list[int] = []
+    ib = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True),
+        contracts=contracts,
+        quotes=quotes,
+        concurrency_limit=1,
+        pacing_hook=lambda n: pacing.append(n),
+    )
+    sell1 = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.SELL,
+        quantity=1,
+        order_type=OrderType.LIMIT,
+        limit_price=98.0,
+    )
+    sell2 = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.SELL,
+        quantity=1,
+        order_type=OrderType.LIMIT,
+        limit_price=97.0,
+    )
+    fills = cast(List[Fill], execute_orders(
+        cast(IBKRProvider, ib),
+        sell_orders=[sell1, sell2],
+        options=OrderExecutionOptions(concurrency_cap=1, yes=True),
+    ))
+    assert [f.contract.symbol for f in fills] == ["AAA", "AAA"]
+    assert pacing == []  # concurrency limit not exceeded
+    events = [e["type"] for e in ib.event_log]
+    assert events == ["placed", "filled", "placed", "filled"]
+
+
+def test_execute_orders_kill_switch(tmp_path: pathlib.Path) -> None:
+    now = datetime.now(timezone.utc)
+    contracts, _ = _basic_contracts(now)
+    kill = tmp_path / "kill"
+    kill.write_text("")
+    ib = FakeIB(options=IBKRProviderOptions(kill_switch=str(kill)), contracts=contracts)
+    order = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.MARKET,
+    )
+    with pytest.raises(RuntimeError):
+        execute_orders(cast(IBKRProvider, ib), buy_orders=[order], options=OrderExecutionOptions(yes=True))
+
+
+def test_execute_orders_paper_only_enforcement() -> None:
+    now = datetime.now(timezone.utc)
+    contracts, _ = _basic_contracts(now)
+    ib = FakeIB(options=IBKRProviderOptions(paper=False, live=False), contracts=contracts)
+    order = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.MARKET,
+    )
+    with pytest.raises(RuntimeError):
+        execute_orders(cast(IBKRProvider, ib), buy_orders=[order], options=OrderExecutionOptions(yes=True))
+
+
+def test_execute_orders_rth_outside_hours() -> None:
+    with freeze_time("2024-01-06 12:00:00-05:00"):
+        now = datetime.now(timezone.utc)
+        contracts, _ = _basic_contracts(now)
+        ib = FakeIB(options=IBKRProviderOptions(), contracts=contracts)
+        order = Order(
+            contract=contracts["AAA"],
+            side=OrderSide.BUY,
+            quantity=1,
+            order_type=OrderType.MARKET,
+        )
+        with pytest.raises(RuntimeError):
+            execute_orders(
+                cast(IBKRProvider, ib),
+                buy_orders=[order],
+                options=OrderExecutionOptions(prefer_rth=True, yes=True),
+            )
+
+
+def test_execute_orders_confirmation_prompt_reject(monkeypatch: pytest.MonkeyPatch) -> None:
+    now = datetime.now(timezone.utc)
+    contracts, _ = _basic_contracts(now)
+    ib = FakeIB(options=IBKRProviderOptions(), contracts=contracts)
+    order = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.MARKET,
+    )
+    monkeypatch.setattr(builtins, "input", lambda _: "n")
+    with pytest.raises(RuntimeError):
+        execute_orders(cast(IBKRProvider, ib), buy_orders=[order], options=OrderExecutionOptions())
+
+
+def test_execute_orders_confirmation_prompt_accept(monkeypatch: pytest.MonkeyPatch) -> None:
+    now = datetime.now(timezone.utc)
+    contracts, _ = _basic_contracts(now)
+    ib = FakeIB(options=IBKRProviderOptions(), contracts=contracts)
+    order = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.MARKET,
+    )
+    monkeypatch.setattr(builtins, "input", lambda _: "y")
+    opts = OrderExecutionOptions(report_only=True)
+    result = execute_orders(cast(IBKRProvider, ib), buy_orders=[order], options=opts)
+    assert result == [order]
