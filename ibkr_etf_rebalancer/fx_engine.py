@@ -79,6 +79,34 @@ def _round_qty(value: float) -> float:
     return round(value, 2)
 
 
+def _is_fx_market_open(ts: datetime) -> bool:
+    """Return ``True`` when the FX market is open.
+
+    Interactive Brokers offers 24 hour FX trading from Sunday 22:00 UTC until
+    Friday 22:00 UTC.  Outside of this window the market is considered closed.
+    This helper implements this simple schedule so that callers can avoid
+    placing orders during known downtime when :class:`FXConfig.prefer_market_hours`
+    is enabled.
+    """
+
+    # Monday–Thursday are fully open.
+    if ts.weekday() < 4:
+        return True
+
+    hour_min = (ts.hour, ts.minute, ts.second)
+
+    # Friday trades until 22:00 UTC.
+    if ts.weekday() == 4:
+        return hour_min < (22, 0, 0)
+
+    # Saturday is closed.
+    if ts.weekday() == 5:
+        return False
+
+    # Sunday opens at 22:00 UTC.
+    return hour_min >= (22, 0, 0)
+
+
 def plan_fx_if_needed(
     usd_needed: float,
     usd_cash: float,
@@ -121,7 +149,7 @@ def plan_fx_if_needed(
     side: Literal["BUY", "SELL"] = "BUY"
     now = now or datetime.now(timezone.utc)
 
-    if cfg.prefer_market_hours and now.weekday() >= 5:
+    if cfg.prefer_market_hours and not _is_fx_market_open(now):
         return FxPlan(
             need_fx=False,
             pair=pair,
