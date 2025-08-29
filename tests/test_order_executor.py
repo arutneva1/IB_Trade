@@ -19,9 +19,14 @@ from ibkr_etf_rebalancer.ibkr_provider import (
     OrderSide,
     OrderType,
 )
+from ibkr_etf_rebalancer.ibkr_provider import ProviderError
 from ibkr_etf_rebalancer.order_executor import (
     OrderExecutionOptions,
     execute_orders,
+    ExecutionError,
+    ConnectionError,
+    PacingError,
+    ResolutionError,
 )
 
 
@@ -251,3 +256,89 @@ def test_execute_orders_confirmation_prompt_accept(monkeypatch: pytest.MonkeyPat
     opts = OrderExecutionOptions(report_only=True)
     result = execute_orders(cast(IBKRProvider, ib), buy_orders=[order], options=opts)
     assert result == [order]
+
+
+def test_execute_orders_connection_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    now = datetime.now(timezone.utc)
+    contracts, _ = _basic_contracts(now)
+    ib = FakeIB(options=IBKRProviderOptions(), contracts=contracts)
+    order = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.MARKET,
+    )
+
+    def failing_place_order(_order: Order) -> str:
+        raise OSError("network")
+
+    monkeypatch.setattr(ib, "place_order", failing_place_order)
+
+    with pytest.raises(ConnectionError) as excinfo:
+        execute_orders(
+            cast(IBKRProvider, ib), buy_orders=[order], options=OrderExecutionOptions(yes=True)
+        )
+    assert excinfo.value.exit_code == ConnectionError.exit_code
+
+
+def test_execute_orders_pacing_error() -> None:
+    now = datetime.now(timezone.utc)
+    contracts, _ = _basic_contracts(now)
+    ib = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True),
+        contracts=contracts,
+        concurrency_limit=0,
+    )
+    order = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.MARKET,
+    )
+
+    with pytest.raises(PacingError) as excinfo:
+        execute_orders(
+            cast(IBKRProvider, ib), buy_orders=[order], options=OrderExecutionOptions(yes=True)
+        )
+    assert excinfo.value.exit_code == PacingError.exit_code
+
+
+def test_execute_orders_resolution_error() -> None:
+    now = datetime.now(timezone.utc)
+    contracts, _ = _basic_contracts(now)
+    ib = FakeIB(options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts)
+    order = Order(
+        contract=Contract(symbol="ZZZ"),
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.MARKET,
+    )
+
+    with pytest.raises(ResolutionError) as excinfo:
+        execute_orders(
+            cast(IBKRProvider, ib), buy_orders=[order], options=OrderExecutionOptions(yes=True)
+        )
+    assert excinfo.value.exit_code == ResolutionError.exit_code
+
+
+def test_execute_orders_generic_provider_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    now = datetime.now(timezone.utc)
+    contracts, _ = _basic_contracts(now)
+    ib = FakeIB(options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts)
+    order = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.MARKET,
+    )
+
+    def failing_place_order(_order: Order) -> str:
+        raise ProviderError("boom")
+
+    monkeypatch.setattr(ib, "place_order", failing_place_order)
+
+    with pytest.raises(ExecutionError) as excinfo:
+        execute_orders(
+            cast(IBKRProvider, ib), buy_orders=[order], options=OrderExecutionOptions(yes=True)
+        )
+    assert excinfo.value.exit_code == ExecutionError.exit_code

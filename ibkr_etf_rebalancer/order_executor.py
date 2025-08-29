@@ -10,9 +10,56 @@ from typing import Sequence
 
 from . import safety
 from .fx_engine import FxPlan
-from .ibkr_provider import Fill, IBKRProvider, Order
+from .ibkr_provider import (
+    Fill,
+    IBKRProvider,
+    Order,
+    PacingError as ProviderPacingError,
+    ProviderError,
+    ResolutionError as ProviderResolutionError,
+)
 
-__all__ = ["OrderExecutionOptions", "execute_orders"]
+__all__ = [
+    "OrderExecutionOptions",
+    "ExecutionError",
+    "ConnectionError",
+    "PacingError",
+    "ResolutionError",
+    "execute_orders",
+]
+
+
+class ExecutionError(RuntimeError):
+    """Base class for order execution errors.
+
+    ``exit_code`` provides a process exit status that callers can use to
+    terminate the application with a meaningful code.
+    """
+
+    exit_code: int = 1
+
+    def __init__(self, message: str = "") -> None:
+        super().__init__(message)
+        # Instance attribute for easy access from callers.
+        self.exit_code = self.__class__.exit_code
+
+
+class ConnectionError(ExecutionError):
+    """Raised when communication with the provider fails."""
+
+    exit_code = 2
+
+
+class PacingError(ExecutionError):
+    """Raised when provider pacing limits are exceeded."""
+
+    exit_code = 3
+
+
+class ResolutionError(ExecutionError):
+    """Raised when a contract cannot be resolved by the provider."""
+
+    exit_code = 4
 
 
 @dataclass
@@ -93,6 +140,17 @@ def execute_orders(
 
     fills: list[Fill] = []
 
+    def _translate_error(exc: Exception) -> ExecutionError:
+        if isinstance(exc, ProviderPacingError):
+            return PacingError(str(exc))
+        if isinstance(exc, ProviderResolutionError):
+            return ResolutionError(str(exc))
+        if isinstance(exc, ProviderError):
+            return ExecutionError(str(exc))
+        if isinstance(exc, (OSError, TimeoutError)):
+            return ConnectionError(str(exc))
+        return ExecutionError(str(exc))
+
     def _submit_group(group_name: str, group: Sequence[Order]) -> None:
         if not group:
             return
@@ -103,9 +161,15 @@ def execute_orders(
             nonzero_cap = cap
             batches = [list(group[i : i + nonzero_cap]) for i in range(0, len(group), nonzero_cap)]
         for batch in batches:
-            order_ids = [ib.place_order(o) for o in batch]
+            try:
+                order_ids = [ib.place_order(o) for o in batch]
+            except Exception as exc:  # pragma: no cover - defensive
+                raise _translate_error(exc) from exc
             logger.info("orders_submitted", extra={"group": group_name, "count": len(batch)})
-            fills.extend(ib.wait_for_fills(order_ids))
+            try:
+                fills.extend(ib.wait_for_fills(order_ids))
+            except Exception as exc:  # pragma: no cover - defensive
+                raise _translate_error(exc) from exc
             logger.info("orders_filled", extra={"group": group_name, "count": len(order_ids)})
 
     _submit_group("fx", fx_orders)
