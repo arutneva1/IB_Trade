@@ -4,7 +4,7 @@ This project automates rebalancing of ETF portfolios via Interactive Brokers. It
 
 ## Project Status
 
-Development is being tracked in phased checklists. Phases 0–5 are implemented, with Phase 4 introducing FX planning for CAD→USD conversions and Phase 5 adding provider abstractions (`IBKRProvider`, `FakeIB`, `LiveIB`) and the `IBKRQuoteProvider` for market data, enabling account snapshot retrieval and pacing safeguards. Later phases are planned but not yet executed.
+Development is being tracked in phased checklists. Phases 0–6 are implemented: Phase 4 introduces FX planning for CAD→USD conversions, Phase 5 adds provider abstractions (`IBKRProvider`, `FakeIB`, `LiveIB`) and the `IBKRQuoteProvider` for market data, enabling account snapshot retrieval and pacing safeguards, and Phase 6 delivers the order builder and executor with spread-aware limit pricing, FX→SELL→BUY sequencing, and safety rails. Subsequent phases are planned but not yet executed.
 
 ## Commands
 
