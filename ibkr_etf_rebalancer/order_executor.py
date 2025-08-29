@@ -122,6 +122,7 @@ def execute_orders(
     options: OrderExecutionOptions | None = None,
     available_cash: float | None = None,
     max_leverage: float = 1.0,
+    allow_margin: bool = True,
     previous_fills: Sequence[Fill] | None = None,
     previous_canceled: Sequence[Order] | None = None,
 ) -> OrderExecutionResult | Sequence[Order]:
@@ -146,6 +147,8 @@ def execute_orders(
         sell proceeds.
     max_leverage:
         Maximum multiple of ``available_cash`` that may be spent on BUYS.
+    allow_margin:
+        Permit spending beyond available cash according to ``max_leverage``.
     previous_fills:
         Fills from a prior invocation; matching orders will be skipped.
     previous_canceled:
@@ -315,7 +318,12 @@ def execute_orders(
 
     # scale buys to respect available cash and leverage
     if available_cash is not None and buy_orders:
-        buying_power = available_cash * max_leverage + result.sell_proceeds
+        if allow_margin:
+            buying_power = available_cash * max_leverage + result.sell_proceeds
+        else:
+            buying_power = available_cash + result.sell_proceeds
+            if buying_power <= 0:
+                raise ExecutionError("insufficient cash and margin disabled")
 
         def _notional(order: Order) -> float:
             price = order.limit_price
@@ -330,9 +338,13 @@ def execute_orders(
 
         total_notional = sum(_notional(o) for o in buy_orders)
         if total_notional > 0 and buying_power < total_notional:
-            scale = buying_power / total_notional
+            scale = max(buying_power, 0.0) / total_notional
             logger.info("buy_scaled", extra={"scale": scale})
-            buy_orders = [replace(o, quantity=o.quantity * scale) for o in buy_orders]
+            buy_orders = [
+                replace(o, quantity=o.quantity * scale)
+                for o in buy_orders
+                if o.quantity * scale > 0
+            ]
 
     _submit_group("buy", buy_orders)
 

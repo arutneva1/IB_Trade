@@ -18,7 +18,7 @@ from .fx_engine import FxPlan
 from .ibkr_provider import Contract, Order, OrderSide, OrderType, RTH
 from .pricing import Quote
 
-__all__ = ["build_equity_orders", "build_fx_order"]
+__all__ = ["build_equity_orders", "build_fx_order", "build_orders"]
 
 
 def _min_tick(contract: Contract) -> float:
@@ -138,4 +138,30 @@ def build_fx_order(fx_plan: FxPlan, contract: Contract, prefer_rth: bool = True)
         order_type=order_type,
         limit_price=limit_price,
         rth=RTH.RTH_ONLY if prefer_rth else RTH.ALL_HOURS,
+    )
+
+
+def build_orders(
+    plan: Mapping[str, float],
+    quotes: Mapping[str, Quote],
+    cfg: RebalanceConfig | SimpleNamespace,
+    contracts: Mapping[str, Contract],
+    *,
+    allow_fractional: bool,
+    allow_margin: bool = True,
+    prefer_rth: bool = True,
+) -> list[Order]:
+    """Wrapper to build equity orders while accepting an ``allow_margin`` flag.
+
+    ``allow_margin`` is currently forwarded for API compatibility and is not
+    used directly; margin enforcement occurs during execution.
+    """
+
+    return build_equity_orders(
+        plan,
+        quotes,
+        cfg,
+        contracts,
+        allow_fractional=allow_fractional,
+        prefer_rth=prefer_rth,
     )

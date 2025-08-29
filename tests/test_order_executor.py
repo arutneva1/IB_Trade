@@ -60,6 +60,75 @@ def test_execute_orders_dry_run_no_provider_calls() -> None:
     assert ib.event_log == []
 
 
+def test_execute_orders_allow_margin_scaling() -> None:
+    now = datetime.now(timezone.utc)
+    contracts, quotes = _basic_contracts(now)
+    ib = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts, quotes=quotes
+    )
+
+    order = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=20,
+        order_type=OrderType.MARKET,
+    )
+
+    result = cast(
+        OrderExecutionResult,
+        execute_orders(
+            cast(IBKRProvider, ib),
+            buy_orders=[order],
+            options=OrderExecutionOptions(yes=True),
+            available_cash=1000.0,
+            max_leverage=2.0,
+            allow_margin=True,
+        ),
+    )
+
+    assert any(f.contract.symbol == "AAA" and f.quantity == 20 for f in result.fills)
+
+    ib2 = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts, quotes=quotes
+    )
+    result2 = cast(
+        OrderExecutionResult,
+        execute_orders(
+            cast(IBKRProvider, ib2),
+            buy_orders=[order],
+            options=OrderExecutionOptions(yes=True),
+            available_cash=1000.0,
+            max_leverage=2.0,
+            allow_margin=False,
+        ),
+    )
+    assert any(f.contract.symbol == "AAA" and f.quantity == 10 for f in result2.fills)
+
+
+def test_execute_orders_margin_only_rejected() -> None:
+    now = datetime.now(timezone.utc)
+    contracts, quotes = _basic_contracts(now)
+    ib = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts, quotes=quotes
+    )
+
+    order = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.MARKET,
+    )
+
+    with pytest.raises(ExecutionError):
+        execute_orders(
+            cast(IBKRProvider, ib),
+            buy_orders=[order],
+            options=OrderExecutionOptions(yes=True),
+            available_cash=0.0,
+            allow_margin=False,
+        )
+
+
 def test_execute_orders_sequences_fx_sell_buy_event_log() -> None:
     now = datetime.now(timezone.utc)
     contracts, quotes = _basic_contracts(now)
