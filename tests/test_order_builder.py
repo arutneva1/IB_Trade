@@ -38,7 +38,7 @@ def test_buy_vs_sell_mapping() -> None:
     plan = {"AAA": 10, "BBB": -5}
     cfg = SimpleNamespace(order_type="LMT", limits=LimitsConfig())
 
-    orders = build_equity_orders(plan, quotes, cfg, contracts)
+    orders = build_equity_orders(plan, quotes, cfg, contracts, allow_fractional=True)
     by_symbol = {o.contract.symbol: o for o in orders}
 
     assert by_symbol["AAA"].side is OrderSide.BUY
@@ -81,7 +81,7 @@ def test_order_type_switch_between_lmt_and_mkt() -> None:
     plan = {"AAA": 10}
     cfg = SimpleNamespace(order_type="MKT", limits=LimitsConfig())
 
-    orders = build_equity_orders(plan, quotes, cfg, contracts)
+    orders = build_equity_orders(plan, quotes, cfg, contracts, allow_fractional=True)
     order = orders[0]
     assert order.order_type is OrderType.MARKET
     assert order.limit_price is None
@@ -97,7 +97,7 @@ def test_escalation_to_market_on_limit_instruction() -> None:
     cfg = SimpleNamespace(order_type="LMT", limits=limits)
     plan = {"AAA": 10}
 
-    orders = build_equity_orders(plan, quotes, cfg, contracts)
+    orders = build_equity_orders(plan, quotes, cfg, contracts, allow_fractional=True)
     order = orders[0]
     assert order.order_type is OrderType.MARKET
     assert order.limit_price is None
@@ -113,7 +113,7 @@ def test_limit_prices_capped_at_nbbo() -> None:
     plan = {"AAA": 10}
     cfg = SimpleNamespace(order_type="LMT", limits=LimitsConfig())
 
-    orders = build_equity_orders(plan, quotes, cfg, contracts)
+    orders = build_equity_orders(plan, quotes, cfg, contracts, allow_fractional=True)
     order = orders[0]
     assert order.limit_price is not None
     limit_price = order.limit_price
@@ -122,3 +122,31 @@ def test_limit_prices_capped_at_nbbo() -> None:
     assert limit_price <= ask
     # tick rounding honoured
     assert abs(limit_price / 0.05 - float(round(limit_price / 0.05))) < 1e-9
+
+
+def test_fractional_rounding_when_disallowed() -> None:
+    """Quantities are rounded to whole shares when fractional trading is off."""
+
+    now = datetime.now(timezone.utc)
+    quotes = {
+        "AAA": Quote(bid=10.0, ask=10.0, ts=now),
+        "BBB": Quote(bid=20.0, ask=20.0, ts=now),
+        "CCC": Quote(bid=30.0, ask=30.0, ts=now),
+    }
+    contracts = {sym: Contract(symbol=sym) for sym in quotes}
+    # Two small orders that should round to zero and be dropped and two that
+    # should round to one share each (buy and sell).
+    plan = {"AAA": 0.6, "BBB": 0.4, "CCC": -0.6, "DDD": -0.4}
+    contracts["DDD"] = Contract(symbol="DDD")
+    quotes["DDD"] = Quote(bid=40.0, ask=40.0, ts=now)
+    cfg = SimpleNamespace(order_type="MKT")
+
+    orders = build_equity_orders(plan, quotes, cfg, contracts, allow_fractional=False)
+    by_symbol = {o.contract.symbol: o for o in orders}
+
+    assert by_symbol["AAA"].quantity == 1
+    assert by_symbol["AAA"].side is OrderSide.BUY
+    assert by_symbol["CCC"].quantity == 1
+    assert by_symbol["CCC"].side is OrderSide.SELL
+    assert "BBB" not in by_symbol
+    assert "DDD" not in by_symbol

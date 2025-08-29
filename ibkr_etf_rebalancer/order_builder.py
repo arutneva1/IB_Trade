@@ -39,16 +39,18 @@ def build_equity_orders(
     quotes: Mapping[str, Quote],
     cfg: RebalanceConfig | SimpleNamespace,
     contracts: Mapping[str, Contract],
+    allow_fractional: bool,
 ) -> list[Order]:
     """Return ``Order`` objects for an equity rebalance *plan*.
 
     ``plan`` maps symbols to share deltas (positive for buys, negative for
     sells).  ``quotes`` provides current market quotes used for limit pricing
-    while ``contracts`` supplies the corresponding broker contract objects.  The
-    ``cfg`` object must provide ``order_type`` and may optionally supply a
-    ``limits`` attribute containing a :class:`LimitsConfig` instance.  When
-    ``cfg.order_type`` is ``"LMT"`` the :mod:`limit_pricer` helpers are used to
-    calculate conservative limit prices.  If the limit pricer escalates to
+    while ``contracts`` supplies the corresponding broker contract objects.
+    ``allow_fractional`` controls whether quantities may include fractional
+    shares.  The ``cfg`` object must provide ``order_type`` and may optionally
+    supply a ``limits`` attribute containing a :class:`LimitsConfig` instance.
+    When ``cfg.order_type`` is ``"LMT"`` the :mod:`limit_pricer` helpers are used
+    to calculate conservative limit prices.  If the limit pricer escalates to
     market the order type is switched to ``"MKT"``.
     """
 
@@ -65,8 +67,11 @@ def build_equity_orders(
 
         side = OrderSide.BUY if qty > 0 else OrderSide.SELL
         quantity = abs(qty)
-        if quantity <= 0:  # pragma: no cover - defensive
-            raise ValueError(f"non-positive quantity for {symbol}")
+        if not allow_fractional:
+            # Round to the nearest whole share and drop zero-qty orders
+            quantity = round(quantity)
+        if quantity <= 0:
+            continue
 
         contract = contracts[symbol]
         quote = quotes[symbol]
