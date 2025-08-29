@@ -113,3 +113,19 @@ def test_snapshot_disabled_raises() -> None:
     )
     with pytest.raises(ValueError):
         provider.get_price("SYM", "last")
+
+
+def test_fake_quote_provider_get_price_missing_symbol(
+    fake_quote_provider: FakeQuoteProvider,
+) -> None:
+    with pytest.raises(KeyError):
+        fake_quote_provider.get_price("UNKNOWN", "last")
+
+
+def test_fake_quote_provider_invalid_price_source(
+    fake_quote_provider: FakeQuoteProvider,
+) -> None:
+    with pytest.raises(
+        ValueError, match="price_source must be 'last', 'midpoint', or 'bidask'"
+    ):
+        fake_quote_provider.get_price("FRESH", "invalid")  # type: ignore[arg-type]
