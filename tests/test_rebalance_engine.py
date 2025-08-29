@@ -295,9 +295,7 @@ def test_fx_top_up_generates_plan_and_feasible_orders():
 
     assert fx_plan.need_fx is True
     buy_notional = sum(
-        shares * prices[symbol]
-        for symbol, shares in plan.orders.items()
-        if shares > 0
+        shares * prices[symbol] for symbol, shares in plan.orders.items() if shares > 0
     )
     usd_cash_after = current.get("CASH", 0.0) * EQUITY + fx_plan.usd_notional
     assert buy_notional <= usd_cash_after + 1e-6

@@ -167,9 +167,7 @@ def generate_orders(
         # converting back to share counts.
         value = round(diff * total_equity, 2)
         if abs(value) < min_order:
-            dropped[symbol] = (
-                f"notional {abs(value):.2f} below min_order {min_order:.2f}"
-            )
+            dropped[symbol] = f"notional {abs(value):.2f} below min_order {min_order:.2f}"
             continue
         orders_value[symbol] = value
 
@@ -208,9 +206,7 @@ def generate_orders(
         scaled_value = value * scale
         if abs(scaled_value) < min_order:
             # Drop any orders that fell below ``min_order`` after scaling
-            dropped[symbol] = (
-                f"notional {abs(scaled_value):.2f} below min_order {min_order:.2f}"
-            )
+            dropped[symbol] = f"notional {abs(scaled_value):.2f} below min_order {min_order:.2f}"
             continue
         cash -= scaled_value
         gross += scaled_value
@@ -276,14 +272,10 @@ def plan_rebalance_with_fx(
     planning_plan = generate_orders(targets, planning_current, prices, total_equity, **kwargs)
 
     usd_buy_notional = sum(
-        shares * prices[symbol]
-        for symbol, shares in planning_plan.orders.items()
-        if shares > 0
+        shares * prices[symbol] for symbol, shares in planning_plan.orders.items() if shares > 0
     )
     usd_sell_notional = sum(
-        -shares * prices[symbol]
-        for symbol, shares in planning_plan.orders.items()
-        if shares < 0
+        -shares * prices[symbol] for symbol, shares in planning_plan.orders.items() if shares < 0
     )
     usd_cash_after_sells = usd_cash + usd_sell_notional
 
