@@ -1,3 +1,3 @@
-symbol,side,filled_shares,avg_price,notional,residual_drift_bps
-BBB,BUY,66.0,51.0,3366.0,10.84
-AAA,BUY,66.0,101.0,6666.0,21.67
+symbol,side,filled_shares,avg_price,notional,avg_slippage,residual_drift_bps
+BBB,BUY,66.0,51.0,3366.0,0.0,10.84
+AAA,BUY,66.0,101.0,6666.0,0.0,21.67

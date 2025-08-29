@@ -103,6 +103,8 @@ class OrderExecutionResult:
         Fills returned by the provider.
     canceled:
         Orders that were canceled due to timeout or partial fills.
+    limit_prices:
+        Mapping of order IDs to their submitted limit prices.
     timed_out:
         ``True`` if any batch timed out while waiting for fills.
     sell_proceeds:
@@ -112,6 +114,7 @@ class OrderExecutionResult:
     fills: list[Fill]
     canceled: list[Order]
     order_ids: dict[Order, str] = field(default_factory=dict)
+    limit_prices: dict[str, float | None] = field(default_factory=dict)
     timed_out: bool = False
     sell_proceeds: float = 0.0
 
@@ -232,6 +235,7 @@ def execute_orders(
                     order_id = ib.place_order(o)
                     order_ids.append(order_id)
                     result.order_ids[o] = order_id
+                    result.limit_prices[order_id] = o.limit_price
                     logger.info(
                         "order_placed",
                         extra={
