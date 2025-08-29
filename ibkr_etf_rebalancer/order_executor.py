@@ -193,7 +193,21 @@ def execute_orders(
             batches = [list(group[i : i + nonzero_cap]) for i in range(0, len(group), nonzero_cap)]
         for batch in batches:
             try:
-                order_ids = [ib.place_order(o) for o in batch]
+                order_ids = []
+                for o in batch:
+                    order_id = ib.place_order(o)
+                    order_ids.append(order_id)
+                    logger.info(
+                        "order_placed",
+                        extra={
+                            "group": group_name,
+                            "order_id": order_id,
+                            "symbol": o.contract.symbol,
+                            "side": o.side.name,
+                            "quantity": o.quantity,
+                            "price": o.limit_price,
+                        },
+                    )
             except Exception as exc:  # pragma: no cover - defensive
                 raise _translate_error(exc) from exc
             logger.info("orders_submitted", extra={"group": group_name, "count": len(batch)})
@@ -207,24 +221,48 @@ def execute_orders(
             except Exception as exc:  # pragma: no cover - defensive
                 raise _translate_error(exc) from exc
             result.fills.extend(batch_fills)
+            for fill in batch_fills:
+                logger.info(
+                    "order_filled",
+                    extra={
+                        "group": group_name,
+                        "order_id": getattr(fill, "order_id", None),
+                        "symbol": fill.contract.symbol,
+                        "side": fill.side.name,
+                        "quantity": fill.quantity,
+                        "price": fill.price,
+                    },
+                )
             remaining = set(order_ids)
             for fill in batch_fills:
-                oid = getattr(fill, "order_id", None)
+                oid: str | None = getattr(fill, "order_id", None)
                 if oid is not None and oid in remaining:
                     remaining.remove(oid)
                     continue
-                for oid in list(remaining):
-                    order = id_to_order[oid]
+                for oid2 in list(remaining):
+                    order = id_to_order[oid2]
                     if (
                         fill.contract.symbol == order.contract.symbol
                         and fill.side == order.side
                         and fill.quantity == order.quantity
                     ):
-                        remaining.remove(oid)
+                        remaining.remove(oid2)
                         break
             for oid in remaining:
+                order = id_to_order[oid]
                 ib.cancel(oid)
-                result.canceled.append(id_to_order[oid])
+                result.canceled.append(order)
+                logger.info(
+                    "order_canceled",
+                    extra={
+                        "group": group_name,
+                        "order_id": oid,
+                        "symbol": order.contract.symbol,
+                        "side": order.side.name,
+                        "quantity": order.quantity,
+                        "reason": "timeout" if timed_out else "unfilled",
+                    },
+                )
             if timed_out:
                 result.timed_out = True
             logger.info("orders_filled", extra={"group": group_name, "count": len(batch_fills)})
