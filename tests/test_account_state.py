@@ -104,6 +104,36 @@ def test_cad_cash_is_ignored_in_weights(positions, prices, cad_cash):
 
 
 @pytest.mark.parametrize(
+    "positions, prices, usd_cash",
+    [
+        (
+            {"GLD": 10, "GDX": 20},
+            {"GLD": 180.0, "GDX": 40.0},
+            1_000.0,
+        ),
+        (
+            {"GLD": 5, "GDX": 10},
+            {"GLD": 180.0, "GDX": 40.0},
+            0.0,
+        ),
+    ],
+)
+def test_overlapping_etfs_market_values_and_weights(positions, prices, usd_cash):
+    cash = {"USD": usd_cash}
+    snapshot = compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
+
+    expected_market_values = {sym: qty * prices[sym] for sym, qty in positions.items()}
+    for sym, mv in expected_market_values.items():
+        assert pytest.approx(mv, rel=1e-6) == snapshot.market_values[sym]
+
+    total_equity = sum(expected_market_values.values()) + usd_cash
+    for sym, mv in expected_market_values.items():
+        assert pytest.approx(mv / total_equity, rel=1e-6) == snapshot.weights[sym]
+    assert pytest.approx(usd_cash / total_equity, rel=1e-6) == snapshot.weights["CASH"]
+    assert abs(sum(snapshot.weights.values()) - 1.0) < 1e-6
+
+
+@pytest.mark.parametrize(
     "prices",
     [
         {},
