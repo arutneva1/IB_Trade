@@ -36,6 +36,15 @@ Global flags control behaviour: `--report-only`, `--dry-run`,
 `--scenario PATH` to execute a YAML-defined end-to-end scenario instead of
 loading CSV/INI inputs.
 
+Run a full end-to-end scenario which always operates in paper mode:
+
+```bash
+python -m ibkr_etf_rebalancer.app --scenario tests/e2e/fixtures/no_trade_within_band.yml
+```
+
+This bypasses any live broker connectivity and prints the generated report
+paths to standard output.
+
 The configuration file can include an `[fx]` section to plan CAD→USD conversions ahead of ETF trades. This feature lets you enable FX planning and set per-order limits and acceptable slippage:
 
 ```ini
