@@ -1,4 +1,11 @@
 from pathlib import Path
+import sys
+
+# Ensure project root is on the module search path so the script can be executed
+# directly via ``python tests/e2e/update_golden.py``.
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from ibkr_etf_rebalancer.scenario import load_scenario
 from ibkr_etf_rebalancer.scenario_runner import run_scenario
