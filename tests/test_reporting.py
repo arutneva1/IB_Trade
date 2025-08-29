@@ -58,8 +58,12 @@ def test_post_trade_report(tmp_path):
     prices = {"AAA": 10.0, "BBB": 20.0}
 
     fills = [
-        Fill(contract=Contract("AAA"), side=OrderSide.BUY, quantity=100.0, price=10.0, order_id="1"),
-        Fill(contract=Contract("BBB"), side=OrderSide.SELL, quantity=50.0, price=20.0, order_id="2"),
+        Fill(
+            contract=Contract("AAA"), side=OrderSide.BUY, quantity=100.0, price=10.0, order_id="1"
+        ),
+        Fill(
+            contract=Contract("BBB"), side=OrderSide.SELL, quantity=50.0, price=20.0, order_id="2"
+        ),
     ]
     limits = {"1": 9.5, "2": 19.5}
 
