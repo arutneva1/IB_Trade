@@ -115,6 +115,10 @@ def test_limit_prices_capped_at_nbbo() -> None:
 
     orders = build_equity_orders(plan, quotes, cfg, contracts)
     order = orders[0]
-    assert order.limit_price <= quotes["AAA"].ask
+    assert order.limit_price is not None
+    limit_price = order.limit_price
+    ask = quotes["AAA"].ask
+    assert ask is not None
+    assert limit_price <= ask
     # tick rounding honoured
-    assert abs(order.limit_price / 0.05 - round(order.limit_price / 0.05)) < 1e-9
+    assert abs(limit_price / 0.05 - float(round(limit_price / 0.05))) < 1e-9
