@@ -77,8 +77,7 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
         # ------------------------------------------------------------------
         # Quote and contract setup
         quotes: Dict[str, Quote] = {
-            sym: Quote(bid=q.bid, ask=q.ask, ts=as_of)
-            for sym, q in scenario.quotes.items()
+            sym: Quote(bid=q.bid, ask=q.ask, ts=as_of) for sym, q in scenario.quotes.items()
         }
         quote_provider = FakeQuoteProvider(quotes, snapshots=scenario.prices)
 
