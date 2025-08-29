@@ -182,7 +182,9 @@ class IBKRProvider(Protocol):
     def cancel(self, order_id: str) -> None:
         """Cancel an open order."""
 
-    def wait_for_fills(self, order_ids: Sequence[str], timeout: float | None = None) -> Sequence[Fill]:
+    def wait_for_fills(
+        self, order_ids: Sequence[str], timeout: float | None = None
+    ) -> Sequence[Fill]:
         """Wait for fills and return them."""
 
 
@@ -315,7 +317,9 @@ class FakeIB:
         if order is not None:
             self._log_event("canceled", order_id, order=order)
 
-    def wait_for_fills(self, order_ids: Sequence[str], timeout: float | None = None) -> Sequence[Fill]:
+    def wait_for_fills(
+        self, order_ids: Sequence[str], timeout: float | None = None
+    ) -> Sequence[Fill]:
         fills: list[Fill] = []
         for oid in order_ids:
             order = self._orders.get(oid)
