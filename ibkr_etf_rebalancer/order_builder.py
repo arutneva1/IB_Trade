@@ -129,4 +129,3 @@ def build_fx_order(fx_plan: FxPlan, contract: Contract) -> Order:
         order_type=order_type,
         limit_price=limit_price,
     )
-
