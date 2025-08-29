@@ -266,6 +266,50 @@ def test_execute_orders_provider_concurrency_limit_no_cap() -> None:
     assert pacing == [1]
 
 
+def test_execute_orders_sequential_buy_orders_pacing() -> None:
+    with freeze_time("2024-01-01"):
+        now = datetime.now(timezone.utc)
+        contracts, quotes = _basic_contracts(now)
+        pacing: list[int] = []
+        ib = FakeIB(
+            options=IBKRProviderOptions(allow_market_orders=True),
+            contracts=contracts,
+            quotes=quotes,
+            concurrency_limit=1,
+            pacing_hook=lambda n: pacing.append(n),
+        )
+
+        orig_place_order = ib.place_order
+
+        def place_order_with_hook(order: Order) -> str:  # type: ignore[override]
+            if ib._next_order_id >= 1 and ib._pacing_hook is not None:
+                ib._pacing_hook(len(ib._orders) or 1)
+            return orig_place_order(order)
+
+        ib.place_order = place_order_with_hook  # type: ignore[assignment]
+
+        orders = [
+            Order(
+                contract=contracts["AAA"],
+                side=OrderSide.BUY,
+                quantity=1,
+                order_type=OrderType.MARKET,
+            )
+            for _ in range(3)
+        ]
+        result = cast(
+            OrderExecutionResult,
+            execute_orders(
+                cast(IBKRProvider, ib),
+                buy_orders=orders,
+                options=OrderExecutionOptions(concurrency_cap=1, yes=True),
+            ),
+        )
+        assert [f.order_id for f in result.fills] == ["1", "2", "3"]
+        assert len(result.fills) == 3
+        assert pacing == [1, 1]
+
+
 def test_execute_orders_partial_fill_cancels_remaining() -> None:
     now = datetime.now(timezone.utc)
     contracts, quotes = _basic_contracts(now)
