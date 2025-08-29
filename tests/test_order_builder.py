@@ -10,7 +10,7 @@ import pytest
 
 from ibkr_etf_rebalancer.config import LimitsConfig
 from ibkr_etf_rebalancer.fx_engine import FxPlan
-from ibkr_etf_rebalancer.ibkr_provider import Contract, OrderSide, OrderType
+from ibkr_etf_rebalancer.ibkr_provider import Contract, OrderSide, OrderType, RTH
 from ibkr_etf_rebalancer.order_builder import build_equity_orders, build_fx_order
 from ibkr_etf_rebalancer.pricing import FakeQuoteProvider, Quote
 
@@ -70,6 +70,47 @@ def test_fx_order_creation() -> None:
     assert order.order_type is OrderType.LIMIT
     assert order.quantity == pytest.approx(1000.12, rel=1e-6)
     assert order.limit_price == pytest.approx(1.2506, rel=1e-6)
+    assert order.rth is RTH.RTH_ONLY
+
+
+def test_equity_order_rth_preference() -> None:
+    """Orders choose RTH flag based on ``prefer_rth``."""
+
+    now = datetime.now(timezone.utc)
+    quotes = {"AAA": Quote(bid=99.0, ask=101.0, ts=now)}
+    contracts = {"AAA": Contract(symbol="AAA")}
+    plan = {"AAA": 10}
+    cfg = SimpleNamespace(order_type="MKT")
+
+    orders = build_equity_orders(plan, quotes, cfg, contracts, allow_fractional=True)
+    assert orders[0].rth is RTH.RTH_ONLY
+
+    orders = build_equity_orders(
+        plan, quotes, cfg, contracts, allow_fractional=True, prefer_rth=False
+    )
+    assert orders[0].rth is RTH.ALL_HOURS
+
+
+def test_fx_order_rth_preference() -> None:
+    """FX orders honour the ``prefer_rth`` flag."""
+
+    fx_plan = FxPlan(
+        need_fx=True,
+        pair="USD.CAD",
+        side="BUY",
+        usd_notional=1000.0,
+        est_rate=1.25,
+        qty=1000.0,
+        order_type="MKT",
+        limit_price=None,
+        route="IDEALPRO",
+        wait_for_fill_seconds=0,
+        reason="test",
+    )
+    contract = Contract(symbol="USD", sec_type="CASH", currency="CAD", exchange="IDEALPRO")
+
+    order = build_fx_order(fx_plan, contract, prefer_rth=False)
+    assert order.rth is RTH.ALL_HOURS
 
 
 def test_order_type_switch_between_lmt_and_mkt() -> None:

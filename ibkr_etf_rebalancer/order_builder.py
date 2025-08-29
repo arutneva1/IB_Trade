@@ -15,7 +15,7 @@ from typing import Mapping
 from . import limit_pricer
 from .config import LimitsConfig, RebalanceConfig
 from .fx_engine import FxPlan
-from .ibkr_provider import Contract, Order, OrderSide, OrderType
+from .ibkr_provider import Contract, Order, OrderSide, OrderType, RTH
 from .pricing import Quote
 
 __all__ = ["build_equity_orders", "build_fx_order"]
@@ -40,6 +40,7 @@ def build_equity_orders(
     cfg: RebalanceConfig | SimpleNamespace,
     contracts: Mapping[str, Contract],
     allow_fractional: bool,
+    prefer_rth: bool = True,
 ) -> list[Order]:
     """Return ``Order`` objects for an equity rebalance *plan*.
 
@@ -51,7 +52,8 @@ def build_equity_orders(
     supply a ``limits`` attribute containing a :class:`LimitsConfig` instance.
     When ``cfg.order_type`` is ``"LMT"`` the :mod:`limit_pricer` helpers are used
     to calculate conservative limit prices.  If the limit pricer escalates to
-    market the order type is switched to ``"MKT"``.
+    market the order type is switched to ``"MKT"``.  ``prefer_rth`` determines
+    the value of the regular trading hours flag.
     """
 
     limit_cfg = getattr(cfg, "limits", LimitsConfig())
@@ -97,20 +99,24 @@ def build_equity_orders(
                 quantity=quantity,
                 order_type=order_type,
                 limit_price=limit_price,
+                rth=RTH.RTH_ONLY if prefer_rth else RTH.ALL_HOURS,
             )
         )
 
     return orders
 
 
-def build_fx_order(fx_plan: FxPlan, contract: Contract) -> Order:
+def build_fx_order(
+    fx_plan: FxPlan, contract: Contract, prefer_rth: bool = True
+) -> Order:
     """Return an FX ``Order`` from ``fx_plan``.
 
     The plan's quantity is rounded to two decimal places while limit prices are
     rounded to the nearest pip (``0.0001``) or the contract's ``min_tick`` if it
     specifies one.  ``fx_plan.side`` determines the order side.  ``fx_plan`` is
     assumed to describe a required conversion; callers should ensure
-    ``fx_plan.need_fx`` before invoking this function.
+    ``fx_plan.need_fx`` before invoking this function.  ``prefer_rth`` controls
+    whether orders restrict execution to regular trading hours.
     """
 
     qty = round(fx_plan.qty, 2)
@@ -133,4 +139,5 @@ def build_fx_order(fx_plan: FxPlan, contract: Contract) -> Order:
         quantity=qty,
         order_type=order_type,
         limit_price=limit_price,
+        rth=RTH.RTH_ONLY if prefer_rth else RTH.ALL_HOURS,
     )
