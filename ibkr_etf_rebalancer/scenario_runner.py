@@ -7,6 +7,7 @@ from typing import Any, Dict, cast
 
 from .account_state import AccountSnapshot, compute_account_state
 from .config import AppConfig
+from . import safety
 from .ibkr_provider import (
     AccountValue,
     Contract,
@@ -109,7 +110,9 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
         )
         account_values = [AccountValue(tag="NetLiquidation", value=net_liq, currency="USD")]
         ib = FakeIB(
-            options=IBKRProviderOptions(allow_market_orders=True),
+            options=IBKRProviderOptions(
+                allow_market_orders=True, kill_switch=cfg.safety.kill_switch_file
+            ),
             contracts=contracts,
             quotes=ib_quotes,
             account_values=account_values,
@@ -213,19 +216,24 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
                 build_fx_order(fx_plan, contracts[fx_symbol], prefer_rth=cfg.rebalance.prefer_rth)
             ]
 
-        execution = cast(
-            OrderExecutionResult,
-            execute_orders(
-                cast(IBKRProvider, ib),
-                fx_orders=fx_orders,
-                sell_orders=sell_orders,
-                buy_orders=buy_orders,
-                fx_plan=fx_plan,
-                options=OrderExecutionOptions(yes=True),
-                max_leverage=cfg.rebalance.max_leverage,
-                allow_margin=cfg.rebalance.allow_margin,
-            ),
-        )
+        try:
+            safety.check_kill_switch(cfg.safety.kill_switch_file)
+        except RuntimeError:
+            execution = OrderExecutionResult(fills=[], canceled=[])
+        else:
+            execution = cast(
+                OrderExecutionResult,
+                execute_orders(
+                    cast(IBKRProvider, ib),
+                    fx_orders=fx_orders,
+                    sell_orders=sell_orders,
+                    buy_orders=buy_orders,
+                    fx_plan=fx_plan,
+                    options=OrderExecutionOptions(yes=True),
+                    max_leverage=cfg.rebalance.max_leverage,
+                    allow_margin=cfg.rebalance.allow_margin,
+                ),
+            )
 
         post_df, post_csv, post_md = cast(
             tuple[Any, Path, Path],

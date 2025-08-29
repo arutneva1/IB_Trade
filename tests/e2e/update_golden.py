@@ -23,7 +23,15 @@ def main() -> None:
         scenario.config_overrides.setdefault("io", {})["report_dir"] = str(
             GOLDEN_DIR / fixture_path.stem
         )
-        result = run_scenario(scenario)
+        kill_switch = scenario.config_overrides.get("safety", {}).get("kill_switch_file")
+        kill_path = Path(kill_switch) if kill_switch else None
+        if kill_path:
+            kill_path.write_text("")
+        try:
+            result = run_scenario(scenario)
+        finally:
+            if kill_path and kill_path.exists():
+                kill_path.unlink()
         out_dir = result.pre_report_csv.parent
         print(f"Generated outputs for {fixture_path.stem} in {out_dir}")
 
