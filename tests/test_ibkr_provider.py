@@ -236,6 +236,30 @@ def test_order_lifecycle_and_fills() -> None:
     ]
 
 
+def test_fx_limit_buy_fills_at_ask() -> None:
+    now = datetime.now(timezone.utc)
+    contract = Contract(symbol="USD", sec_type="CASH", currency="CAD", exchange="IDEALPRO")
+    ib = FakeIB(
+        contracts={"USD": contract},
+        quotes={"USD": pricing.Quote(bid=1.25, ask=1.26, ts=now, last=1.255)},
+    )
+
+    order = Order(
+        contract=contract,
+        side=OrderSide.BUY,
+        quantity=1000,
+        order_type=OrderType.LIMIT,
+        limit_price=1.26,
+    )
+    order_id = ib.place_order(order)
+
+    fills = ib.wait_for_fills([order_id])
+    assert len(fills) == 1
+    fill = fills[0]
+    assert fill.side is OrderSide.BUY
+    assert fill.price == pytest.approx(1.26)
+
+
 def test_sell_orders_fill_before_buy() -> None:
     """Two sell orders fill before a subsequent buy."""
 
@@ -306,6 +330,7 @@ def test_pacing_limit_triggers_backoff_hook() -> None:
     with pytest.raises(PacingError):
         ib.place_order(order)
     assert called == [1, 1]
+
 
 def test_market_orders_rejected_by_default() -> None:
     contract = Contract(symbol="AAA")
