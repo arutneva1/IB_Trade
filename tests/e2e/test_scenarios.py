@@ -57,7 +57,10 @@ def _read_report(path: Path) -> tuple[str, pd.DataFrame]:
             if line.strip():
                 meta_lines.append(line)
     meta = "\n".join(meta_lines)
-    df = pd.read_csv(io.StringIO("\n".join(data_lines)))
+    if data_lines:
+        df = pd.read_csv(io.StringIO("\n".join(data_lines)))
+    else:
+        df = pd.DataFrame()
     return meta, df
 
 
@@ -123,61 +126,73 @@ def test_scenarios(fixture_path: Path) -> None:
     scenario = load_scenario(fixture_path)
     if scenario.config_overrides.get("rebalance", {}).get("min_order_usd", 1) <= 0:
         scenario.config_overrides.setdefault("rebalance", {})["min_order_usd"] = 1e-9
+    kill_switch = scenario.config_overrides.get("safety", {}).get("kill_switch_file")
+    kill_path = Path(kill_switch) if kill_switch else None
+    if kill_path:
+        kill_path.write_text("")
+    try:
+        result = run_scenario(scenario)
 
-    result = run_scenario(scenario)
+        files = {
+            "pre_csv": result.pre_report_csv,
+            "pre_md": result.pre_report_md,
+            "post_csv": result.post_report_csv,
+            "post_md": result.post_report_md,
+            "event_log": result.event_log,
+        }
 
-    files = {
-        "pre_csv": result.pre_report_csv,
-        "pre_md": result.pre_report_md,
-        "post_csv": result.post_report_csv,
-        "post_md": result.post_report_md,
-        "event_log": result.event_log,
-    }
+        hashes1 = {name: _file_hash(path) for name, path in files.items()}
 
-    hashes1 = {name: _file_hash(path) for name, path in files.items()}
+        result2 = run_scenario(scenario)
+        files2 = {
+            "pre_csv": result2.pre_report_csv,
+            "pre_md": result2.pre_report_md,
+            "post_csv": result2.post_report_csv,
+            "post_md": result2.post_report_md,
+            "event_log": result2.event_log,
+        }
+        hashes2 = {name: _file_hash(path) for name, path in files2.items()}
+        assert hashes1 == hashes2
 
-    result2 = run_scenario(scenario)
-    files2 = {
-        "pre_csv": result2.pre_report_csv,
-        "pre_md": result2.pre_report_md,
-        "post_csv": result2.post_report_csv,
-        "post_md": result2.post_report_md,
-        "event_log": result2.event_log,
-    }
-    hashes2 = {name: _file_hash(path) for name, path in files2.items()}
-    assert hashes1 == hashes2
+        golden_dir = GOLDEN_DIR / fixture_path.stem
 
-    golden_dir = GOLDEN_DIR / fixture_path.stem
+        _assert_csv_almost_equal(files2["pre_csv"], golden_dir / files2["pre_csv"].name)
+        _assert_csv_almost_equal(files2["post_csv"], golden_dir / files2["post_csv"].name)
+        _assert_md_almost_equal(files2["pre_md"], golden_dir / files2["pre_md"].name)
+        _assert_md_almost_equal(files2["post_md"], golden_dir / files2["post_md"].name)
+        _assert_json_almost_equal(files2["event_log"], golden_dir / files2["event_log"].name)
 
-    _assert_csv_almost_equal(files2["pre_csv"], golden_dir / files2["pre_csv"].name)
-    _assert_csv_almost_equal(files2["post_csv"], golden_dir / files2["post_csv"].name)
-    _assert_md_almost_equal(files2["pre_md"], golden_dir / files2["pre_md"].name)
-    _assert_md_almost_equal(files2["post_md"], golden_dir / files2["post_md"].name)
-    _assert_json_almost_equal(files2["event_log"], golden_dir / files2["event_log"].name)
-
-    events = json.loads(files2["event_log"].read_text())
-    placed = [e for e in events if e["type"] == "placed"]
-    last_rank = -1
-    for e in placed:
-        info = _parse_order(e["order"])
-        key = (
-            f"{info['symbol']}.{info['currency']}" if info["sec_type"] == "CASH" else info["symbol"]
-        )
-        quote = scenario.quotes[key]
-        if info["sec_type"] == "CASH":
-            if info["limit_price"] is not None:
-                if info["side"] == "BUY":
-                    assert info["limit_price"] <= quote.ask + 1e-6
-                else:
+        events = json.loads(files2["event_log"].read_text())
+        placed = [e for e in events if e["type"] == "placed"]
+        if kill_path:
+            assert placed == []
+            return
+        last_rank = -1
+        for e in placed:
+            info = _parse_order(e["order"])
+            key = (
+                f"{info['symbol']}.{info['currency']}"
+                if info["sec_type"] == "CASH"
+                else info["symbol"]
+            )
+            quote = scenario.quotes[key]
+            if info["sec_type"] == "CASH":
+                if info["limit_price"] is not None:
+                    if info["side"] == "BUY":
+                        assert info["limit_price"] <= quote.ask + 1e-6
+                    else:
+                        assert info["limit_price"] >= quote.bid - 1e-6
+                rank = 0
+            elif info["side"] == "SELL":
+                if info["limit_price"] is not None:
                     assert info["limit_price"] >= quote.bid - 1e-6
-            rank = 0
-        elif info["side"] == "SELL":
-            if info["limit_price"] is not None:
-                assert info["limit_price"] >= quote.bid - 1e-6
-            rank = 1
-        else:
-            if info["limit_price"] is not None:
-                assert info["limit_price"] <= quote.ask + 1e-6
-            rank = 2
-        assert rank >= last_rank
-        last_rank = rank
+                rank = 1
+            else:
+                if info["limit_price"] is not None:
+                    assert info["limit_price"] <= quote.ask + 1e-6
+                rank = 2
+            assert rank >= last_rank
+            last_rank = rank
+    finally:
+        if kill_path and kill_path.exists():
+            kill_path.unlink()
