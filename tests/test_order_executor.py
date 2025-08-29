@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import List, cast
+from typing import cast
 import builtins
 import pathlib
 
@@ -22,6 +22,7 @@ from ibkr_etf_rebalancer.ibkr_provider import (
 from ibkr_etf_rebalancer.ibkr_provider import ProviderError
 from ibkr_etf_rebalancer.order_executor import (
     OrderExecutionOptions,
+    OrderExecutionResult,
     execute_orders,
     ExecutionError,
     ConnectionError,
@@ -92,8 +93,8 @@ def test_execute_orders_sequences_fx_sell_buy_event_log() -> None:
         limit_price=101.0,
     )
 
-    fills = cast(
-        List[Fill],
+    result = cast(
+        OrderExecutionResult,
         execute_orders(
             cast(IBKRProvider, ib),
             fx_orders=[fx_order],
@@ -102,6 +103,7 @@ def test_execute_orders_sequences_fx_sell_buy_event_log() -> None:
             options=OrderExecutionOptions(yes=True),
         ),
     )
+    fills = result.fills
 
     assert [f.contract.symbol for f in fills] == ["USD", "AAA", "AAA", "AAA"]
     assert [f.side for f in fills] == [
@@ -110,6 +112,8 @@ def test_execute_orders_sequences_fx_sell_buy_event_log() -> None:
         OrderSide.SELL,
         OrderSide.BUY,
     ]
+
+    assert result.canceled == []
 
     events = [
         (
@@ -160,18 +164,88 @@ def test_execute_orders_concurrency_cap_batches() -> None:
         order_type=OrderType.LIMIT,
         limit_price=97.0,
     )
-    fills = cast(
-        List[Fill],
+    result = cast(
+        OrderExecutionResult,
         execute_orders(
             cast(IBKRProvider, ib),
             sell_orders=[sell1, sell2],
             options=OrderExecutionOptions(concurrency_cap=1, yes=True),
         ),
     )
+    fills = result.fills
     assert [f.contract.symbol for f in fills] == ["AAA", "AAA"]
+    assert result.canceled == []
     assert pacing == []  # concurrency limit not exceeded
     events = [e["type"] for e in ib.event_log]
     assert events == ["placed", "filled", "placed", "filled"]
+
+
+def test_execute_orders_partial_fill_cancels_remaining() -> None:
+    now = datetime.now(timezone.utc)
+    contracts, quotes = _basic_contracts(now)
+    ib = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts, quotes=quotes
+    )
+    sell_ok = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.SELL,
+        quantity=1,
+        order_type=OrderType.LIMIT,
+        limit_price=98.0,
+    )
+    sell_never = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.SELL,
+        quantity=1,
+        order_type=OrderType.LIMIT,
+        limit_price=120.0,
+    )
+    result = cast(
+        OrderExecutionResult,
+        execute_orders(
+            cast(IBKRProvider, ib),
+            sell_orders=[sell_ok, sell_never],
+            options=OrderExecutionOptions(yes=True),
+        ),
+    )
+    assert [f.contract.symbol for f in result.fills] == ["AAA"]
+    assert result.canceled == [sell_never]
+    assert not result.timed_out
+    events = [e["type"] for e in ib.event_log]
+    assert events == ["placed", "placed", "filled", "canceled"]
+
+
+def test_execute_orders_timeout_cancels(monkeypatch: pytest.MonkeyPatch) -> None:
+    now = datetime.now(timezone.utc)
+    contracts, quotes = _basic_contracts(now)
+    ib = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts, quotes=quotes
+    )
+    order = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.MARKET,
+    )
+
+    def raise_timeout(order_ids: list[str], timeout: float | None = None) -> list[Fill]:
+        raise TimeoutError
+
+    monkeypatch.setattr(ib, "wait_for_fills", raise_timeout)
+
+    result = cast(
+        OrderExecutionResult,
+        execute_orders(
+            cast(IBKRProvider, ib),
+            buy_orders=[order],
+            options=OrderExecutionOptions(yes=True),
+        ),
+    )
+    assert result.fills == []
+    assert result.canceled == [order]
+    assert result.timed_out
+    events = [e["type"] for e in ib.event_log]
+    assert events == ["placed", "canceled"]
 
 
 def test_execute_orders_kill_switch(tmp_path: pathlib.Path) -> None:
