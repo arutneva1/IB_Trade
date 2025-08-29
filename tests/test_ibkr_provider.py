@@ -236,6 +236,48 @@ def test_order_lifecycle_and_fills() -> None:
     ]
 
 
+def test_sell_orders_fill_before_buy() -> None:
+    """Two sell orders fill before a subsequent buy."""
+
+    now = datetime.now(timezone.utc)
+    contract = Contract(symbol="AAA")
+    quotes = {"AAA": pricing.Quote(bid=99.0, ask=100.0, ts=now, last=99.5)}
+    ib = FakeIB(contracts={"AAA": contract}, quotes=quotes)
+
+    sell_one = Order(
+        contract=contract,
+        side=OrderSide.SELL,
+        quantity=1,
+        order_type=OrderType.LIMIT,
+        limit_price=98.0,
+    )
+    sell_two = Order(
+        contract=contract,
+        side=OrderSide.SELL,
+        quantity=2,
+        order_type=OrderType.LIMIT,
+        limit_price=97.0,
+    )
+    buy = Order(
+        contract=contract,
+        side=OrderSide.BUY,
+        quantity=3,
+        order_type=OrderType.LIMIT,
+        limit_price=100.0,
+    )
+
+    sell_one_id = ib.place_order(sell_one)
+    sell_two_id = ib.place_order(sell_two)
+    buy_id = ib.place_order(buy)
+
+    fills = ib.wait_for_fills([sell_one_id, sell_two_id, buy_id])
+    assert [f.side for f in fills] == [
+        OrderSide.SELL,
+        OrderSide.SELL,
+        OrderSide.BUY,
+    ]
+
+
 def test_pacing_limit_triggers_backoff_hook() -> None:
     contract = Contract(symbol="AAA")
     quote = pricing.Quote(bid=99.0, ask=100.0, ts=datetime.now(timezone.utc))
