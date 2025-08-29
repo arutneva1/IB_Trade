@@ -7,7 +7,7 @@ from datetime import datetime, timezone, timedelta
 from enum import Enum
 from typing import Callable, Mapping, Protocol, Sequence, runtime_checkable
 
-from ib_async import IB, Contract as IBContract, Order as IBOrder  # type: ignore
+from ib_async import IB, Contract as IBContract, Order as IBOrder
 
 from . import pricing
 
