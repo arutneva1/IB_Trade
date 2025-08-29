@@ -46,6 +46,10 @@ The command reads a configuration file, model portfolio definitions and the
 current account positions before producing CSV and Markdown pre‑trade reports
 under the specified ``reports`` directory.
 
+Phase 5 adds provider abstractions (`IBKRProvider`, `FakeIB`, `LiveIB`) and the
+`IBKRQuoteProvider` for market data. These exports support account snapshot
+retrieval and pacing safeguards. [SRS AC3][SRS AC9]
+
 ## Further Documentation
 
 - [System Requirements Specification](srs.md)
