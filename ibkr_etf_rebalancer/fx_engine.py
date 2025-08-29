@@ -116,6 +116,7 @@ def plan_fx_if_needed(
         Currency used to fund USD purchases. Defaults to ``"CAD"``.
     """
 
+    funding_currency = funding_currency.upper()
     pair = f"{cfg.base_currency}.{funding_currency}"
     side: Literal["BUY", "SELL"] = "BUY"
     now = now or datetime.now(timezone.utc)

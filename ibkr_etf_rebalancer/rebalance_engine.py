@@ -245,7 +245,9 @@ def plan_rebalance_with_fx(
     """Plan equity trades and any required FX conversion."""
 
     funding_cash = float(kwargs.pop("funding_cash", kwargs.pop("cad_cash", 0.0)))
-    if funding_currency not in fx_cfg.funding_currencies:
+    funding_currency = funding_currency.upper()
+    allowed_funding = {c.upper() for c in fx_cfg.funding_currencies}
+    if funding_currency not in allowed_funding:
         raise ValueError(f"unsupported funding currency: {funding_currency}")
     usd_cash = current.get("CASH", 0.0) * total_equity
 

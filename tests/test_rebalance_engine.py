@@ -364,6 +364,34 @@ def test_unsupported_funding_currency_rejected():
         )
 
 
+def test_mixed_case_funding_currency_accepted():
+    targets = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    current = {"AAA": 0.0, "BBB": 0.0, "CASH": 0.0}
+    prices = {"AAA": 100.0, "BBB": 100.0}
+    fx_cfg = FXConfig(enabled=True)
+    pricing_cfg = PricingConfig()
+    now = datetime.now(timezone.utc)
+    provider = FakeQuoteProvider({"USD.CAD": Quote(1.25, 1.26, now)})
+
+    _, fx_plan = plan_rebalance_with_fx(
+        targets,
+        current,
+        prices,
+        EQUITY,
+        fx_cfg=fx_cfg,
+        quote_provider=provider,
+        pricing_cfg=pricing_cfg,
+        funding_currency="cAd",
+        funding_cash=150_000.0,
+        bands=0.0,
+        min_order=0.0,
+        max_leverage=1.5,
+    )
+
+    assert fx_plan.pair == "USD.CAD"
+    assert fx_plan.need_fx is True
+
+
 def test_fx_snapshot_fallback():
     targets = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
     current = {"AAA": 0.0, "BBB": 0.0, "CASH": 0.0}
