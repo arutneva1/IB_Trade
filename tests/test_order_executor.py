@@ -4,11 +4,14 @@ from datetime import datetime, timezone
 from typing import Sequence, cast
 import builtins
 import pathlib
+from types import SimpleNamespace
 
 import pytest
 from freezegun import freeze_time
 
 from ibkr_etf_rebalancer import pricing
+from ibkr_etf_rebalancer.config import LimitsConfig
+from ibkr_etf_rebalancer.fx_engine import FxPlan
 from ibkr_etf_rebalancer.ibkr_provider import (
     Contract,
     FakeIB,
@@ -20,6 +23,8 @@ from ibkr_etf_rebalancer.ibkr_provider import (
     OrderType,
 )
 from ibkr_etf_rebalancer.ibkr_provider import ProviderError
+from ibkr_etf_rebalancer.limit_pricer import price_limit_buy, price_limit_sell
+from ibkr_etf_rebalancer.order_builder import build_equity_orders, build_fx_order
 from ibkr_etf_rebalancer.order_executor import (
     OrderExecutionOptions,
     OrderExecutionResult,
@@ -136,6 +141,120 @@ def test_execute_orders_sequences_fx_sell_buy_event_log() -> None:
         ("filled", "AAA", OrderSide.SELL),
         ("placed", "AAA", OrderSide.BUY),
         ("filled", "AAA", OrderSide.BUY),
+    ]
+
+
+def test_execute_orders_fx_sell_buy_limit_pricer_nbbo() -> None:
+    now = datetime.now(timezone.utc)
+    contracts = {
+        "USD": Contract(symbol="USD", sec_type="CASH", currency="CAD", exchange="IDEALPRO"),
+        "GLD": Contract(symbol="GLD"),
+        "GDX": Contract(symbol="GDX"),
+    }
+    quotes = {
+        "USD": pricing.Quote(bid=1.25, ask=1.26, ts=now, last=1.255),
+        "GLD": pricing.Quote(bid=180.0, ask=181.0, ts=now, last=180.5),
+        "GDX": pricing.Quote(bid=30.0, ask=30.20, ts=now, last=30.1),
+    }
+    ib = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True),
+        contracts=contracts,
+        quotes=quotes,
+    )
+
+    limit_cfg = LimitsConfig(
+        buy_offset_frac=1.0,
+        sell_offset_frac=1.0,
+        max_offset_bps=1000,
+        wide_spread_bps=100,
+    )
+    cfg = SimpleNamespace(order_type="LMT", limits=limit_cfg)
+    equity_orders = build_equity_orders(
+        {"GLD": -5, "GDX": 100}, quotes, cfg, contracts, allow_fractional=False
+    )
+    order_map = {o.contract.symbol: o for o in equity_orders}
+    gld_order = order_map["GLD"]
+    gdx_order = order_map["GDX"]
+    sell_price, _ = price_limit_sell(quotes["GLD"], 0.01, limit_cfg, now)
+    buy_price, _ = price_limit_buy(quotes["GDX"], 0.01, limit_cfg, now)
+    assert gld_order.limit_price == pytest.approx(sell_price)
+    assert gdx_order.limit_price == pytest.approx(buy_price)
+    assert sell_price == pytest.approx(quotes["GLD"].bid)
+    assert buy_price == pytest.approx(quotes["GDX"].ask)
+
+    fx_plan = FxPlan(
+        True,
+        "USD.CAD",
+        "BUY",
+        10000,
+        quotes["USD"].ask,
+        10000,
+        "LMT",
+        quotes["USD"].ask,
+        "IDEALPRO",
+        0,
+        "test",
+    )
+    fx_order = build_fx_order(fx_plan, contracts["USD"])
+
+    result = cast(
+        OrderExecutionResult,
+        execute_orders(
+            cast(IBKRProvider, ib),
+            fx_orders=[fx_order],
+            sell_orders=[gld_order],
+            buy_orders=[gdx_order],
+            options=OrderExecutionOptions(yes=True),
+        ),
+    )
+
+    fills = result.fills
+    assert [f.contract.symbol for f in fills] == ["USD", "GLD", "GDX"]
+    assert [f.side for f in fills] == [OrderSide.BUY, OrderSide.SELL, OrderSide.BUY]
+    assert fills[0].price == pytest.approx(quotes["USD"].ask)
+    assert fills[1].price == pytest.approx(sell_price)
+    assert fills[2].price == pytest.approx(buy_price)
+
+    events = [
+        (
+            e["type"],
+            (
+                cast(Order, e["order"]).contract.symbol
+                if e["type"] == "placed"
+                else cast(Fill, e["fill"]).contract.symbol
+            ),
+        )
+        for e in ib.event_log
+    ]
+    assert events == [
+        ("placed", "USD"),
+        ("filled", "USD"),
+        ("placed", "GLD"),
+        ("filled", "GLD"),
+        ("placed", "GDX"),
+        ("filled", "GDX"),
+    ]
+
+    placed_prices = [
+        cast(Order, e["order"]).limit_price
+        for e in ib.event_log
+        if e["type"] == "placed"
+    ]
+    assert placed_prices == [
+        pytest.approx(quotes["USD"].ask),
+        pytest.approx(sell_price),
+        pytest.approx(buy_price),
+    ]
+
+    fill_prices = [
+        cast(Fill, e["fill"]).price
+        for e in ib.event_log
+        if e["type"] == "filled"
+    ]
+    assert fill_prices == [
+        pytest.approx(quotes["USD"].ask),
+        pytest.approx(sell_price),
+        pytest.approx(buy_price),
     ]
 
 
