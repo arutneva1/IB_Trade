@@ -331,6 +331,7 @@ def test_pacing_limit_triggers_backoff_hook() -> None:
         ib.place_order(order)
     assert called == [1, 1]
 
+
 def test_market_orders_rejected_by_default() -> None:
     contract = Contract(symbol="AAA")
     ib = FakeIB(contracts={"AAA": contract})
