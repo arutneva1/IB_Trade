@@ -405,7 +405,16 @@ class Plan:
 3. **Underweight multiple symbols:** Generates SELLs (if needed) then scaled BUYs due to cash limits.  
 4. **Fractional disallowed:** Rounds shares, residual drift ≤ 10 bps.  
 5. **Margin via CASH:** `SMURF: GLD 100, GDX 50, CASH -50` with `allow_margin=true` and `max_leverage≥1.5` → BUY GDX sized to ~50% of NetLiq; validator blocks the same CSV when `allow_margin=false` or `max_leverage<1.5`.  
-6. **Spread‑aware limits:** With `buy_offset_frac=0.25`, `max_offset_bps=10`, a symbol quoted 100×100.10 (spread 10 bps) must produce BUY limit ≤ 100.10 and ≥ 100.025 (rounded to tick).  
+6. **Spread‑aware limits:** With `buy_offset_frac=0.25`, `max_offset_bps=10`, a symbol quoted 100×100.10 (spread 10 bps) must produce BUY limit ≤ 100.10 and ≥ 100.025 (rounded to tick).
+
+Run these scenarios with the CLI `--scenario` option and a YAML fixture, e.g.:
+
+```bash
+python -m ibkr_etf_rebalancer.app --scenario tests/e2e/fixtures/no_trade_within_band.yml
+```
+
+Fixtures live under `tests/e2e/fixtures/` and together exercise acceptance
+criteria AC1–AC13.
 
 ---
 

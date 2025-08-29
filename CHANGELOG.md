@@ -2,14 +2,16 @@
 
 ## [Unreleased]
 - Placeholder for upcoming changes.
+
+## Phase 7
 - Document paper and live CLI examples in `workflow.md`.
 - Clarified Definition of Done in `plan.md` to include CHANGELOG entries and SRS acceptance-criteria references.
 - Expanded Phase 1 checklist with module-specific items, leverage test, and PR gate updates.
 - Added Phase 0 review checklist.
 - Added integration test covering FX → SELL → BUY order sequencing with `FakeIB`.
 - Updated pull request description to cite SRS AC5 and AC6 for order building and execution changes.
-- feat(e2e): add offline scenario runner and YAML-driven tests [AC1–AC13]
-- feat(cli): add `--scenario` option to run YAML scenarios with paper mode default and kill-switch checks
+- feat(e2e): add offline scenario runner and YAML-driven tests. [SRS AC1–AC13]
+- feat(cli): add `--scenario` option to run YAML scenarios with paper mode default and kill-switch checks. [SRS AC1]
 
 
 ## Phase 6
