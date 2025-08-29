@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict, cast
 
 from ibkr_etf_rebalancer.account_state import AccountSnapshot, compute_account_state
 from ibkr_etf_rebalancer.config import AppConfig
@@ -11,6 +11,7 @@ from ibkr_etf_rebalancer.ibkr_provider import (
     AccountValue,
     Contract,
     FakeIB,
+    IBKRProvider,
     Order,
     OrderSide,
     Position,
@@ -131,21 +132,24 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
             cash_buffer_pct=cfg.rebalance.cash_buffer_pct,
         )
 
-        pre_df, pre_csv, pre_md = generate_pre_trade_report(
-            blend.weights,
-            snapshot.weights,
-            scenario.prices,
-            snapshot.total_equity,
-            output_dir=output_dir,
-            as_of=as_of,
-            net_liq=snapshot.total_equity,
-            cash_balances=snapshot.cash_by_currency,
-            cash_buffer=(
-                snapshot.usd_cash * cfg.rebalance.cash_buffer_pct / 100.0
-                if cfg.rebalance.cash_buffer_pct
-                else None
+        pre_df, pre_csv, pre_md = cast(
+            tuple[Any, Path, Path],
+            generate_pre_trade_report(
+                blend.weights,
+                snapshot.weights,
+                scenario.prices,
+                snapshot.total_equity,
+                output_dir=output_dir,
+                as_of=as_of,
+                net_liq=snapshot.total_equity,
+                cash_balances=snapshot.cash_by_currency,
+                cash_buffer=(
+                    snapshot.usd_cash * cfg.rebalance.cash_buffer_pct / 100.0
+                    if cfg.rebalance.cash_buffer_pct
+                    else None
+                ),
+                min_order=cfg.rebalance.min_order_usd,
             ),
-            min_order=cfg.rebalance.min_order_usd,
         )
 
         # ------------------------------------------------------------------
@@ -188,25 +192,31 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
                 build_fx_order(fx_plan, contracts[fx_symbol], prefer_rth=cfg.rebalance.prefer_rth)
             ]
 
-        execution = execute_orders(
-            ib,
-            fx_orders=fx_orders,
-            sell_orders=sell_orders,
-            buy_orders=buy_orders,
-            fx_plan=fx_plan,
-            options=OrderExecutionOptions(yes=True),
-            max_leverage=cfg.rebalance.max_leverage,
-            allow_margin=cfg.rebalance.allow_margin,
+        execution = cast(
+            OrderExecutionResult,
+            execute_orders(
+                cast(IBKRProvider, ib),
+                fx_orders=fx_orders,
+                sell_orders=sell_orders,
+                buy_orders=buy_orders,
+                fx_plan=fx_plan,
+                options=OrderExecutionOptions(yes=True),
+                max_leverage=cfg.rebalance.max_leverage,
+                allow_margin=cfg.rebalance.allow_margin,
+            ),
         )
 
-        post_df, post_csv, post_md = generate_post_trade_report(
-            blend.weights,
-            snapshot.weights,
-            scenario.prices,
-            snapshot.total_equity,
-            execution.fills,
-            output_dir=output_dir,
-            as_of=as_of,
+        post_df, post_csv, post_md = cast(
+            tuple[Any, Path, Path],
+            generate_post_trade_report(
+                blend.weights,
+                snapshot.weights,
+                scenario.prices,
+                snapshot.total_equity,
+                execution.fills,
+                output_dir=output_dir,
+                as_of=as_of,
+            ),
         )
 
         event_log_path = output_dir / f"event_log_{stamp}.json"
