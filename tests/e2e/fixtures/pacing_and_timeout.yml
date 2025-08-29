@@ -20,3 +20,7 @@ config_overrides:
     order_type: MKT
     min_order_usd: 0
     prefer_rth: false
+  execution:
+    concurrency_cap: 1
+  fake_ib:
+    concurrency_limit: 1
