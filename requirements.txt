@@ -6,6 +6,7 @@ pytest
 pytest-asyncio
 hypothesis
 freezegun
+pyyaml
 
 # app libs
 pandas
