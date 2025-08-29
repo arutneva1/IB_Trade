@@ -449,6 +449,7 @@ class FakeIB:
         self, order_ids: Sequence[str], timeout: float | None = None
     ) -> Sequence[Fill]:
         fills: list[Fill] = []
+        unfilled = False
         for oid in order_ids:
             order = self._orders.get(oid)
             if order is None:
@@ -475,6 +476,7 @@ class FakeIB:
                             price = max(market, limit)
 
             if price is None:
+                unfilled = True
                 continue
 
             fill = Fill(
@@ -488,7 +490,8 @@ class FakeIB:
             fills.append(fill)
             self._log_event("filled", oid, fill=fill)
             self._orders.pop(oid, None)
-
+        if unfilled and timeout is not None:
+            raise TimeoutError
         return fills
 
 
