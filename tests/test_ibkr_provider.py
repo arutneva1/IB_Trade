@@ -77,11 +77,19 @@ def test_resolve_contract_with_symbol_overrides() -> None:
     }
     ib = FakeIB(contracts=contracts, symbol_overrides=overrides)
 
-    assert ib.resolve_contract(Contract(symbol="AAA")) == contracts["AAA"]
-    # BBB is overridden to AAA symbol
-    assert ib.resolve_contract(Contract(symbol="BBB")) == contracts["AAA"]
-    # FX is overridden to the provided Contract instance
-    assert ib.resolve_contract(Contract(symbol="FX")) == overrides["FX"]
+    resolved_aaa = ib.resolve_contract(Contract(symbol="AAA"))
+    assert resolved_aaa.symbol == "AAA"
+    assert resolved_aaa.con_id is not None
+
+    # BBB is overridden to AAA symbol and resolves to the same contract
+    resolved_bbb = ib.resolve_contract(Contract(symbol="BBB"))
+    assert resolved_bbb == resolved_aaa
+
+    # FX is overridden to the provided Contract instance and assigned its own ID
+    resolved_fx = ib.resolve_contract(Contract(symbol="FX"))
+    assert resolved_fx.symbol == "USD"
+    assert resolved_fx.con_id is not None
+    assert resolved_fx.con_id != resolved_aaa.con_id
 
 
 def test_resolve_contract_unmapped_symbol_raises() -> None:
