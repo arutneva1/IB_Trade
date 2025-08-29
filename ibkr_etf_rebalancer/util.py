@@ -31,4 +31,3 @@ def from_bps(bps: float) -> float:
     """
 
     return bps / 10_000
-
