@@ -12,6 +12,7 @@
 - Updated pull request description to cite SRS AC5 and AC6 for order building and execution changes.
 - feat(e2e): add offline scenario runner and YAML-driven tests. [SRS AC1–AC13]
 - feat(cli): add `--scenario` option to run YAML scenarios with paper mode default and kill-switch checks. [SRS AC1]
+- Added end-to-end scenario capability allowing offline execution of YAML-defined workflows.
 
 
 ## Phase 6

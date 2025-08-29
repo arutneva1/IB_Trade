@@ -36,15 +36,6 @@ Global flags control behaviour: `--report-only`, `--dry-run`,
 `--scenario PATH` to execute a YAML-defined end-to-end scenario instead of
 loading CSV/INI inputs.
 
-Run a full end-to-end scenario which always operates in paper mode:
-
-```bash
-python -m ibkr_etf_rebalancer.app --scenario tests/e2e/fixtures/no_trade_within_band.yml
-```
-
-This bypasses any live broker connectivity and prints the generated report
-paths to standard output.
-
 The configuration file can include an `[fx]` section to plan CAD→USD conversions ahead of ETF trades. This feature lets you enable FX planning and set per-order limits and acceptable slippage:
 
 ```ini
@@ -66,20 +57,16 @@ retrieval and pacing safeguards. [SRS AC3][SRS AC9]
 
 ## E2E scenarios
 
-End-to-end scenarios exercise the full workflow using fake brokers and quotes to
-verify the acceptance criteria (AC1–AC13) defined in the
-[SRS](srs.md). Run a scenario with:
+End-to-end scenarios exercise the full workflow offline using fake brokers and
+quotes. Run one with:
 
 ```bash
 python -m ibkr_etf_rebalancer.app --scenario tests/e2e/fixtures/no_trade_within_band.yml
 ```
 
-This writes pre- and post-trade reports (CSV and Markdown) and an event log to
-the directory configured by `io.report_dir` in the configuration file (default
-`reports/`).
-
-Scenario fixtures live under `tests/e2e/fixtures/` and collectively cover
-acceptance criteria AC1–AC13.
+Reports and an event log are written to the directory configured by
+`io.report_dir` (default `reports/`). Scenario fixtures live under
+`tests/e2e/fixtures/` and collectively cover acceptance criteria AC1–AC13.
 
 ## Further Documentation
 
