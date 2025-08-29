@@ -270,7 +270,11 @@ def test_execute_orders_partial_sell_proceeds_scale_buy(monkeypatch: pytest.Monk
     )
 
     assert result.sell_proceeds == pytest.approx(20.0)
-    buy_event = [e for e in ib.event_log if e["type"] == "placed" and cast(Order, e["order"]).side is OrderSide.BUY][0]
+    buy_event = [
+        e
+        for e in ib.event_log
+        if e["type"] == "placed" and cast(Order, e["order"]).side is OrderSide.BUY
+    ][0]
     assert cast(Order, buy_event["order"]).quantity == pytest.approx(2.0)
 
 
