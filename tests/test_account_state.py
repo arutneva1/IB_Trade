@@ -39,6 +39,36 @@ def test_weights_and_exposure_with_and_without_cash_buffer():
     assert abs(sum(buf.weights.values()) - 1.0) < 1e-6
 
 
+def test_gld_gdx_weights_and_exposure_with_buffer():
+    positions = {"GLD": 10, "GDX": 20}
+    prices = {"GLD": 200.0, "GDX": 30.0}
+    cash = {"USD": 1_000.0}
+
+    no_buf = compute_account_state(positions, prices, cash, cash_buffer_pct=0.0)
+    buf = compute_account_state(positions, prices, cash, cash_buffer_pct=10.0)
+
+    # Without buffer ---------------------------------------------------------
+    assert pytest.approx(2_000 / 3_600, rel=1e-6) == no_buf.weights["GLD"]
+    assert pytest.approx(600 / 3_600, rel=1e-6) == no_buf.weights["GDX"]
+    assert pytest.approx(1_000 / 3_600, rel=1e-6) == no_buf.weights["CASH"]
+    assert pytest.approx(2_600 / 3_600, rel=1e-6) == no_buf.gross_exposure
+    assert pytest.approx(1.0, rel=1e-6) == no_buf.net_exposure
+    assert pytest.approx(3_600.0, rel=1e-6) == no_buf.total_equity
+    assert pytest.approx(3_600.0, rel=1e-6) == no_buf.effective_equity
+
+    # With 10% buffer --------------------------------------------------------
+    assert pytest.approx(2_000 / 3_500, rel=1e-6) == buf.weights["GLD"]
+    assert pytest.approx(600 / 3_500, rel=1e-6) == buf.weights["GDX"]
+    assert pytest.approx(900 / 3_500, rel=1e-6) == buf.weights["CASH"]
+    assert pytest.approx(2_600 / 3_500, rel=1e-6) == buf.gross_exposure
+    assert pytest.approx(1.0, rel=1e-6) == buf.net_exposure
+    assert pytest.approx(3_600.0, rel=1e-6) == buf.total_equity
+    assert pytest.approx(3_500.0, rel=1e-6) == buf.effective_equity
+
+    # weights sum to unity within tolerance
+    assert abs(sum(buf.weights.values()) - 1.0) < 1e-6
+
+
 def test_cash_only_account():
     positions: dict[str, float] = {}
     prices: dict[str, float] = {}
