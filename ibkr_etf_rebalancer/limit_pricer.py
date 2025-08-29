@@ -14,7 +14,7 @@ import math
 
 from .config import LimitsConfig
 from .pricing import Quote, QuoteProvider, is_stale
-from .util import from_bps, to_bps
+from .util import from_bps, to_bps, clamp
 
 __all__ = ["price_limit_buy", "price_limit_sell", "calc_limit_price"]
 
@@ -86,9 +86,9 @@ def price_limit_buy(
 
     price = mid + cfg.buy_offset_frac * spread
     cap = mid * (1 + from_bps(cfg.max_offset_bps))
-    price = min(price, cap)
+    price = clamp(price, upper=cap)
     if cfg.use_ask_bid_cap:
-        price = min(price, ask)
+        price = clamp(price, upper=ask)
     price = _round_to_tick(price, min_tick)
     if cfg.use_ask_bid_cap and price > ask:
         price = _round_down_to_tick(ask, min_tick)
@@ -105,7 +105,7 @@ def price_limit_buy(
             # after tick alignment.
             price = _round_up_to_tick(ask, min_tick)
             if cfg.use_ask_bid_cap:
-                price = min(price, _round_down_to_tick(ask, min_tick))
+                price = clamp(price, upper=_round_down_to_tick(ask, min_tick))
             return price, "LMT"
         if action == "market":
             return None, "MKT"
@@ -136,9 +136,9 @@ def price_limit_sell(
 
     price = mid - cfg.sell_offset_frac * spread
     cap = mid * (1 - from_bps(cfg.max_offset_bps))
-    price = max(price, cap)
+    price = clamp(price, lower=cap)
     if cfg.use_ask_bid_cap:
-        price = max(price, bid)
+        price = clamp(price, lower=bid)
     price = _round_to_tick(price, min_tick)
     if cfg.use_ask_bid_cap and price < bid:
         price = _round_up_to_tick(bid, min_tick)
@@ -155,7 +155,7 @@ def price_limit_sell(
             # tick alignment.
             price = _round_down_to_tick(bid, min_tick)
             if cfg.use_ask_bid_cap:
-                price = max(price, _round_up_to_tick(bid, min_tick))
+                price = clamp(price, lower=_round_up_to_tick(bid, min_tick))
             return price, "LMT"
         if action == "market":
             return None, "MKT"
