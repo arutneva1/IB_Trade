@@ -49,7 +49,13 @@ class RTH(int, Enum):
 
 @dataclass(frozen=True)
 class Contract:
-    """Tradable contract specification."""
+    """Tradable contract specification.
+
+    Contracts may be provided in a partially specified form (for example only
+    a symbol).  Provider implementations are responsible for *normalizing*
+    contracts to a unique representation that includes security type,
+    currency and exchange before any requests are sent to IBKR.
+    """
 
     symbol: str
     sec_type: str = "STK"
@@ -73,7 +79,12 @@ class Order:
 
 @dataclass(frozen=True)
 class Fill:
-    """Execution fill details."""
+    """Execution fill details.
+
+    ``quantity`` is expressed in shares and ``price`` represents a per-share
+    price in the contract's native currency.  ``timestamp`` values are
+    expected to be timezone-aware and normalised to ``timezone.utc``.
+    """
 
     contract: Contract
     side: OrderSide
@@ -84,7 +95,12 @@ class Fill:
 
 @dataclass(frozen=True)
 class Quote:
-    """Market quote information."""
+    """Market quote information.
+
+    Price fields (``bid``, ``ask`` and ``last``) are denominated in the
+    contract's currency on a per-share basis.  Size fields are share counts.
+    Timestamps are normalised to ``timezone.utc``.
+    """
 
     contract: Contract
     bid: float | None = None
@@ -157,12 +173,21 @@ class ResolutionError(ProviderError):
 
 
 class PacingError(ProviderError):
-    """Raised when provider pacing limits are exceeded."""
+    """Raised when provider pacing limits are exceeded.
+
+    Providers may refuse requests when clients submit orders faster than
+    allowed or maintain too many outstanding orders.  The exact limits are
+    backend specific.
+    """
 
 
 @runtime_checkable
 class IBKRProvider(Protocol):
-    """Protocol for IBKR provider implementations."""
+    """Protocol for IBKR provider implementations.
+
+    Implementations normalise contracts, express prices per share in the
+    contract's currency and return all timestamps in ``timezone.utc``.
+    """
 
     options: IBKRProviderOptions
 
@@ -173,10 +198,19 @@ class IBKRProvider(Protocol):
         """Terminate connection to the provider."""
 
     def resolve_contract(self, contract: Contract) -> Contract:
-        """Resolve a partially specified contract."""
+        """Resolve a partially specified contract.
+
+        Returns a normalised :class:`Contract` with all fields populated.
+        Implementations may apply symbol overrides or lookups against the
+        provider's contract database.
+        """
 
     def get_quote(self, contract: Contract) -> Quote:
-        """Return the latest market quote."""
+        """Return the latest market quote.
+
+        Price fields are per-share, size fields are share counts and the
+        timestamp is in UTC.
+        """
 
     def get_account_values(self) -> Sequence[AccountValue]:
         """Return current account values."""
@@ -185,7 +219,11 @@ class IBKRProvider(Protocol):
         """Return current open positions."""
 
     def place_order(self, order: Order) -> str:
-        """Submit an order and return an order identifier."""
+        """Submit an order and return an order identifier.
+
+        Providers may enforce pacing restrictions and raise
+        :class:`PacingError` when limits are exceeded.
+        """
 
     def cancel(self, order_id: str) -> None:
         """Cancel an open order."""
@@ -254,7 +292,8 @@ class FakeIB:
     The class exposes its internal state so tests can inspect and modify it
     directly. Quotes are stored as :class:`pricing.Quote` objects and returned
     with UTC timestamps, allowing stale quote simulation by seeding old
-    timestamps.
+    timestamps.  An optional concurrency limit can be used to emulate IBKR's
+    pacing rules; exceeding the limit raises :class:`PacingError`.
     """
 
     def __init__(
