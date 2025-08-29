@@ -6,6 +6,7 @@
 - Clarified Definition of Done in `plan.md` to include CHANGELOG entries and SRS acceptance-criteria references.
 - Expanded Phase 1 checklist with module-specific items, leverage test, and PR gate updates.
 - Added Phase 0 review checklist.
+- Added integration test covering FX → SELL → BUY order sequencing with `FakeIB`.
 
 
 ## Phase 5
