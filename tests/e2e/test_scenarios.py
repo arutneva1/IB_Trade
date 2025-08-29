@@ -171,7 +171,9 @@ def test_scenarios(fixture_path: Path) -> None:
         for e in placed:
             info = _parse_order(e["order"])
             key = (
-                f"{info['symbol']}.{info['currency']}" if info["sec_type"] == "CASH" else info["symbol"]
+                f"{info['symbol']}.{info['currency']}"
+                if info["sec_type"] == "CASH"
+                else info["symbol"]
             )
             quote = scenario.quotes[key]
             if info["sec_type"] == "CASH":
