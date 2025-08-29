@@ -52,4 +52,3 @@ def ensure_paper_trading(paper: bool, live: bool) -> None:
 
 
 __all__ = ["check_kill_switch", "ensure_paper_trading"]
-
