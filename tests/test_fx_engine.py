@@ -98,6 +98,29 @@ def test_fx_quote_at_threshold_trades(fresh_quote: Quote, fx_cfg: FXConfig) -> N
     assert "stale" not in plan.reason
 
 
+@pytest.mark.parametrize(
+    "bid, ask",
+    [
+        (None, 1.23456),
+        (1.23456, None),
+    ],
+    ids=["missing_bid", "missing_ask"],
+)
+def test_incomplete_fx_quote_skips_plan(
+    bid: float | None, ask: float | None, fx_cfg: FXConfig
+) -> None:
+    quote = Quote(bid=bid, ask=ask, ts=datetime.now(timezone.utc))
+    plan = plan_fx_if_needed(
+        usd_needed=1_000,
+        usd_cash=0,
+        funding_cash=5_000,
+        fx_quote=quote,
+        cfg=fx_cfg,
+    )
+    assert plan.need_fx is False
+    assert plan.reason == "incomplete FX quote"
+
+
 def test_market_rounding(fx_cfg: FXConfig) -> None:
     quote = Quote(bid=1.23451, ask=1.23491, ts=datetime.now(timezone.utc))
     plan = plan_fx_if_needed(
