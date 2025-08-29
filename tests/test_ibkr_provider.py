@@ -15,6 +15,7 @@ from ibkr_etf_rebalancer.ibkr_provider import (
     OrderSide,
     OrderType,
     PacingError,
+    ResolutionError,
 )
 
 
@@ -81,6 +82,12 @@ def test_resolve_contract_with_symbol_overrides() -> None:
     assert ib.resolve_contract(Contract(symbol="BBB")) == contracts["AAA"]
     # FX is overridden to the provided Contract instance
     assert ib.resolve_contract(Contract(symbol="FX")) == overrides["FX"]
+
+
+def test_resolve_contract_unmapped_symbol_raises() -> None:
+    ib = FakeIB(contracts={"AAA": Contract(symbol="AAA")})
+    with pytest.raises(ResolutionError):
+        ib.resolve_contract(Contract(symbol="ZZZ"))
 
 
 def test_get_quote_fresh_stale_bid_only_ask_only() -> None:
