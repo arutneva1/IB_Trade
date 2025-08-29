@@ -1,20 +1,21 @@
 from pathlib import Path
 import sys
 
-# Ensure project root is on the module search path so the script can be executed
-# directly via ``python tests/e2e/update_golden.py``.
-ROOT = Path(__file__).resolve().parents[2]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from ibkr_etf_rebalancer.scenario import load_scenario
-from ibkr_etf_rebalancer.scenario_runner import run_scenario
-
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 GOLDEN_DIR = Path(__file__).parent / "golden"
 
 
 def main() -> None:
+    """Generate golden files for test scenarios."""
+    # Ensure project root is on the module search path so the script can be
+    # executed directly via ``python tests/e2e/update_golden.py``.
+    root = Path(__file__).resolve().parents[2]
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+
+    from ibkr_etf_rebalancer.scenario import load_scenario
+    from ibkr_etf_rebalancer.scenario_runner import run_scenario
+
     for fixture_path in sorted(FIXTURE_DIR.glob("*.yml")):
         scenario = load_scenario(fixture_path)
         if scenario.config_overrides.get("rebalance", {}).get("min_order_usd", 1) <= 0:
