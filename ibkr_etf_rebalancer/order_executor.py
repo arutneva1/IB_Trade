@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, replace, field
 from datetime import datetime, timezone
 import logging
 import time
@@ -107,6 +107,7 @@ class OrderExecutionResult:
 
     fills: list[Fill]
     canceled: list[Order]
+    order_ids: dict[Order, str] = field(default_factory=dict)
     timed_out: bool = False
     sell_proceeds: float = 0.0
 
@@ -121,6 +122,8 @@ def execute_orders(
     options: OrderExecutionOptions | None = None,
     available_cash: float | None = None,
     max_leverage: float = 1.0,
+    previous_fills: Sequence[Fill] | None = None,
+    previous_canceled: Sequence[Order] | None = None,
 ) -> OrderExecutionResult | Sequence[Order]:
     """Place FX, then SELL, then BUY orders using ``ib``.
 
@@ -143,6 +146,10 @@ def execute_orders(
         sell proceeds.
     max_leverage:
         Maximum multiple of ``available_cash`` that may be spent on BUYS.
+    previous_fills:
+        Fills from a prior invocation; matching orders will be skipped.
+    previous_canceled:
+        Orders canceled in a prior invocation; matching orders will be skipped.
 
     Returns
     -------
@@ -162,6 +169,26 @@ def execute_orders(
     fx_orders = fx_orders or ()
     sell_orders = sell_orders or ()
     buy_orders = buy_orders or ()
+
+    previous_fills = previous_fills or ()
+    previous_canceled = previous_canceled or ()
+
+    def _key_from_order(order: Order) -> tuple[str, OrderSide, float]:
+        return (order.contract.symbol, order.side, order.quantity)
+
+    def _key_from_fill(fill: Fill) -> tuple[str, OrderSide, float]:
+        return (fill.contract.symbol, fill.side, fill.quantity)
+
+    filled_keys = {_key_from_fill(f) for f in previous_fills}
+    canceled_keys = {_key_from_order(o) for o in previous_canceled}
+    skip_keys = filled_keys | canceled_keys
+
+    def _filter(group: Sequence[Order]) -> list[Order]:
+        return [o for o in group if _key_from_order(o) not in skip_keys]
+
+    fx_orders = _filter(fx_orders)
+    sell_orders = _filter(sell_orders)
+    buy_orders = _filter(buy_orders)
 
     planned = list(fx_orders) + list(sell_orders) + list(buy_orders)
 
@@ -197,6 +224,7 @@ def execute_orders(
                 for o in batch:
                     order_id = ib.place_order(o)
                     order_ids.append(order_id)
+                    result.order_ids[o] = order_id
                     logger.info(
                         "order_placed",
                         extra={

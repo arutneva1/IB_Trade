@@ -397,6 +397,64 @@ def test_execute_orders_timeout_cancels(monkeypatch: pytest.MonkeyPatch) -> None
     assert events == ["placed", "canceled"]
 
 
+def test_execute_orders_retry_skips_previous_fills(monkeypatch: pytest.MonkeyPatch) -> None:
+    now = datetime.now(timezone.utc)
+    contracts, quotes = _basic_contracts(now)
+    ib = FakeIB(
+        options=IBKRProviderOptions(allow_market_orders=True), contracts=contracts, quotes=quotes
+    )
+
+    order1 = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.MARKET,
+    )
+    order2 = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=2,
+        order_type=OrderType.MARKET,
+    )
+
+    opts = OrderExecutionOptions(concurrency_cap=1, yes=True)
+
+    orig_place = ib.place_order
+    calls: dict[str, int] = {"n": 0}
+
+    def flaky_place(order: Order) -> str:
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise ProviderError("fail")
+        return orig_place(order)
+
+    monkeypatch.setattr(ib, "place_order", flaky_place)
+
+    with pytest.raises(ExecutionError):
+        execute_orders(
+            cast(IBKRProvider, ib),
+            buy_orders=[order1, order2],
+            options=opts,
+        )
+
+    fills = [cast(Fill, e["fill"]) for e in ib.event_log if e["type"] == "filled"]
+    assert len(fills) == 1
+
+    monkeypatch.setattr(ib, "place_order", orig_place)
+
+    execute_orders(
+        cast(IBKRProvider, ib),
+        buy_orders=[order1, order2],
+        options=opts,
+        previous_fills=fills,
+    )
+
+    placed_qty = [cast(Order, e["order"]).quantity for e in ib.event_log if e["type"] == "placed"]
+    filled_qty = [cast(Fill, e["fill"]).quantity for e in ib.event_log if e["type"] == "filled"]
+    assert placed_qty == [1, 2]
+    assert filled_qty == [1, 2]
+
+
 def test_execute_orders_kill_switch(tmp_path: pathlib.Path) -> None:
     now = datetime.now(timezone.utc)
     contracts, _ = _basic_contracts(now)
