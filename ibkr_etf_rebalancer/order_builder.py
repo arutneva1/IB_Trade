@@ -106,9 +106,7 @@ def build_equity_orders(
     return orders
 
 
-def build_fx_order(
-    fx_plan: FxPlan, contract: Contract, prefer_rth: bool = True
-) -> Order:
+def build_fx_order(fx_plan: FxPlan, contract: Contract, prefer_rth: bool = True) -> Order:
     """Return an FX ``Order`` from ``fx_plan``.
 
     The plan's quantity is rounded to two decimal places while limit prices are
