@@ -204,9 +204,7 @@ def pre_trade(
 
     cfg = load_config(config)
 
-    setup_logging(
-        Path(cfg.io.report_dir), level=options.log_level, json_logs=options.log_json
-    )
+    setup_logging(Path(cfg.io.report_dir), level=options.log_level, json_logs=options.log_json)
     logger = logging.getLogger(__name__)
     logger.info("config: %s", json.dumps(cfg.model_dump(), default=str))
     logger.debug("CLI options: %s", options)
@@ -285,9 +283,7 @@ def rebalance(
     options: CLIOptions = ctx.obj if isinstance(ctx.obj, CLIOptions) else CLIOptions()
     cfg = load_config(config)
 
-    setup_logging(
-        Path(cfg.io.report_dir), level=options.log_level, json_logs=options.log_json
-    )
+    setup_logging(Path(cfg.io.report_dir), level=options.log_level, json_logs=options.log_json)
     logger = logging.getLogger(__name__)
     logger.info("config: %s", json.dumps(cfg.model_dump(), default=str))
     logger.debug("CLI options: %s", options)

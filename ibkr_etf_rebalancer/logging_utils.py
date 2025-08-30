@@ -80,4 +80,3 @@ def setup_logging(
 
     logging.setLogRecordFactory(record_factory)
     return log_path, _RUN_ID
-
