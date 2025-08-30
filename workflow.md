@@ -19,7 +19,7 @@ This guide summarizes how to use `srs.md` and `plan.md` with Codex to build the 
   - Tests ≥90% diff coverage
   - CI green; verify GitHub Actions shows a green check before merging
   - SRS/plan/README updated if behavior changes
-  - Map each change to relevant SRS acceptance criteria and mention them in the PR description
+  - Map each change to relevant SRS acceptance criteria and mention them in the PR description using explicit `[AC#]` references in the template's "SRS Acceptance Criteria" section
     - Example: `feat(snapshot): track NetLiq [AC3]`
   - No secrets committed
   - Safety rails intact (paper_only, LMT default, RTH, require_confirm, kill_switch_file, prefer_rth)
