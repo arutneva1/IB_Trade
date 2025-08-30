@@ -12,6 +12,7 @@ from typer.testing import CliRunner
 
 from ibkr_etf_rebalancer.app import app
 import ibkr_etf_rebalancer.app as app_module
+from ibkr_etf_rebalancer import limit_pricer
 from ibkr_etf_rebalancer.ibkr_provider import (
     AccountValue,
     Contract,
@@ -412,6 +413,68 @@ def test_rebalance_cli_event_log_order(tmp_path: Path, monkeypatch: pytest.Monke
     placed = [_parse_order(e["order"]) for e in events if e["type"] == "placed"]
     assert [p["symbol"] for p in placed] == ["USD", "BBB", "AAA"]
     assert [p["side"] for p in placed] == ["BUY", "SELL", "BUY"]
+
+
+def test_rebalance_cli_ask_bid_cap_toggle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config, portfolios = _write_rebalance_files(tmp_path)
+    monkeypatch.setattr(app_module, "_connect_ibkr", lambda opts: _fake_ib())
+
+    captured: list[bool] = []
+
+    orig_buy = limit_pricer.price_limit_buy
+    orig_sell = limit_pricer.price_limit_sell
+
+    def _capture_buy(quote, tick, cfg, now):
+        captured.append(cfg.use_ask_bid_cap)
+        return orig_buy(quote, tick, cfg, now)
+
+    def _capture_sell(quote, tick, cfg, now):
+        captured.append(cfg.use_ask_bid_cap)
+        return orig_sell(quote, tick, cfg, now)
+
+    monkeypatch.setattr(limit_pricer, "price_limit_buy", _capture_buy)
+    monkeypatch.setattr(limit_pricer, "price_limit_sell", _capture_sell)
+
+    with freeze_time("2024-01-01 15:00:00"):
+        result = runner.invoke(
+            app,
+            [
+                "--dry-run",
+                "--yes",
+                "rebalance",
+                "--config",
+                str(config),
+                "--portfolios",
+                str(portfolios),
+                "--output-dir",
+                str(tmp_path),
+            ],
+        )
+    assert result.exit_code == 0
+    assert captured and all(captured)
+
+    captured.clear()
+
+    with freeze_time("2024-01-01 15:00:01"):
+        result = runner.invoke(
+            app,
+            [
+                "--dry-run",
+                "--yes",
+                "rebalance",
+                "--config",
+                str(config),
+                "--portfolios",
+                str(portfolios),
+                "--output-dir",
+                str(tmp_path),
+                "--no-ask-bid-cap",
+            ],
+        )
+    assert result.exit_code == 0
+    assert captured and not any(captured)
 
 
 def test_log_level_toggle(tmp_path: Path) -> None:

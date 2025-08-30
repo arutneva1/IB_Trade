@@ -316,11 +316,18 @@ def rebalance(
         None, "--output-dir", "-o", help="Directory for generated reports"
     ),
     as_of: str | None = typer.Option(None, "--as-of", help="Timestamp for report/log names"),
+    use_ask_bid_cap: bool | None = typer.Option(
+        None,
+        "--ask-bid-cap/--no-ask-bid-cap",
+        help="Never bid above ask or offer below bid",
+    ),
 ) -> None:
     """Execute a full rebalance against the configured broker."""
 
     options: CLIOptions = ctx.obj if isinstance(ctx.obj, CLIOptions) else CLIOptions()
     cfg = load_config(config)
+    if use_ask_bid_cap is not None:
+        cfg.limits.use_ask_bid_cap = use_ask_bid_cap
 
     as_of_dt = _parse_as_of(as_of)
 
