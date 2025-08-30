@@ -51,7 +51,7 @@ import typer
 from . import safety
 from .errors import ConfigError, SafetyError, RuntimeError, UnknownError, ExitCode
 from .account_state import compute_account_state
-from .config import load_config
+from .config import AppConfig, load_config
 from .ibkr_provider import (
     IBKRProvider,
     IBKRProviderOptions,
@@ -198,6 +198,17 @@ def _connect_ibkr(options: IBKRProviderOptions) -> IBKRProvider:
     return cast(IBKRProvider, ib)
 
 
+def _redact_config(cfg: AppConfig) -> Mapping[str, Any]:
+    """Return a dict representation of ``cfg`` with sensitive fields removed."""
+
+    data = cfg.model_dump()
+    ibkr = data.get("ibkr", {})
+    for key in ("account", "host", "port", "client_id"):
+        if key in ibkr:
+            ibkr[key] = "REDACTED"
+    return data
+
+
 def _parse_cash(values: Iterable[str]) -> dict[str, float]:
     """Parse ``CCY=AMOUNT`` pairs supplied via ``--cash`` options."""
 
@@ -268,7 +279,7 @@ def pre_trade(
             as_of=as_of_dt,
         )
         logger = logging.getLogger(__name__)
-        logger.info("config: %s", json.dumps(cfg.model_dump(), default=str))
+        logger.info("config: %s", json.dumps(_redact_config(cfg), default=str))
         logger.debug("CLI options: %s", options)
 
         _exec_opts = OrderExecutionOptions(
@@ -374,7 +385,7 @@ def rebalance(
             as_of=as_of_dt,
         )
         logger = logging.getLogger(__name__)
-        logger.info("config: %s", json.dumps(cfg.model_dump(), default=str))
+        logger.info("config: %s", json.dumps(_redact_config(cfg), default=str))
         logger.debug("CLI options: %s", options)
 
         kill = options.kill_switch or Path(cfg.safety.kill_switch_file)
