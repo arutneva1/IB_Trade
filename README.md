@@ -65,6 +65,12 @@ Or run an offline scenario:
 ib-rebalance --scenario examples/scenario.yml --output-dir reports
 ```
 
+Display a previously generated report:
+
+```bash
+ib-rebalance report --file reports/pre_trade_report_20240101T120000.csv
+```
+
 Example pre-trade report snippet (`pre_trade_report_<timestamp>.csv`):
 
 ```csv

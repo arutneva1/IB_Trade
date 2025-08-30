@@ -14,6 +14,7 @@ from click.testing import Result
 from ibkr_etf_rebalancer.app import app
 import ibkr_etf_rebalancer.app as app_module
 from ibkr_etf_rebalancer import limit_pricer
+from ibkr_etf_rebalancer.reporting import generate_pre_trade_report
 from ibkr_etf_rebalancer.ibkr_provider import (
     AccountValue,
     Contract,
@@ -715,6 +716,34 @@ def test_log_level_toggle(tmp_path: Path) -> None:
     assert result.exit_code == 0
     log2 = tmp_path / "run_20240101T120001.log"
     assert "CLI options" in log2.read_text()
+
+
+def test_report_cli(tmp_path: Path) -> None:
+    targets = {"AAA": 0.6, "BBB": 0.4, "CASH": 0.0}
+    current = {"AAA": 0.5, "BBB": 0.5, "CASH": 0.0}
+    prices = {"AAA": 100.0, "BBB": 80.0}
+
+    with freeze_time("2024-01-01 12:00:00"):
+        _, csv_path, md_path = generate_pre_trade_report(
+            targets,
+            current,
+            prices,
+            100_000.0,
+            output_dir=tmp_path,
+            net_liq=100_000.0,
+            cash_balances={"USD": 10_000.0},
+            cash_buffer=5_000.0,
+        )
+
+    result = runner.invoke(app, ["report", "--file", str(csv_path)])
+    assert result.exit_code == 0
+    assert "NetLiq: 100000.00" in result.stdout
+    assert "AAA" in result.stdout
+
+    md_result = runner.invoke(app, ["report", "--file", str(md_path)])
+    assert md_result.exit_code == 0
+    assert "NetLiq: 100000.00" in md_result.stdout
+    assert "| symbol |" in md_result.stdout
 
 
 def _invoke_with_exception(
