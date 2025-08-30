@@ -378,13 +378,19 @@ def rebalance(
         logger.debug("CLI options: %s", options)
 
         kill = options.kill_switch or Path(cfg.safety.kill_switch_file)
-        safety.check_kill_switch(kill)
-        safety.ensure_paper_trading(options.paper, options.live)
+        safety.check_kill_switch(kill, live=options.live)
+        if options.live:
+            if cfg.safety.paper_only:
+                raise SafetyError("live trading disabled by configuration")
+            if not options.yes:
+                raise SafetyError("--yes required for live trading")
+        else:
+            safety.ensure_paper_trading(options.paper, options.live)
         if cfg.safety.require_confirm:
             safety.require_confirmation("Proceed with rebalancing?", options.yes)
 
         ib_options = IBKRProviderOptions(
-            paper=options.paper,
+            paper=False if options.live else options.paper,
             live=options.live,
             dry_run=options.dry_run,
             kill_switch=str(kill),

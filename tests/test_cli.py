@@ -90,7 +90,9 @@ def _write_basic_files(tmp_path: Path, report_dir: Path | None = None) -> tuple[
     return config, portfolios, positions
 
 
-def _write_rebalance_files(tmp_path: Path, report_dir: Path | None = None) -> tuple[Path, Path]:
+def _write_rebalance_files(
+    tmp_path: Path, report_dir: Path | None = None, paper_only: bool = True
+) -> tuple[Path, Path]:
     config = tmp_path / "config.ini"
     report_dir_line = f"report_dir = {report_dir}\n" if report_dir else ""
     config.write_text(
@@ -111,6 +113,7 @@ def _write_rebalance_files(tmp_path: Path, report_dir: Path | None = None) -> tu
         "min_fx_order_usd = 10\n\n"
         "[limits]\n"
         "[safety]\n"
+        f"paper_only = {'true' if paper_only else 'false'}\n"
         "[io]\n" + report_dir_line
     )
 
@@ -375,10 +378,7 @@ def test_rebalance_cli_as_of(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     assert log.exists()
 
 
-@pytest.mark.parametrize("flag", ["--no-paper", "--live"])
-def test_rebalance_cli_paper_live_gating(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, flag: str
-) -> None:
+def test_rebalance_cli_no_paper_gating(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config, portfolios = _write_rebalance_files(tmp_path)
     monkeypatch.setattr(app_module, "_connect_ibkr", lambda opts: _fake_ib())
     with freeze_time("2024-01-01 15:00:00"):
@@ -386,7 +386,90 @@ def test_rebalance_cli_paper_live_gating(
             app,
             [
                 "--yes",
-                flag,
+                "--no-paper",
+                "rebalance",
+                "--config",
+                str(config),
+                "--portfolios",
+                str(portfolios),
+                "--output-dir",
+                str(tmp_path),
+            ],
+        )
+    assert result.exit_code != 0
+
+
+def test_rebalance_cli_live_success(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config, portfolios = _write_rebalance_files(tmp_path, report_dir=tmp_path, paper_only=False)
+    kill = tmp_path / "KILL_SWITCH"
+    kill.write_text("go")
+
+    from dataclasses import replace
+
+    def _connect(opts: IBKRProviderOptions) -> FakeIB:
+        ib = _fake_ib()
+        ib.options = replace(opts, allow_market_orders=True)
+        return ib
+
+    monkeypatch.setattr(app_module, "_connect_ibkr", _connect)
+    with freeze_time("2024-01-01 15:00:00"):
+        result = runner.invoke(
+            app,
+            [
+                "--live",
+                "--yes",
+                "--kill-switch",
+                str(kill),
+                "rebalance",
+                "--config",
+                str(config),
+                "--portfolios",
+                str(portfolios),
+                "--output-dir",
+                str(tmp_path),
+            ],
+        )
+    assert result.exit_code == 0
+
+
+def test_rebalance_cli_live_requires_yes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config, portfolios = _write_rebalance_files(tmp_path, paper_only=False)
+    kill = tmp_path / "KILL_SWITCH"
+    kill.write_text("go")
+    monkeypatch.setattr(app_module, "_connect_ibkr", lambda opts: _fake_ib())
+    with freeze_time("2024-01-01 15:00:00"):
+        result = runner.invoke(
+            app,
+            [
+                "--live",
+                "--kill-switch",
+                str(kill),
+                "rebalance",
+                "--config",
+                str(config),
+                "--portfolios",
+                str(portfolios),
+                "--output-dir",
+                str(tmp_path),
+            ],
+        )
+    assert result.exit_code != 0
+
+
+def test_rebalance_cli_live_requires_kill_switch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config, portfolios = _write_rebalance_files(tmp_path, paper_only=False)
+    kill = tmp_path / "KILL_SWITCH"
+    monkeypatch.setattr(app_module, "_connect_ibkr", lambda opts: _fake_ib())
+    with freeze_time("2024-01-01 15:00:00"):
+        result = runner.invoke(
+            app,
+            [
+                "--live",
+                "--yes",
+                "--kill-switch",
+                str(kill),
                 "rebalance",
                 "--config",
                 str(config),

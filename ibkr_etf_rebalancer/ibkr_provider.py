@@ -429,8 +429,9 @@ class FakeIB:
 
     # ------------------------------------------------------------------
     def place_order(self, order: Order) -> str:
-        safety.check_kill_switch(self.options.kill_switch)
-        safety.ensure_paper_trading(self.options.paper, self.options.live)
+        safety.check_kill_switch(self.options.kill_switch, live=self.options.live)
+        if not self.options.live:
+            safety.ensure_paper_trading(self.options.paper, self.options.live)
 
         if order.order_type is OrderType.MARKET and not self.options.allow_market_orders:
             raise RuntimeError("market orders not allowed")
