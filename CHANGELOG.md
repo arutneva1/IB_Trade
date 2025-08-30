@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 - Placeholder for upcoming changes.
+### Added
+- feat(cli): add `report` command to display existing reports.
 
 ## [0.1.1] - 2025-08-30
 - feat: add `ib-rebalance` CLI entry point via project scripts.

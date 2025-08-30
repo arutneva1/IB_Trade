@@ -351,6 +351,49 @@ def pre_trade(
         raise typer.Exit(code=int(ExitCode.UNKNOWN))
 
 
+@command("report")
+def report(
+    file: Path = typer.Option(
+        ..., "--file", "-f", exists=True, readable=True, help="Path to CSV or Markdown report"
+    )
+) -> None:
+    """Load a previously generated report and display it."""
+
+    if file.suffix.lower() == ".csv":
+        import pandas as pd
+        from io import StringIO
+
+        lines = file.read_text().splitlines()
+        summary: list[str] = []
+        data_lines: list[str] = []
+        header_found = False
+        for line in lines:
+            if not header_found:
+                if line.strip() == "":
+                    continue
+                if line.startswith("symbol,"):
+                    header_found = True
+                    data_lines.append(line)
+                else:
+                    summary.append(line)
+            else:
+                data_lines.append(line)
+
+        for entry in summary:
+            if "," in entry:
+                key, value = entry.split(",", 1)
+                typer.echo(f"{key}: {value}")
+            else:
+                typer.echo(entry)
+        if summary:
+            typer.echo()
+        if data_lines:
+            df = pd.read_csv(StringIO("\n".join(data_lines)))
+            typer.echo(df.to_string(index=False))
+    else:
+        typer.echo(file.read_text())
+
+
 @command("rebalance")
 def rebalance(
     ctx: typer.Context,
