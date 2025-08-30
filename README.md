@@ -45,7 +45,7 @@ Use the sample files under `examples/`.
 ib-rebalance pre-trade \
     --config examples/settings.ini \
     --portfolios examples/portfolios.csv \
-    --positions positions.csv \
+    --positions examples/positions.csv \
     --cash USD=10000 \
     --output-dir reports
 ```
