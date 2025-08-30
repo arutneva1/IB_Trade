@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from configparser import ConfigParser
 from typing import Any, Literal
+from datetime import date
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -131,6 +132,10 @@ class FXConfig(BaseModel):
         5, ge=0, description="Pause before placing dependent ETF orders"
     )
     prefer_market_hours: bool = Field(False, description="Allow off-hours FX trading by default")
+    market_holidays: list[date] = Field(
+        default_factory=list,
+        description="Dates when the FX market is closed",
+    )
 
 
 class LimitsConfig(BaseModel):

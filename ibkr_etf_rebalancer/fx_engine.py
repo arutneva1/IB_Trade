@@ -14,8 +14,9 @@ units of the base currency (USD for ``USD.CAD``).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Literal
+from datetime import datetime, timezone, date
+from zoneinfo import ZoneInfo
+from typing import Iterable, Literal
 
 from .config import FXConfig
 from . import pricing
@@ -80,32 +81,36 @@ def _round_qty(value: float) -> float:
     return round(value, 2)
 
 
-def _is_fx_market_open(ts: datetime) -> bool:
+def _is_fx_market_open(ts: datetime, *, holidays: Iterable[date] | None = None) -> bool:
     """Return ``True`` when the FX market is open.
 
-    Interactive Brokers offers 24 hour FX trading from Sunday 22:00 UTC until
-    Friday 22:00 UTC.  Outside of this window the market is considered closed.
-    This helper implements this simple schedule so that callers can avoid
-    placing orders during known downtime when :class:`FXConfig.prefer_market_hours`
-    is enabled.
+    Trading hours follow the ``America/New_York`` timezone which observes
+    daylight saving time.  The market operates continuously from Sunday
+    17:00 local time until Friday 17:00 local time.  Optionally a collection of
+    *holidays* may be provided to block out additional full-day closures.
     """
 
-    # Monday–Thursday are fully open.
-    if ts.weekday() < 4:
-        return True
+    ny = ts.astimezone(ZoneInfo("America/New_York"))
 
-    hour_min = (ts.hour, ts.minute, ts.second)
-
-    # Friday trades until 22:00 UTC.
-    if ts.weekday() == 4:
-        return hour_min < (22, 0, 0)
-
-    # Saturday is closed.
-    if ts.weekday() == 5:
+    if holidays and ny.date() in set(holidays):
         return False
 
-    # Sunday opens at 22:00 UTC.
-    return hour_min >= (22, 0, 0)
+    # Monday–Thursday are fully open in local time.
+    if ny.weekday() < 4:
+        return True
+
+    hour_min = (ny.hour, ny.minute, ny.second)
+
+    # Friday trades until 17:00 local.
+    if ny.weekday() == 4:
+        return hour_min < (17, 0, 0)
+
+    # Saturday is closed.
+    if ny.weekday() == 5:
+        return False
+
+    # Sunday opens at 17:00 local.
+    return hour_min >= (17, 0, 0)
 
 
 def plan_fx_if_needed(
@@ -150,7 +155,7 @@ def plan_fx_if_needed(
     side: Literal["BUY", "SELL"] = "BUY"
     now = now or datetime.now(timezone.utc)
 
-    if cfg.prefer_market_hours and not _is_fx_market_open(now):
+    if cfg.prefer_market_hours and not _is_fx_market_open(now, holidays=cfg.market_holidays):
         return FxPlan(
             need_fx=False,
             pair=pair,
