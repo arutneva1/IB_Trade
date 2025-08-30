@@ -170,6 +170,8 @@ def test_scenarios(fixture_path: Path) -> None:
         if fixture_path.stem == "no_trade_within_band":
             assert events == []
             assert placed == []
+        if fixture_path.stem == "price_source_fallback":
+            assert result2.fx_plan.est_rate == pytest.approx(scenario.prices["USD.CAD"])
         if kill_path:
             assert placed == []
             return
