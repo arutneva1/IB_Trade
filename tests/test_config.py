@@ -394,3 +394,63 @@ GLTR = 0.2
 
     with pytest.raises(ValidationError):
         load_config(ini)
+
+
+def test_env_var_overrides_ini(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ini = tmp_path / "config.ini"
+    ini.write_text(
+        """
+[ibkr]
+account = DU123
+
+[models]
+SMURF = 0.5
+BADASS = 0.3
+GLTR = 0.2
+
+[rebalance]
+
+[fx]
+
+[limits]
+
+[safety]
+
+[io]
+"""
+    )
+    monkeypatch.setenv("IBKR_ETF_REBALANCER__IBKR__ACCOUNT", "DU999")
+    cfg = load_config(ini)
+    assert cfg.ibkr.account == "DU999"
+
+
+def test_env_var_parsing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ini = tmp_path / "config.ini"
+    ini.write_text(
+        """
+[ibkr]
+account = DU123
+read_only = true
+
+[models]
+SMURF = 0.5
+BADASS = 0.3
+GLTR = 0.2
+
+[rebalance]
+
+[fx]
+max_fx_order_usd = 5000
+
+[limits]
+
+[safety]
+
+[io]
+"""
+    )
+    monkeypatch.setenv("IBKR_ETF_REBALANCER__FX__MAX_FX_ORDER_USD", "9000")
+    monkeypatch.setenv("IBKR_ETF_REBALANCER__IBKR__READ_ONLY", "false")
+    cfg = load_config(ini)
+    assert cfg.fx.max_fx_order_usd == 9000
+    assert cfg.ibkr.read_only is False
