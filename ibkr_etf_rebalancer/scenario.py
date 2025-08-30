@@ -119,10 +119,10 @@ class _ScenarioModel(BaseModel):
     config_overrides: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def _check_targets(cls, data: "_ScenarioModel") -> "_ScenarioModel":
-        if data.target_weights and data.portfolios:
+    def _check_targets(self) -> "_ScenarioModel":
+        if self.target_weights and self.portfolios:
             raise ValueError("specify either target_weights or portfolios, not both")
-        return data
+        return self
 
 
 # ---------------------------------------------------------------------------
