@@ -126,11 +126,7 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
         # Targets: use provided target weights or portfolios if available
         if scenario.target_weights is not None:
             total = sum(scenario.target_weights.values())
-            norm = (
-                {k: v / total for k, v in scenario.target_weights.items()}
-                if total > 0
-                else {}
-            )
+            norm = {k: v / total for k, v in scenario.target_weights.items()} if total > 0 else {}
             ordered = OrderedDict(sorted(norm.items()))
             gross = sum(w for s, w in ordered.items() if s != "CASH")
             net = gross + ordered.get("CASH", 0.0)
