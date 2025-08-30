@@ -1,0 +1,2 @@
+# Ignore Python distribution metadata directories
+*.dist-info/
