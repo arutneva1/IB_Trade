@@ -3,6 +3,9 @@
 ## [Unreleased]
 - Placeholder for upcoming changes.
 
+## [0.1.1] - 2025-08-30
+- feat: add `ib-rebalance` CLI entry point via project scripts.
+
 ## Phase 7
 - Document paper and live CLI examples in `workflow.md`.
 - Clarified Definition of Done in `plan.md` to include CHANGELOG entries and SRS acceptance-criteria references.

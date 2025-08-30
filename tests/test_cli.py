@@ -4,6 +4,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 import json
 import re
+import subprocess
 
 import pytest
 from freezegun import freeze_time
@@ -22,6 +23,15 @@ from ibkr_etf_rebalancer.pricing import Quote
 
 
 runner = CliRunner()
+
+
+def test_entry_point_help() -> None:
+    result = subprocess.run([
+        "ib-rebalance",
+        "--help",
+    ], capture_output=True, text=True)
+    assert result.returncode == 0
+    assert "Utilities for running pre-trade reports and scenarios" in result.stdout
 
 _ORDER_RE = re.compile(
     r"Contract\(symbol='(?P<symbol>[^']+)', sec_type='(?P<sec_type>[^']+)', currency='(?P<currency>[^']+)'"

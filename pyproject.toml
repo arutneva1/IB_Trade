@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ib-trade"
-version = "0.1.0"
+version = "0.1.1"
 description = "Interactive Brokers trading utilities"
 requires-python = ">=3.11"
 dependencies = [
@@ -13,6 +13,9 @@ dependencies = [
     "pandas",
     "typer",
 ]
+
+[project.scripts]
+ib-rebalance = "ibkr_etf_rebalancer.app:app"
 
 [project.optional-dependencies]
 dev = [
@@ -27,6 +30,9 @@ dev = [
     "pandas-stubs",        
     "pyyaml",
 ]
+
+[tool.setuptools.packages.find]
+include = ["ibkr_etf_rebalancer"]
 
 [tool.black]
 line-length = 100
