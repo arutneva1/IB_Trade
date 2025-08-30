@@ -15,6 +15,9 @@ positions:
   BBB: 60
 cash:
   USD: 100.0
+target_weights:
+  AAA: 0.5714286
+  BBB: 0.4285714
 config_overrides:
   rebalance:
     min_order_usd: 0

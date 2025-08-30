@@ -10,6 +10,8 @@ positions:
   AAA: 0.0
 cash:
   USD: 100005.0
+target_weights:
+  AAA: 1.0
 config_overrides:
   rebalance:
     allow_fractional: true

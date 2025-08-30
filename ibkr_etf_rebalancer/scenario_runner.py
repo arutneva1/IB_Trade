@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, cast
@@ -122,24 +123,37 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
         )
 
         # ------------------------------------------------------------------
-        # Targets: derive trivial portfolios from current holdings for now
-        total_val = sum(qty * scenario.prices[sym] for sym, qty in non_zero_positions.items())
-        weights: Dict[str, float] = {}
-        if total_val > 0:
-            weights = {
-                sym: qty * scenario.prices[sym] / total_val
-                for sym, qty in non_zero_positions.items()
-            }
+        # Targets: use provided target weights or portfolios if available
+        if scenario.target_weights is not None:
+            total = sum(scenario.target_weights.values())
+            norm = {k: v / total for k, v in scenario.target_weights.items()} if total > 0 else {}
+            ordered = OrderedDict(sorted(norm.items()))
+            gross = sum(w for s, w in ordered.items() if s != "CASH")
+            net = gross + ordered.get("CASH", 0.0)
+            blend = BlendResult(weights=ordered, gross_exposure=gross, net_exposure=net)
         else:
-            # When the portfolio has no holdings, assume equal weights for any
-            # quoted equities so that downstream blending logic still has
-            # non-zero exposure to work with. FX pairs are ignored here.
-            equity_syms = [s for s in scenario.prices if "." not in s]
-            if equity_syms:
-                w = 1.0 / len(equity_syms)
-                weights = {s: w for s in equity_syms}
-        portfolios = {"SMURF": weights, "BADASS": weights, "GLTR": weights}
-        blend = blend_targets(portfolios, cfg.models)
+            if scenario.portfolios is not None:
+                portfolios = scenario.portfolios
+            else:
+                total_val = sum(
+                    qty * scenario.prices[sym] for sym, qty in non_zero_positions.items()
+                )
+                weights: Dict[str, float] = {}
+                if total_val > 0:
+                    weights = {
+                        sym: qty * scenario.prices[sym] / total_val
+                        for sym, qty in non_zero_positions.items()
+                    }
+                else:
+                    # When the portfolio has no holdings, assume equal weights for any
+                    # quoted equities so that downstream blending logic still has
+                    # non-zero exposure to work with. FX pairs are ignored here.
+                    equity_syms = [s for s in scenario.prices if "." not in s]
+                    if equity_syms:
+                        w = 1.0 / len(equity_syms)
+                        weights = {s: w for s in equity_syms}
+                portfolios = {"SMURF": weights, "BADASS": weights, "GLTR": weights}
+            blend = blend_targets(portfolios, cfg.models)
 
         # ------------------------------------------------------------------
         cash_balances = dict(scenario.cash)

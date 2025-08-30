@@ -15,6 +15,9 @@ positions:
   BBB: 50
 cash:
   USD: 10000.0
+target_weights:
+  AAA: 0.6666667
+  BBB: 0.3333333
 config_overrides:
   rebalance:
     order_type: MKT
