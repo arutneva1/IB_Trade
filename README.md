@@ -41,13 +41,14 @@ python -m ibkr_etf_rebalancer.app rebalance \
 ```
 
 The package also installs an `ib-rebalance` console script providing the same
-commands.
+commands. Display the installed version with `ib-rebalance --version`.
 
 Global flags control behaviour: `--report-only`, `--dry-run`,
 `--paper/--no-paper` (paper is the default), `--live`, `--yes`,
 `--log-level`, `--log-json/--log-text`, `--kill-switch PATH` to override the
 default kill switch file, and `--scenario PATH` to execute a YAML-defined
-end-to-end scenario instead of loading CSV/INI inputs.
+end-to-end scenario instead of loading CSV/INI inputs. Use `--version` to print the
+installed package version and exit.
 
 Each run writes a log file `run_<timestamp>.log` under `io.report_dir`
 (`reports/` by default) and tags log lines with a unique run identifier.

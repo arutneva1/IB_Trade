@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "ib-trade"
 version = "0.1.1"
 description = "Interactive Brokers trading utilities"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "ib_async",
@@ -15,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ib-rebalance = "ibkr_etf_rebalancer.app:app"
+ib-rebalance = "ibkr_etf_rebalancer.app:app"  # CLI; run `ib-rebalance --version` for version info
 
 [project.optional-dependencies]
 dev = [

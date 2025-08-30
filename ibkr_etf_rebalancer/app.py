@@ -41,6 +41,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
 import logging
+import importlib.metadata
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Iterable, Any, Mapping, cast
@@ -71,6 +72,13 @@ from .logging_utils import setup_logging
 app = typer.Typer(help="Utilities for running pre-trade reports and scenarios")
 
 
+def _version_callback(value: bool) -> None:
+    """Print the package version and exit."""
+    if value:
+        typer.echo(importlib.metadata.version("ib-trade"))
+        raise typer.Exit()
+
+
 @dataclass
 class CLIOptions:
     """Global command line flags routed to downstream components."""
@@ -88,6 +96,13 @@ class CLIOptions:
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
+    version: bool = typer.Option(
+        False,
+        "--version",
+        callback=_version_callback,
+        is_eager=True,
+        help="Show the package version and exit",
+    ),
     report_only: bool = typer.Option(
         False, "--report-only", help="Generate reports without placing orders"
     ),
