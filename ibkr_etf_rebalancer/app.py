@@ -47,6 +47,7 @@ from types import SimpleNamespace
 from typing import Iterable, Any, Mapping, cast, Callable, TypeVar
 
 import typer
+from click.core import ParameterSource
 
 from . import safety
 from .errors import ConfigError, SafetyError, RuntimeError, UnknownError, ExitCode
@@ -159,6 +160,16 @@ def main(
         log_json=log_json,
         kill_switch=kill_switch,
     )
+    src = ctx.get_parameter_source
+    dry_set = src("dry_run") == ParameterSource.COMMANDLINE
+    paper_set = src("paper") == ParameterSource.COMMANDLINE
+    live_set = src("live") == ParameterSource.COMMANDLINE
+    if (dry_set and paper_set) or (dry_set and live_set) or (paper_set and live_set):
+        typer.echo(
+            "conflicting options: --dry-run, --paper/--no-paper, and --live are mutually exclusive",
+            err=True,
+        )
+        raise typer.Exit(code=ExitCode.CONFIG)
     # Run a pre-canned scenario and exit when requested.
     if scenario is not None:
         from . import safety
