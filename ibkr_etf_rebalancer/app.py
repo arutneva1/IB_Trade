@@ -277,9 +277,10 @@ def pre_trade(
         cfg = load_config(config)
 
         as_of_dt = _parse_as_of(as_of)
+        report_dir = output_dir or Path(cfg.io.report_dir)
 
         setup_logging(
-            Path(cfg.io.report_dir),
+            report_dir,
             level=options.log_level,
             json_logs=options.log_json,
             as_of=as_of_dt,
@@ -316,8 +317,6 @@ def pre_trade(
         snapshot = compute_account_state(
             pos, prices, cash_balances, cash_buffer_pct=cfg.rebalance.cash_buffer_pct
         )
-
-        report_dir = output_dir or Path(cfg.io.report_dir)
 
         result = generate_pre_trade_report(
             blend.weights,
@@ -426,9 +425,10 @@ def rebalance(
             cfg.limits.use_ask_bid_cap = use_ask_bid_cap
 
         as_of_dt = _parse_as_of(as_of)
+        report_dir = output_dir or Path(cfg.io.report_dir)
 
         setup_logging(
-            Path(cfg.io.report_dir),
+            report_dir,
             level=options.log_level,
             json_logs=options.log_json,
             as_of=as_of_dt,
@@ -486,8 +486,6 @@ def rebalance(
             cash_balances,
             cash_buffer_pct=cfg.rebalance.cash_buffer_pct,
         )
-
-        report_dir = output_dir or Path(cfg.io.report_dir)
         as_of_ts = as_of_dt
         pre_df, pre_csv, pre_md = cast(
             tuple[Any, Path, Path],
