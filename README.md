@@ -42,7 +42,7 @@ Quick start:
 Use the sample files under `examples/`.
 
 ```bash
-python -m ibkr_etf_rebalancer.app pre-trade \
+ib-rebalance pre-trade \
     --config examples/settings.ini \
     --portfolios examples/portfolios.csv \
     --positions positions.csv \
@@ -53,7 +53,7 @@ python -m ibkr_etf_rebalancer.app pre-trade \
 To execute a full rebalance against the broker:
 
 ```bash
-python -m ibkr_etf_rebalancer.app rebalance \
+ib-rebalance rebalance \
     --config examples/settings.ini \
     --portfolios examples/portfolios.csv \
     --output-dir reports
@@ -63,6 +63,26 @@ Or run an offline scenario:
 
 ```bash
 ib-rebalance --scenario examples/scenario.yml --output-dir reports
+```
+
+Example pre-trade report snippet (`pre_trade_report_<timestamp>.csv`):
+
+```csv
+NetLiq,14000.00
+Cash USD,5000.00
+Cash Buffer,50.00
+
+symbol,target_pct,current_pct,drift_bps,price,dollar_delta,share_delta,side,est_notional,reason
+AAA,88.89,57.35,3154.12,100.0,4415.77,44.16,BUY,4415.77,
+BBB,11.11,7.17,394.27,50.0,551.97,11.04,BUY,551.97,
+```
+
+Example post-trade report snippet (`post_trade_report_<timestamp>.csv`):
+
+```csv
+symbol,side,filled_shares,avg_price,notional,avg_slippage,residual_drift_bps
+BBB,BUY,11.0,51.0,561.0,0.0,1.41
+AAA,BUY,43.0,101.0,4343.0,0.0,82.69
 ```
 
 Portfolios CSV schema:
