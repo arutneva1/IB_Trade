@@ -54,7 +54,7 @@ class ScenarioRunResult:
 # ---------------------------------------------------------------------------
 
 
-def run_scenario(scenario: Scenario) -> ScenarioRunResult:
+def run_scenario(scenario: Scenario, output_dir: Path | None = None) -> ScenarioRunResult:
     """Execute *scenario* end-to-end using fakes only.
 
     The function performs the following high level steps:
@@ -73,8 +73,8 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
         cfg: AppConfig = scenario.app_config()
         as_of = scenario.as_of
         stamp = as_of.strftime("%Y%m%dT%H%M%S")
-        output_dir = Path(cfg.io.report_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
+        report_dir = output_dir or Path(cfg.io.report_dir)
+        report_dir.mkdir(parents=True, exist_ok=True)
 
         # ------------------------------------------------------------------
         # Quote and contract setup
@@ -181,7 +181,7 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
                 snapshot.weights,
                 scenario.prices,
                 snapshot.total_equity,
-                output_dir=output_dir,
+                output_dir=report_dir,
                 as_of=as_of,
                 net_liq=snapshot.total_equity,
                 cash_balances=snapshot.cash_by_currency,
@@ -269,12 +269,12 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
                 snapshot.total_equity,
                 execution.fills,
                 execution.limit_prices,
-                output_dir=output_dir,
+                output_dir=report_dir,
                 as_of=as_of,
             ),
         )
 
-        event_log_path = output_dir / f"event_log_{stamp}.json"
+        event_log_path = report_dir / f"event_log_{stamp}.json"
         event_log_path.write_text(json.dumps(list(ib.event_log), default=str, indent=2))
 
         return ScenarioRunResult(

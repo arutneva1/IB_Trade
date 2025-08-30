@@ -134,6 +134,12 @@ def main(
         readable=False,
         help="Override path to kill switch file",
     ),
+    output_dir: Path | None = typer.Option(
+        None,
+        "--output-dir",
+        "-o",
+        help="Directory for generated reports",
+    ),
     scenario: Path | None = typer.Option(
         None,
         "--scenario",
@@ -172,7 +178,7 @@ def main(
         if cfg.safety.require_confirm:
             safety.require_confirmation("Proceed with scenario execution?", options.yes)
 
-        result = run_scenario(sc)
+        result = run_scenario(sc, output_dir=output_dir)
 
         typer.echo(f"Pre-trade CSV report written to {result.pre_report_csv}")
         typer.echo(f"Pre-trade Markdown report written to {result.pre_report_md}")
