@@ -13,6 +13,7 @@ from typer.testing import CliRunner
 from ibkr_etf_rebalancer.app import app
 import ibkr_etf_rebalancer.app as app_module
 from ibkr_etf_rebalancer import limit_pricer
+from ibkr_etf_rebalancer import errors
 from ibkr_etf_rebalancer.ibkr_provider import (
     AccountValue,
     Contract,
@@ -24,6 +25,106 @@ from ibkr_etf_rebalancer.pricing import Quote
 
 
 runner = CliRunner()
+
+
+def _dummy_files(tmp_path: Path) -> tuple[Path, Path, Path]:
+    """Create empty config, portfolio and positions files."""
+
+    config = tmp_path / "config.ini"
+    config.write_text("")
+    portfolios = tmp_path / "portfolios.csv"
+    portfolios.write_text("")
+    positions = tmp_path / "positions.csv"
+    positions.write_text("")
+    return config, portfolios, positions
+
+
+def test_config_io_error_exit_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config, portfolios, positions = _dummy_files(tmp_path)
+
+    def raise_exc(*args, **kwargs):
+        raise errors.ConfigIOError()
+
+    monkeypatch.setattr(app_module, "load_config", raise_exc)
+    result = runner.invoke(
+        app,
+        [
+            "pre-trade",
+            "--config",
+            str(config),
+            "--portfolios",
+            str(portfolios),
+            "--positions",
+            str(positions),
+        ],
+    )
+    assert result.exit_code == errors.CONFIG_IO_EXIT_CODE
+
+
+def test_safety_error_exit_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config, portfolios, positions = _dummy_files(tmp_path)
+
+    def raise_exc(*args, **kwargs):
+        raise errors.SafetyError()
+
+    monkeypatch.setattr(app_module, "load_config", raise_exc)
+    result = runner.invoke(
+        app,
+        [
+            "pre-trade",
+            "--config",
+            str(config),
+            "--portfolios",
+            str(portfolios),
+            "--positions",
+            str(positions),
+        ],
+    )
+    assert result.exit_code == errors.SAFETY_EXIT_CODE
+
+
+def test_runtime_error_exit_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config, portfolios, positions = _dummy_files(tmp_path)
+
+    def raise_exc(*args, **kwargs):
+        raise errors.RuntimeAppError()
+
+    monkeypatch.setattr(app_module, "load_config", raise_exc)
+    result = runner.invoke(
+        app,
+        [
+            "pre-trade",
+            "--config",
+            str(config),
+            "--portfolios",
+            str(portfolios),
+            "--positions",
+            str(positions),
+        ],
+    )
+    assert result.exit_code == errors.RUNTIME_EXIT_CODE
+
+
+def test_unknown_error_exit_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config, portfolios, positions = _dummy_files(tmp_path)
+
+    def raise_exc(*args, **kwargs):
+        raise errors.UnknownAppError()
+
+    monkeypatch.setattr(app_module, "load_config", raise_exc)
+    result = runner.invoke(
+        app,
+        [
+            "pre-trade",
+            "--config",
+            str(config),
+            "--portfolios",
+            str(portfolios),
+            "--positions",
+            str(positions),
+        ],
+    )
+    assert result.exit_code == errors.UNKNOWN_EXIT_CODE
 
 
 def test_entry_point_help() -> None:

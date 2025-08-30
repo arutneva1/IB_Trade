@@ -45,6 +45,7 @@ import importlib.metadata
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Iterable, Any, Mapping, cast
+import functools
 
 import typer
 
@@ -67,6 +68,16 @@ from .reporting import generate_post_trade_report, generate_pre_trade_report
 from .target_blender import blend_targets
 from .util import from_bps
 from .logging_utils import setup_logging
+from .errors import (
+    ConfigIOError,
+    SafetyError,
+    RuntimeAppError,
+    UnknownAppError,
+    CONFIG_IO_EXIT_CODE,
+    SAFETY_EXIT_CODE,
+    RUNTIME_EXIT_CODE,
+    UNKNOWN_EXIT_CODE,
+)
 
 
 app = typer.Typer(help="Utilities for running pre-trade reports and scenarios")
@@ -77,6 +88,29 @@ def _version_callback(value: bool) -> None:
     if value:
         typer.echo(importlib.metadata.version("ib-trade"))
         raise typer.Exit()
+
+
+def _handle_cli_errors(func):
+    """Wrap CLI handlers to translate exceptions into exit codes."""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except typer.Exit:
+            raise
+        except ConfigIOError as exc:
+            raise typer.Exit(code=CONFIG_IO_EXIT_CODE) from exc
+        except SafetyError as exc:
+            raise typer.Exit(code=SAFETY_EXIT_CODE) from exc
+        except RuntimeAppError as exc:
+            raise typer.Exit(code=RUNTIME_EXIT_CODE) from exc
+        except UnknownAppError as exc:
+            raise typer.Exit(code=UNKNOWN_EXIT_CODE) from exc
+        except Exception as exc:  # pragma: no cover - defensive
+            raise typer.Exit(code=UNKNOWN_EXIT_CODE) from exc
+
+    return wrapper
 
 
 @dataclass
@@ -94,6 +128,7 @@ class CLIOptions:
 
 
 @app.callback(invoke_without_command=True)
+@_handle_cli_errors
 def main(
     ctx: typer.Context,
     version: bool = typer.Option(
@@ -216,6 +251,7 @@ def _parse_as_of(value: str | None) -> datetime:
 
 
 @app.command("pre-trade")
+@_handle_cli_errors
 def pre_trade(
     ctx: typer.Context,
     config: Path = typer.Option(..., exists=True, readable=True, help="Path to INI config file"),
@@ -321,6 +357,7 @@ def pre_trade(
 
 
 @app.command("rebalance")
+@_handle_cli_errors
 def rebalance(
     ctx: typer.Context,
     config: Path = typer.Option(..., exists=True, readable=True, help="Path to INI config file"),
