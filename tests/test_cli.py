@@ -207,31 +207,34 @@ def test_pre_trade_cli_as_of(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize(
     "flag",
-    ["--report-only", "--dry-run", "--paper", "--live", "--yes"],
+    ["--report-only", "--dry-run", "--paper", "--live", "--yes", "--kill-switch"],
 )
 def test_pre_trade_cli_global_flags(tmp_path: Path, flag: str) -> None:
     """Ensure top-level flags are accepted by the CLI."""
 
     config, portfolios, positions = _write_basic_files(tmp_path)
 
+    args = [flag]
+    if flag == "--kill-switch":
+        args.append(str(tmp_path / "dummy"))
+    args.extend(
+        [
+            "pre-trade",
+            "--config",
+            str(config),
+            "--portfolios",
+            str(portfolios),
+            "--positions",
+            str(positions),
+            "--cash",
+            "USD=0",
+            "--output-dir",
+            str(tmp_path),
+        ]
+    )
+
     with freeze_time("2024-01-01 12:00:00"):
-        result = runner.invoke(
-            app,
-            [
-                flag,
-                "pre-trade",
-                "--config",
-                str(config),
-                "--portfolios",
-                str(portfolios),
-                "--positions",
-                str(positions),
-                "--cash",
-                "USD=0",
-                "--output-dir",
-                str(tmp_path),
-            ],
-        )
+        result = runner.invoke(app, args)
 
     assert result.exit_code == 0
 
@@ -347,6 +350,44 @@ def test_rebalance_cli_paper_live_gating(
             ],
         )
     assert result.exit_code != 0
+
+
+def test_rebalance_cli_kill_switch_override(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """CLI kill switch option overrides config path."""
+
+    config, portfolios = _write_rebalance_files(tmp_path, report_dir=tmp_path)
+    # Engage default kill switch file
+    (tmp_path / "KILL_SWITCH").write_text("stop")
+    captured: dict[str, str | None] = {}
+
+    def _connect(opts: IBKRProviderOptions) -> FakeIB:
+        captured["kill_switch"] = opts.kill_switch
+        return _fake_ib()
+
+    monkeypatch.setattr(app_module, "_connect_ibkr", _connect)
+    override = tmp_path / "ALT_KILL"
+    with freeze_time("2024-01-01 15:00:00"):
+        result = runner.invoke(
+            app,
+            [
+                "--dry-run",
+                "--yes",
+                "--kill-switch",
+                str(override),
+                "rebalance",
+                "--config",
+                str(config),
+                "--portfolios",
+                str(portfolios),
+                "--output-dir",
+                str(tmp_path),
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert captured["kill_switch"] == str(override)
 
 
 def test_rebalance_cli_event_log_order(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

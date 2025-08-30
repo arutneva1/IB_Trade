@@ -45,8 +45,9 @@ commands.
 
 Global flags control behaviour: `--report-only`, `--dry-run`,
 `--paper/--no-paper` (paper is the default), `--live`, `--yes`,
-`--log-level`, `--log-json/--log-text`, and `--scenario PATH` to execute a
-YAML-defined end-to-end scenario instead of loading CSV/INI inputs.
+`--log-level`, `--log-json/--log-text`, `--kill-switch PATH` to override the
+default kill switch file, and `--scenario PATH` to execute a YAML-defined
+end-to-end scenario instead of loading CSV/INI inputs.
 
 Each run writes a log file `run_<timestamp>.log` under `io.report_dir`
 (`reports/` by default) and tags log lines with a unique run identifier.
@@ -55,8 +56,8 @@ Adjust verbosity with `--log-level` and switch to structured JSON output with
 
 Safety defaults favour caution: the CLI refuses live orders unless
 `--live --yes` is supplied and `[safety].paper_only` is disabled. Presence of a
-kill switch file aborts execution, and confirmation prompts are enabled by
-default.
+kill switch file aborts execution (override the path with `--kill-switch`),
+and confirmation prompts are enabled by default.
 
 The configuration file can include an `[fx]` section to plan CAD→USD conversions ahead of ETF trades. This feature lets you enable FX planning and set per-order limits and acceptable slippage:
 
