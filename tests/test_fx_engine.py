@@ -343,9 +343,7 @@ def test_is_fx_market_open_blocks_holidays() -> None:
     assert _is_fx_market_open(ts_next, holidays=[holiday]) is True
 
 
-def test_prefer_market_hours_blocks_holiday(
-    fresh_quote: Quote, fx_cfg: FXConfig
-) -> None:
+def test_prefer_market_hours_blocks_holiday(fresh_quote: Quote, fx_cfg: FXConfig) -> None:
     cfg = fx_cfg.model_copy(
         update={"prefer_market_hours": True, "market_holidays": [date(2024, 1, 1)]}
     )
