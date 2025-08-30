@@ -334,6 +334,22 @@ def test_pre_trade_cli_global_flags(tmp_path: Path, flag: str) -> None:
     assert result.exit_code == 0
 
 
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["--dry-run", "--paper"],
+        ["--dry-run", "--no-paper"],
+        ["--dry-run", "--live"],
+        ["--paper", "--live"],
+        ["--no-paper", "--live"],
+    ],
+)
+def test_main_invalid_flag_combinations(args: list[str]) -> None:
+    result = runner.invoke(app, args)
+    assert result.exit_code == ExitCode.CONFIG
+    assert "mutually exclusive" in result.output
+
+
 def test_scenario_flag(tmp_path: Path) -> None:
     """Running with --scenario executes the scenario runner."""
     fixture = Path(__file__).resolve().parent / "e2e/fixtures/no_trade_within_band.yml"
