@@ -220,6 +220,10 @@ class IBKRProvider(Protocol):
     def get_positions(self) -> Sequence[Position]:
         """Return current open positions."""
 
+    @property
+    def event_log(self) -> Sequence[dict[str, object]]:
+        """Return provider event log."""
+
     def place_order(self, order: Order) -> str:
         """Submit an order and return an order identifier.
 
@@ -266,6 +270,10 @@ class LiveIB:
         raise NotImplementedError
 
     def get_positions(self) -> Sequence[Position]:  # pragma: no cover - stub
+        raise NotImplementedError
+
+    @property
+    def event_log(self) -> Sequence[dict[str, object]]:  # pragma: no cover - stub
         raise NotImplementedError
 
     def place_order(self, order: Order) -> str:  # pragma: no cover - stub
