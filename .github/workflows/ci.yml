@@ -8,6 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -23,4 +25,7 @@ jobs:
       - name: Type check
         run: mypy --install-types --non-interactive .
       - name: Tests
-        run: pytest
+        run: |
+          coverage run -m pytest
+          coverage xml
+          diff-cover coverage.xml --include tests --fail-under=90

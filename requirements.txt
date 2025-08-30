@@ -7,10 +7,12 @@ pytest-asyncio
 hypothesis
 freezegun
 pyyaml
+coverage
+diff-cover
 
 # app libs
 pandas
-pandas-stubs         
+pandas-stubs
 pydantic
 typer
 ib_async
