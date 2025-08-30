@@ -2,9 +2,26 @@
 
 This project automates rebalancing of ETF portfolios via Interactive Brokers. It loads model portfolios, blends them according to configured weights, compares current holdings, and generates orders to bring the account back to target allocations.
 
+> **Warning:** Trading is risky. Use at your own risk. Always test in paper mode and configure a kill switch file before placing live orders.
+> Orders are priced with spread-aware limits to avoid crossing the bid/ask spread.
+
 ## Project Status
 
 Development is being tracked in phased checklists. Phases 0–7 are implemented: Phase 4 introduces FX planning for CAD→USD conversions, Phase 5 adds provider abstractions (`IBKRProvider`, `FakeIB`, `LiveIB`) and the `IBKRQuoteProvider` for market data, enabling account snapshot retrieval and pacing safeguards, Phase 6 delivers the order builder and executor with spread-aware limit pricing, FX→SELL→BUY sequencing, and safety rails, and Phase 7 adds an end-to-end scenario runner for offline workflow verification. Subsequent phases are planned but not yet executed.
+
+## Installation
+
+For development install:
+
+```bash
+pip install -e .
+```
+
+For runtime use:
+
+```bash
+pip install ib-trade
+```
 
 ## Commands
 
@@ -20,12 +37,14 @@ Run tests:
 make test
 ```
 
-Examples:
+Quick start:
+
+Use the sample files under `examples/`.
 
 ```bash
 python -m ibkr_etf_rebalancer.app pre-trade \
-    --config config.ini \
-    --portfolios portfolios.csv \
+    --config examples/settings.ini \
+    --portfolios examples/portfolios.csv \
     --positions positions.csv \
     --cash USD=10000 \
     --output-dir reports
@@ -35,11 +54,24 @@ To execute a full rebalance against the broker:
 
 ```bash
 python -m ibkr_etf_rebalancer.app rebalance \
-    --config config.ini \
-    --portfolios portfolios.csv \
+    --config examples/settings.ini \
+    --portfolios examples/portfolios.csv \
     --output-dir reports
 ```
 
+Or run an offline scenario:
+
+```bash
+ib-rebalance --scenario examples/scenario.yml --output-dir reports
+```
+
+Portfolios CSV schema:
+
+- columns: `portfolio`, `symbol`, `target_pct` (percent values like `40` for 40%).
+- Include an optional `CASH` row with a negative `target_pct` to model borrowed cash.
+- Extra columns such as `note`, `min_lot`, or `exchange` are ignored.
+
+`settings.ini` groups keys under sections like `[ibkr]`, `[rebalance]`, `[fx]`, `[limits]`, `[safety]`, and `[io]`. See `examples/settings.ini` for a minimal configuration.
 The package also installs an `ib-rebalance` console script providing the same
 commands. Display the installed version with `ib-rebalance --version`.
 
