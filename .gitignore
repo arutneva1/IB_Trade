@@ -1,2 +1,3 @@
 # Ignore Python distribution metadata directories
 *.dist-info/
+!ib_trade-0.1.1.dist-info/
