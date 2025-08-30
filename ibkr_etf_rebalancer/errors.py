@@ -24,10 +24,10 @@ class UnknownError(Exception):
 class ExitCode(IntEnum):
     """Exit codes for different error categories."""
 
-    UNKNOWN = 1
     CONFIG = 2
     SAFETY = 3
     RUNTIME = 4
+    UNKNOWN = 5
 
 
 __all__ = [

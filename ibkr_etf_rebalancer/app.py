@@ -49,7 +49,7 @@ from typing import Iterable, Any, Mapping, cast, Callable, TypeVar
 import typer
 
 from . import safety
-from .errors import ConfigError, SafetyError, RuntimeError, ExitCode
+from .errors import ConfigError, SafetyError, RuntimeError, UnknownError, ExitCode
 from .account_state import compute_account_state
 from .config import load_config
 from .ibkr_provider import (
@@ -334,6 +334,8 @@ def pre_trade(
         raise typer.Exit(code=int(ExitCode.SAFETY))
     except RuntimeError:
         raise typer.Exit(code=int(ExitCode.RUNTIME))
+    except UnknownError:
+        raise typer.Exit(code=int(ExitCode.UNKNOWN))
     except Exception:
         raise typer.Exit(code=int(ExitCode.UNKNOWN))
 
@@ -539,6 +541,8 @@ def rebalance(
         raise typer.Exit(code=int(ExitCode.SAFETY))
     except RuntimeError:
         raise typer.Exit(code=int(ExitCode.RUNTIME))
+    except UnknownError:
+        raise typer.Exit(code=int(ExitCode.UNKNOWN))
     except Exception:
         raise typer.Exit(code=int(ExitCode.UNKNOWN))
 
