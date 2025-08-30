@@ -24,4 +24,3 @@ class RuntimeAppError(Exception):
 
 class UnknownAppError(Exception):
     """Raised for unexpected errors."""
-
