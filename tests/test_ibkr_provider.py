@@ -17,6 +17,7 @@ from ibkr_etf_rebalancer.ibkr_provider import (
     PacingError,
     ResolutionError,
 )
+from ibkr_etf_rebalancer.errors import SafetyError
 
 
 @pytest.fixture
@@ -358,7 +359,7 @@ def test_place_order_abort_on_kill_switch(tmp_path: pathlib.Path) -> None:
     ib = FakeIB(options=options, contracts={"AAA": contract})
 
     order = Order(contract=contract, side=OrderSide.BUY, quantity=1, order_type=OrderType.MARKET)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(SafetyError):
         ib.place_order(order)
 
 
@@ -368,5 +369,5 @@ def test_place_order_abort_when_live_disallowed() -> None:
     ib = FakeIB(options=options, contracts={"AAA": contract})
 
     order = Order(contract=contract, side=OrderSide.BUY, quantity=1, order_type=OrderType.MARKET)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(SafetyError):
         ib.place_order(order)

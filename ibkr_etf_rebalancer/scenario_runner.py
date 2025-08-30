@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from .account_state import AccountSnapshot, compute_account_state
 from .config import AppConfig
 from . import safety
+from .errors import SafetyError
 from .ibkr_provider import (
     AccountValue,
     Contract,
@@ -236,7 +237,7 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
 
         try:
             safety.check_kill_switch(cfg.safety.kill_switch_file)
-        except RuntimeError:
+        except SafetyError:
             execution = OrderExecutionResult(fills=[], canceled=[])
         else:
             exec_cfg = scenario.config_overrides.get("execution", {})

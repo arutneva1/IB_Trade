@@ -30,6 +30,7 @@ from ibkr_etf_rebalancer.order_executor import (
     PacingError,
     ResolutionError,
 )
+from ibkr_etf_rebalancer.errors import SafetyError
 
 
 def _basic_contracts(now: datetime) -> tuple[dict[str, Contract], dict[str, pricing.Quote]]:
@@ -580,7 +581,7 @@ def test_execute_orders_kill_switch(tmp_path: pathlib.Path) -> None:
         quantity=1,
         order_type=OrderType.MARKET,
     )
-    with pytest.raises(RuntimeError):
+    with pytest.raises(SafetyError):
         execute_orders(
             cast(IBKRProvider, ib), buy_orders=[order], options=OrderExecutionOptions(yes=True)
         )
@@ -596,7 +597,7 @@ def test_execute_orders_paper_only_enforcement() -> None:
         quantity=1,
         order_type=OrderType.MARKET,
     )
-    with pytest.raises(RuntimeError):
+    with pytest.raises(SafetyError):
         execute_orders(
             cast(IBKRProvider, ib), buy_orders=[order], options=OrderExecutionOptions(yes=True)
         )
@@ -613,7 +614,7 @@ def test_execute_orders_rth_outside_hours() -> None:
             quantity=1,
             order_type=OrderType.MARKET,
         )
-        with pytest.raises(RuntimeError):
+        with pytest.raises(SafetyError):
             execute_orders(
                 cast(IBKRProvider, ib),
                 buy_orders=[order],
@@ -686,7 +687,7 @@ def test_execute_orders_confirmation_prompt_reject(monkeypatch: pytest.MonkeyPat
         order_type=OrderType.MARKET,
     )
     monkeypatch.setattr(builtins, "input", lambda _: "n")
-    with pytest.raises(RuntimeError):
+    with pytest.raises(SafetyError):
         execute_orders(cast(IBKRProvider, ib), buy_orders=[order], options=OrderExecutionOptions())
 
 

@@ -8,7 +8,7 @@ import subprocess
 
 import pytest
 from freezegun import freeze_time
-from typer.testing import CliRunner
+from typer.testing import CliRunner, Result
 
 from ibkr_etf_rebalancer.app import app
 import ibkr_etf_rebalancer.app as app_module
@@ -21,6 +21,13 @@ from ibkr_etf_rebalancer.ibkr_provider import (
     Position,
 )
 from ibkr_etf_rebalancer.pricing import Quote
+from ibkr_etf_rebalancer.errors import (
+    ConfigError,
+    SafetyError,
+    RuntimeError,
+    UnknownError,
+    ExitCode,
+)
 
 
 runner = CliRunner()
@@ -521,3 +528,46 @@ def test_log_level_toggle(tmp_path: Path) -> None:
     assert result.exit_code == 0
     log2 = tmp_path / "run_20240101T120001.log"
     assert "CLI options" in log2.read_text()
+
+
+def _invoke_with_exception(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, exc: Exception
+) -> Result:
+    config, portfolios, positions = _write_basic_files(tmp_path)
+
+    def _raise(*args: object, **kwargs: object) -> None:
+        raise exc
+
+    monkeypatch.setattr(app_module, "load_config", _raise)
+    return runner.invoke(
+        app,
+        [
+            "pre-trade",
+            "--config",
+            str(config),
+            "--portfolios",
+            str(portfolios),
+            "--positions",
+            str(positions),
+        ],
+    )
+
+
+def test_cli_config_error_exit_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    result = _invoke_with_exception(tmp_path, monkeypatch, ConfigError("bad config"))
+    assert result.exit_code == ExitCode.CONFIG
+
+
+def test_cli_safety_error_exit_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    result = _invoke_with_exception(tmp_path, monkeypatch, SafetyError("nope"))
+    assert result.exit_code == ExitCode.SAFETY
+
+
+def test_cli_runtime_error_exit_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    result = _invoke_with_exception(tmp_path, monkeypatch, RuntimeError("boom"))
+    assert result.exit_code == ExitCode.RUNTIME
+
+
+def test_cli_unknown_error_exit_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    result = _invoke_with_exception(tmp_path, monkeypatch, UnknownError("oops"))
+    assert result.exit_code == ExitCode.UNKNOWN
