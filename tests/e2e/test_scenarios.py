@@ -195,16 +195,20 @@ def test_scenarios(fixture_path: Path) -> None:
             if info["sec_type"] == "CASH":
                 if info["limit_price"] is not None:
                     if info["side"] == "BUY":
+                        assert quote.ask is not None
                         assert info["limit_price"] <= quote.ask + 1e-6
                     else:
+                        assert quote.bid is not None
                         assert info["limit_price"] >= quote.bid - 1e-6
                 rank = 0
             elif info["side"] == "SELL":
                 if info["limit_price"] is not None:
+                    assert quote.bid is not None
                     assert info["limit_price"] >= quote.bid - 1e-6
                 rank = 1
             else:
                 if info["limit_price"] is not None:
+                    assert quote.ask is not None
                     assert info["limit_price"] <= quote.ask + 1e-6
                 rank = 2
             assert rank >= last_rank
