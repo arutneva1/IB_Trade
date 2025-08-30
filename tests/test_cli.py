@@ -183,6 +183,44 @@ def test_pre_trade_cli(tmp_path: Path) -> None:
     assert log.exists()
 
 
+def test_pre_trade_cli_json_logging(tmp_path: Path) -> None:
+    """CLI writes JSON formatted logs when --log-json is used."""
+
+    config, portfolios, positions = _write_basic_files(tmp_path, report_dir=tmp_path)
+
+    with freeze_time("2024-01-01 12:00:00"):
+        result = runner.invoke(
+            app,
+            [
+                "--log-json",
+                "pre-trade",
+                "--config",
+                str(config),
+                "--portfolios",
+                str(portfolios),
+                "--positions",
+                str(positions),
+                "--cash",
+                "USD=0",
+                "--output-dir",
+                str(tmp_path),
+            ],
+        )
+
+    assert result.exit_code == 0
+    log = tmp_path / "run_20240101T120000.log"
+    assert log.exists()
+    entries = [json.loads(line) for line in log.read_text().splitlines() if line.strip()]
+    assert entries
+    run_id = entries[0]["run_id"]
+    assert run_id == "20240101T120000"
+    for entry in entries:
+        assert {"time", "level", "run_id", "message"} <= entry.keys()
+        assert entry["run_id"] == run_id
+        # time is ISO formatted and parseable
+        datetime.strptime(entry["time"], "%Y-%m-%dT%H:%M:%S%z")
+
+
 def test_pre_trade_cli_as_of(tmp_path: Path) -> None:
     config, portfolios, positions = _write_basic_files(tmp_path, report_dir=tmp_path)
 
