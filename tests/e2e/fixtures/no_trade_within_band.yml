@@ -15,6 +15,9 @@ positions:
   BBB: 40
 cash:
   USD: 500.0
+target_weights:
+  AAA: 0.75
+  BBB: 0.25
 config_overrides:
   rebalance:
     per_holding_band_bps: 1000

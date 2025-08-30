@@ -15,6 +15,9 @@ positions:
   BBB: 50
 cash:
   USD: -5000.0
+target_weights:
+  AAA: 0.8
+  BBB: 0.2
 config_overrides:
   rebalance:
     allow_margin: true

@@ -16,7 +16,7 @@ from typing import Any, Callable, Dict, Iterator
 
 import yaml
 from freezegun import freeze_time
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, model_validator
 
 from .config import AppConfig
 
@@ -55,6 +55,12 @@ class Scenario:
         Current holdings expressed as quantity per symbol (shares or contracts).
     cash:
         Cash balances keyed by currency code, denominated in that currency.
+    target_weights:
+        Final desired portfolio weights by symbol. Values are fractional
+        (e.g. ``0.25`` for ``25%``) and should normally sum to ``1.0``.
+    portfolios:
+        Optional mapping of model name to per-symbol weights used for
+        blending via :func:`blend_targets`.
     config_overrides:
         Partial configuration overriding the default test configuration.
     """
@@ -65,6 +71,8 @@ class Scenario:
     quotes: Dict[str, Quote]
     positions: Dict[str, float]
     cash: Dict[str, float]
+    target_weights: Dict[str, float] | None = None
+    portfolios: Dict[str, Dict[str, float]] | None = None
     config_overrides: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
     def app_config(self) -> AppConfig:
@@ -106,7 +114,15 @@ class _ScenarioModel(BaseModel):
     quotes: Dict[str, _QuoteModel]
     positions: Dict[str, float]
     cash: Dict[str, float]
+    target_weights: Dict[str, float] | None = None
+    portfolios: Dict[str, Dict[str, float]] | None = None
     config_overrides: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _check_targets(cls, data: "_ScenarioModel") -> "_ScenarioModel":
+        if data.target_weights and data.portfolios:
+            raise ValueError("specify either target_weights or portfolios, not both")
+        return data
 
 
 # ---------------------------------------------------------------------------
@@ -146,6 +162,8 @@ def load_scenario(path: Path) -> Scenario:
         quotes=quotes,
         positions=data.positions,
         cash=data.cash,
+        target_weights=data.target_weights,
+        portfolios=data.portfolios,
         config_overrides=data.config_overrides,
     )
 

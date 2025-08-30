@@ -1,0 +1,4 @@
+symbol,side,filled_shares,avg_price,notional,avg_slippage,residual_drift_bps
+USD,BUY,65.12,1.36,88.56,0.0,-200.94
+BBB,SELL,-18.0,49.0,-882.0,0.0,45.18
+AAA,BUY,17.0,101.0,1717.0,0.0,-245.71

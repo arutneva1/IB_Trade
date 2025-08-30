@@ -216,3 +216,21 @@ def test_scenarios(fixture_path: Path) -> None:
     finally:
         if kill_path and kill_path.exists():
             kill_path.unlink()
+
+
+def test_fx_sell_and_buy_sequence() -> None:
+    scenario = load_scenario(FIXTURE_DIR / "fx_sell_and_buy.yml")
+    if scenario.config_overrides.get("rebalance", {}).get("min_order_usd", 1) <= 0:
+        scenario.config_overrides.setdefault("rebalance", {})["min_order_usd"] = 1e-9
+    result = run_scenario(scenario)
+    events = json.loads(result.event_log.read_text())
+    placed = [e for e in events if e["type"] == "placed"]
+    assert len(placed) >= 3
+    infos = [_parse_order(e["order"]) for e in placed]
+    # FX order first
+    assert infos[0]["sec_type"] == "CASH"
+    sides = [info["side"] for info in infos[1:]]
+    assert "SELL" in sides and "BUY" in sides
+    buy_idx = sides.index("BUY")
+    assert all(s == "SELL" for s in sides[:buy_idx])
+    assert all(s == "BUY" for s in sides[buy_idx:])
