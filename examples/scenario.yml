@@ -1,0 +1,20 @@
+name: Demo scenario
+as_of: 2024-01-01T10:00:00Z
+prices:
+  SPY: 400.0
+  AGG: 100.0
+quotes:
+  SPY:
+    bid: 399.5
+    ask: 400.5
+  AGG:
+    bid: 99.5
+    ask: 100.5
+positions:
+  SPY: 60
+  AGG: 40
+cash:
+  USD: 1000.0
+target_weights:
+  SPY: 0.6
+  AGG: 0.4
