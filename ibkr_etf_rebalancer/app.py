@@ -49,7 +49,7 @@ from typing import Iterable, Any, Mapping, cast, Callable, TypeVar
 import typer
 
 from . import safety
-from .errors import ConfigError, SafetyError, RuntimeError, UnknownError, ExitCode
+from .errors import ConfigError, SafetyError, RuntimeError, ExitCode
 from .account_state import compute_account_state
 from .config import load_config
 from .ibkr_provider import (
@@ -244,7 +244,7 @@ def pre_trade(
         help="Cash balance as CUR=AMOUNT, e.g. --cash USD=1000. Can be repeated.",
     ),
     as_of: str | None = typer.Option(None, "--as-of", help="Timestamp for report/log names"),
-    ) -> None:
+) -> None:
     """Generate a pre‑trade report using the supplied inputs."""
 
     try:
@@ -354,7 +354,7 @@ def rebalance(
         "--ask-bid-cap/--no-ask-bid-cap",
         help="Never bid above ask or offer below bid",
     ),
-    ) -> None:
+) -> None:
     """Execute a full rebalance against the configured broker."""
 
     try:
