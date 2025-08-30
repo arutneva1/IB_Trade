@@ -82,6 +82,7 @@ class CLIOptions:
     yes: bool = False
     log_level: str = "INFO"
     log_json: bool = False
+    kill_switch: Path | None = None
 
 
 @app.callback(invoke_without_command=True)
@@ -102,6 +103,13 @@ def main(
         "--log-json/--log-text",
         help="Write JSON logs instead of plain text",
     ),
+    kill_switch: Path | None = typer.Option(
+        None,
+        "--kill-switch",
+        exists=False,
+        readable=False,
+        help="Override path to kill switch file",
+    ),
     scenario: Path | None = typer.Option(
         None,
         "--scenario",
@@ -119,6 +127,7 @@ def main(
         yes=yes,
         log_level=log_level,
         log_json=log_json,
+        kill_switch=kill_switch,
     )
     # Run a pre-canned scenario and exit when requested.
     if scenario is not None:
@@ -128,7 +137,10 @@ def main(
 
         sc = load_scenario(scenario)
         cfg = sc.app_config()
-        safety.check_kill_switch(cfg.safety.kill_switch_file)
+        kill = kill_switch or Path(cfg.safety.kill_switch_file)
+        safety.check_kill_switch(kill)
+        if kill_switch is not None:
+            sc.config_overrides.setdefault("safety", {})["kill_switch_file"] = str(kill_switch)
         # Scenarios always run in paper mode using fake providers and should
         # never attempt a real broker connection. Ignore any user supplied
         # ``--live`` or ``--no-paper`` flags and force paper trading.
@@ -214,7 +226,10 @@ def pre_trade(
     # Access global CLI options for future routing to downstream components.
     options: CLIOptions = ctx.obj if isinstance(ctx.obj, CLIOptions) else CLIOptions()
     _ibkr_opts = IBKRProviderOptions(
-        paper=options.paper, live=options.live, dry_run=options.dry_run
+        paper=options.paper,
+        live=options.live,
+        dry_run=options.dry_run,
+        kill_switch=str(options.kill_switch) if options.kill_switch else None,
     )
 
     cfg = load_config(config)
@@ -319,7 +334,8 @@ def rebalance(
     logger.info("config: %s", json.dumps(cfg.model_dump(), default=str))
     logger.debug("CLI options: %s", options)
 
-    safety.check_kill_switch(cfg.safety.kill_switch_file)
+    kill = options.kill_switch or Path(cfg.safety.kill_switch_file)
+    safety.check_kill_switch(kill)
     safety.ensure_paper_trading(options.paper, options.live)
     if cfg.safety.require_confirm:
         safety.require_confirmation("Proceed with rebalancing?", options.yes)
@@ -328,7 +344,7 @@ def rebalance(
         paper=options.paper,
         live=options.live,
         dry_run=options.dry_run,
-        kill_switch=cfg.safety.kill_switch_file,
+        kill_switch=str(kill),
     )
     ib = _connect_ibkr(ib_options)
     quote_provider = IBKRQuoteProvider(ib)
