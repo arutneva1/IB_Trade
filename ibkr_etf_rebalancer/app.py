@@ -162,11 +162,15 @@ def pre_trade(
     _ibkr_opts = IBKRProviderOptions(
         paper=options.paper, live=options.live, dry_run=options.dry_run
     )
-    _exec_opts = OrderExecutionOptions(
-        report_only=options.report_only, dry_run=options.dry_run, yes=options.yes
-    )
 
     cfg = load_config(config)
+
+    _exec_opts = OrderExecutionOptions(
+        report_only=options.report_only,
+        dry_run=options.dry_run,
+        yes=options.yes,
+        require_confirm=cfg.safety.require_confirm,
+    )
 
     portfolios_data = load_portfolios(
         portfolios,

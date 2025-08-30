@@ -621,6 +621,60 @@ def test_execute_orders_rth_outside_hours() -> None:
             )
 
 
+def test_execute_orders_confirmation_called(monkeypatch: pytest.MonkeyPatch) -> None:
+    now = datetime.now(timezone.utc)
+    contracts, _ = _basic_contracts(now)
+    ib = FakeIB(options=IBKRProviderOptions(), contracts=contracts)
+    order = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.MARKET,
+    )
+    import ibkr_etf_rebalancer.order_executor as oe
+
+    called = False
+
+    def fake_confirm(msg: str, assume_yes: bool) -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(oe.safety, "require_confirmation", fake_confirm)  # type: ignore[attr-defined]
+    execute_orders(
+        cast(IBKRProvider, ib),
+        buy_orders=[order],
+        options=OrderExecutionOptions(dry_run=True),
+    )
+    assert called
+
+
+def test_execute_orders_confirmation_skipped(monkeypatch: pytest.MonkeyPatch) -> None:
+    now = datetime.now(timezone.utc)
+    contracts, _ = _basic_contracts(now)
+    ib = FakeIB(options=IBKRProviderOptions(), contracts=contracts)
+    order = Order(
+        contract=contracts["AAA"],
+        side=OrderSide.BUY,
+        quantity=1,
+        order_type=OrderType.MARKET,
+    )
+    import ibkr_etf_rebalancer.order_executor as oe
+
+    called = False
+
+    def fake_confirm(msg: str, assume_yes: bool) -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(oe.safety, "require_confirmation", fake_confirm)  # type: ignore[attr-defined]
+    execute_orders(
+        cast(IBKRProvider, ib),
+        buy_orders=[order],
+        options=OrderExecutionOptions(dry_run=True, require_confirm=False),
+    )
+    assert not called
+
+
 def test_execute_orders_confirmation_prompt_reject(monkeypatch: pytest.MonkeyPatch) -> None:
     now = datetime.now(timezone.utc)
     contracts, _ = _basic_contracts(now)
