@@ -273,9 +273,7 @@ def test_rebalance_cli_paper_live_gating(
     assert result.exit_code != 0
 
 
-def test_rebalance_cli_event_log_order(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_rebalance_cli_event_log_order(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config, portfolios = _write_rebalance_files(tmp_path)
     monkeypatch.setattr(app_module, "_connect_ibkr", lambda opts: _fake_ib())
     with freeze_time("2024-01-01 15:00:00"):

@@ -292,7 +292,9 @@ def rebalance(
     }
     symbols = set(blend.weights) | set(positions)
     prices = {
-        sym: quote_provider.get_price(sym, cfg.pricing.price_source, cfg.pricing.fallback_to_snapshot)
+        sym: quote_provider.get_price(
+            sym, cfg.pricing.price_source, cfg.pricing.fallback_to_snapshot
+        )
         for sym in symbols
     }
     cash_balances = {
