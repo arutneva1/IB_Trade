@@ -1,0 +1,23 @@
+name: Partial fill
+as_of: 2024-01-01T10:00:00Z
+prices:
+  AAA: 100.0
+quotes:
+  AAA:
+    bid: 99.0
+    ask: 101.0
+positions:
+  AAA: 10
+cash:
+  USD: 0.0
+target_weights:
+  AAA: 0.0
+  CASH: 1.0
+config_overrides:
+  rebalance:
+    min_order_usd: 0
+    prefer_rth: false
+    order_type: MKT
+  fake_ib:
+    fill_fractions:
+      AAA: 0.5

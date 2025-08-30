@@ -120,6 +120,7 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
             account_values=account_values,
             positions=positions,
             concurrency_limit=fake_ib_cfg.get("concurrency_limit"),
+            fill_fractions=fake_ib_cfg.get("fill_fractions"),
         )
 
         # ------------------------------------------------------------------
