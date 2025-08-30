@@ -20,7 +20,7 @@ Run tests:
 make test
 ```
 
-Examples:
+Example run of the application:
 
 ```bash
 python -m ibkr_etf_rebalancer.app pre-trade \
@@ -31,32 +31,10 @@ python -m ibkr_etf_rebalancer.app pre-trade \
     --output-dir reports
 ```
 
-To execute a full rebalance against the broker:
-
-```bash
-python -m ibkr_etf_rebalancer.app rebalance \
-    --config config.ini \
-    --portfolios portfolios.csv \
-    --output-dir reports
-```
-
-The package also installs an `ib-rebalance` console script providing the same
-commands.
-
 Global flags control behaviour: `--report-only`, `--dry-run`,
-`--paper/--no-paper` (paper is the default), `--live`, `--yes`,
-`--log-level`, `--log-json/--log-text`, and `--scenario PATH` to execute a
-YAML-defined end-to-end scenario instead of loading CSV/INI inputs.
-
-Each run writes a log file `run_<timestamp>.log` under `io.report_dir`
-(`reports/` by default) and tags log lines with a unique run identifier.
-Adjust verbosity with `--log-level` and switch to structured JSON output with
-`--log-json`.
-
-Safety defaults favour caution: the CLI refuses live orders unless
-`--live --yes` is supplied and `[safety].paper_only` is disabled. Presence of a
-kill switch file aborts execution, and confirmation prompts are enabled by
-default.
+`--paper/--no-paper` (paper is the default), `--live`, `--yes`, and
+`--scenario PATH` to execute a YAML-defined end-to-end scenario instead of
+loading CSV/INI inputs.
 
 The configuration file can include an `[fx]` section to plan CAD→USD conversions ahead of ETF trades. This feature lets you enable FX planning and set per-order limits and acceptable slippage:
 
