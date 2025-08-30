@@ -50,6 +50,19 @@ default kill switch file, and `--scenario PATH` to execute a YAML-defined
 end-to-end scenario instead of loading CSV/INI inputs. Use `--version` to print the
 installed package version and exit.
 
+### Configuration precedence
+
+Configuration values are loaded from the INI file provided via `--config`. They
+may be overridden by environment variables named
+`IBKR_ETF_REBALANCER__SECTION__KEY` and finally by CLI options. Precedence is,
+from lowest to highest: INI file, environment variables, CLI options.
+
+For example, to override `[ibkr].account` from the environment:
+
+```bash
+export IBKR_ETF_REBALANCER__IBKR__ACCOUNT=DU999
+```
+
 Each run writes a log file `run_<timestamp>.log` under `io.report_dir`
 (`reports/` by default) and tags log lines with a unique run identifier.
 Adjust verbosity with `--log-level` and switch to structured JSON output with

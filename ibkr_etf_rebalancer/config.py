@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from configparser import ConfigParser
 from typing import Any, Literal
@@ -211,7 +212,10 @@ class AppConfig(BaseModel):
 
 
 def load_config(path: Path) -> AppConfig:
-    """Load configuration from an INI file.
+    """Load configuration from an INI file and environment variables.
+
+    Environment variables named ``IBKR_ETF_REBALANCER__SECTION__KEY`` override
+    values from the INI file. CLI options may further override these settings.
 
     Parameters
     ----------
@@ -229,6 +233,23 @@ def load_config(path: Path) -> AppConfig:
     # preserve case of keys
     with path.open() as handle:
         parser.read_file(handle)
+
+    prefix = "IBKR_ETF_REBALANCER"
+    for env_key, env_val in os.environ.items():
+        if not env_key.startswith(prefix + "__"):
+            continue
+        try:
+            _, section, option = env_key.split("__", 2)
+        except ValueError:  # pragma: no cover - defensive
+            continue
+        section = section.lower()
+        if section == "models":
+            option = option.upper()
+        elif section != "symbol_overrides":
+            option = option.lower()
+        if not parser.has_section(section):
+            parser.add_section(section)
+        parser.set(section, option, env_val)
 
     data: dict[str, Any] = {}
     for section in [
