@@ -172,6 +172,8 @@ def test_scenarios(fixture_path: Path) -> None:
             assert placed == []
         if fixture_path.stem == "price_source_fallback":
             assert result2.fx_plan.est_rate == pytest.approx(scenario.prices["USD.CAD"])
+        if fixture_path.stem == "wide_stale_keep":
+            assert all(_parse_order(e["order"])["limit_price"] is not None for e in placed)
         if kill_path:
             assert placed == []
             return

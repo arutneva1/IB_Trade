@@ -1,0 +1,14 @@
+[
+  {
+    "ts": "2024-01-01 10:00:00.000001+00:00",
+    "type": "placed",
+    "order_id": "1",
+    "order": "Order(contract=Contract(symbol='AAA', sec_type='STK', currency='USD', exchange='SMART', con_id=1), side=<OrderSide.BUY: 'BUY'>, quantity=99, order_type=<OrderType.LIMIT: 'LMT'>, tif=<TimeInForce.DAY: 'DAY'>, route=<OrderRoute.SMART: 'SMART'>, limit_price=100.10000000000001, rth=<RTH.RTH_ONLY: 1>)"
+  },
+  {
+    "ts": "2024-01-01 10:00:00.000002+00:00",
+    "type": "canceled",
+    "order_id": "1",
+    "order": "Order(contract=Contract(symbol='AAA', sec_type='STK', currency='USD', exchange='SMART', con_id=1), side=<OrderSide.BUY: 'BUY'>, quantity=99, order_type=<OrderType.LIMIT: 'LMT'>, tif=<TimeInForce.DAY: 'DAY'>, route=<OrderRoute.SMART: 'SMART'>, limit_price=100.10000000000001, rth=<RTH.RTH_ONLY: 1>)"
+  }
+]
