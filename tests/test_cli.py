@@ -415,9 +415,7 @@ def test_rebalance_cli_event_log_order(tmp_path: Path, monkeypatch: pytest.Monke
     assert [p["side"] for p in placed] == ["BUY", "SELL", "BUY"]
 
 
-def test_rebalance_cli_ask_bid_cap_toggle(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_rebalance_cli_ask_bid_cap_toggle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config, portfolios = _write_rebalance_files(tmp_path)
     monkeypatch.setattr(app_module, "_connect_ibkr", lambda opts: _fake_ib())
 
