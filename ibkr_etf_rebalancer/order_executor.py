@@ -76,6 +76,8 @@ class OrderExecutionOptions:
         Simulate the execution flow without side effects.
     yes:
         Automatically answer affirmatively to confirmation prompts.
+    require_confirm:
+        Prompt for confirmation before sending orders.
     concurrency_cap:
         Maximum number of concurrent orders to maintain. ``None`` for no cap.
     prefer_rth:
@@ -88,6 +90,7 @@ class OrderExecutionOptions:
     report_only: bool = False
     dry_run: bool = False
     yes: bool = False
+    require_confirm: bool = True
     concurrency_cap: int | None = None
     prefer_rth: bool = False
     timeout: float | None = None
@@ -174,7 +177,8 @@ def execute_orders(
     safety.check_kill_switch(ib.options.kill_switch)
     safety.ensure_paper_trading(ib.options.paper, ib.options.live)
     safety.ensure_regular_trading_hours(datetime.now(timezone.utc), options.prefer_rth)
-    safety.require_confirmation("Proceed with order placement?", options.yes)
+    if options.require_confirm:
+        safety.require_confirmation("Proceed with order placement?", options.yes)
 
     fx_orders = fx_orders or ()
     sell_orders = sell_orders or ()

@@ -237,6 +237,7 @@ def run_scenario(scenario: Scenario) -> ScenarioRunResult:
                         yes=True,
                         concurrency_cap=exec_cfg.get("concurrency_cap"),
                         timeout=exec_cfg.get("timeout_seconds"),
+                        require_confirm=cfg.safety.require_confirm,
                     ),
                     max_leverage=cfg.rebalance.max_leverage,
                     allow_margin=cfg.rebalance.allow_margin,
