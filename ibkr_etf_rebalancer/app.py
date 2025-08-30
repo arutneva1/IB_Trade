@@ -135,19 +135,6 @@ def main(
         readable=False,
         help="Override path to kill switch file",
     ),
-    output_dir: Path | None = typer.Option(
-        None,
-        "--output-dir",
-        "-o",
-        help="Directory for generated reports",
-    ),
-    scenario: Path | None = typer.Option(
-        None,
-        "--scenario",
-        exists=True,
-        readable=True,
-        help="Run YAML scenario and exit",
-    ),
 ) -> None:
     """IBKR ETF rebalancer command line utilities."""
     options = CLIOptions(
@@ -171,33 +158,6 @@ def main(
         )
         raise typer.Exit(code=ExitCode.CONFIG)
     # Run a pre-canned scenario and exit when requested.
-    if scenario is not None:
-        from . import safety
-        from ibkr_etf_rebalancer.scenario import load_scenario
-        from .scenario_runner import run_scenario
-
-        sc = load_scenario(scenario)
-        cfg = sc.app_config()
-        kill = kill_switch or Path(cfg.safety.kill_switch_file)
-        safety.check_kill_switch(kill)
-        if kill_switch is not None:
-            sc.config_overrides.setdefault("safety", {})["kill_switch_file"] = str(kill_switch)
-        # Scenarios always run in paper mode using fake providers and should
-        # never attempt a real broker connection. Ignore any user supplied
-        # ``--live`` or ``--no-paper`` flags and force paper trading.
-        safety.ensure_paper_trading(paper=True, live=False)
-        if cfg.safety.require_confirm:
-            safety.require_confirmation("Proceed with scenario execution?", options.yes)
-
-        result = run_scenario(sc, output_dir=output_dir)
-
-        typer.echo(f"Pre-trade CSV report written to {result.pre_report_csv}")
-        typer.echo(f"Pre-trade Markdown report written to {result.pre_report_md}")
-        typer.echo(f"Post-trade CSV report written to {result.post_report_csv}")
-        typer.echo(f"Post-trade Markdown report written to {result.post_report_md}")
-        typer.echo(f"Event log written to {result.event_log}")
-        raise typer.Exit()
-
     # Store the options on the Typer context so subcommands can access them.
     ctx.obj = options
 
@@ -250,6 +210,46 @@ def _parse_as_of(value: str | None) -> datetime:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
+
+
+@command("scenario")
+def run_scenario_cmd(
+    ctx: typer.Context,
+    file: Path = typer.Option(
+        ..., "--file", "-f", exists=True, readable=True, help="Path to YAML scenario file"
+    ),
+    output_dir: Path | None = typer.Option(
+        None, "--output-dir", "-o", help="Directory for generated reports"
+    ),
+) -> None:
+    """Execute an end-to-end scenario defined in YAML."""
+
+    from ibkr_etf_rebalancer.scenario import load_scenario
+    from .scenario_runner import run_scenario
+
+    options: CLIOptions = ctx.obj if isinstance(ctx.obj, CLIOptions) else CLIOptions()
+
+    sc = load_scenario(file)
+    cfg = sc.app_config()
+    kill = options.kill_switch or Path(cfg.safety.kill_switch_file)
+    safety.check_kill_switch(kill)
+    if options.kill_switch is not None:
+        sc.config_overrides.setdefault("safety", {})["kill_switch_file"] = str(options.kill_switch)
+
+    # Scenarios always run in paper mode using fake providers and should never
+    # attempt a real broker connection. Ignore any user supplied live/paper
+    # toggles and force paper trading.
+    safety.ensure_paper_trading(paper=True, live=False)
+    if cfg.safety.require_confirm:
+        safety.require_confirmation("Proceed with scenario execution?", options.yes)
+
+    result = run_scenario(sc, output_dir=output_dir)
+
+    typer.echo(f"Pre-trade CSV report written to {result.pre_report_csv}")
+    typer.echo(f"Pre-trade Markdown report written to {result.pre_report_md}")
+    typer.echo(f"Post-trade CSV report written to {result.post_report_csv}")
+    typer.echo(f"Post-trade Markdown report written to {result.post_report_md}")
+    typer.echo(f"Event log written to {result.event_log}")
 
 
 @command("pre-trade")

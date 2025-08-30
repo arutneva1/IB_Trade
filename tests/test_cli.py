@@ -350,8 +350,8 @@ def test_main_invalid_flag_combinations(args: list[str]) -> None:
     assert "mutually exclusive" in result.output
 
 
-def test_scenario_flag(tmp_path: Path) -> None:
-    """Running with --scenario executes the scenario runner."""
+def test_scenario_command(tmp_path: Path) -> None:
+    """Running the scenario subcommand executes the scenario runner."""
     fixture = Path(__file__).resolve().parent / "e2e/fixtures/no_trade_within_band.yml"
     scenario_path = tmp_path / "scenario.yml"
     scenario_path.write_text(fixture.read_text().replace("min_order_usd: 0", "min_order_usd: 1e-9"))
@@ -359,7 +359,7 @@ def test_scenario_flag(tmp_path: Path) -> None:
     with runner.isolated_filesystem(temp_dir=tmp_path):
         result = runner.invoke(
             app,
-            ["--yes", "--output-dir", str(out_dir), "--scenario", str(scenario_path)],
+            ["--yes", "scenario", "--file", str(scenario_path), "--output-dir", str(out_dir)],
         )
         assert result.exit_code == 0
         csv = out_dir / "pre_trade_report_20240101T100000.csv"
@@ -370,12 +370,12 @@ def test_scenario_flag(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("flag", ["--no-paper", "--live"])
 def test_scenario_forces_paper(tmp_path: Path, flag: str) -> None:
-    """Scenario flag should ignore live/paper toggles and still run."""
+    """Scenario command should ignore live/paper toggles and still run."""
     fixture = Path(__file__).resolve().parent / "e2e/fixtures/no_trade_within_band.yml"
     scenario_path = tmp_path / "scenario.yml"
     scenario_path.write_text(fixture.read_text().replace("min_order_usd: 0", "min_order_usd: 1e-9"))
     with runner.isolated_filesystem(temp_dir=tmp_path):
-        result = runner.invoke(app, ["--yes", flag, "--scenario", str(scenario_path)])
+        result = runner.invoke(app, ["--yes", flag, "scenario", "--file", str(scenario_path)])
         assert result.exit_code == 0
         report_dir = Path("reports")
         csv = report_dir / "pre_trade_report_20240101T100000.csv"
