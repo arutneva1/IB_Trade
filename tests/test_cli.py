@@ -8,7 +8,8 @@ import subprocess
 
 import pytest
 from freezegun import freeze_time
-from typer.testing import CliRunner, Result
+from typer.testing import CliRunner
+from click.testing import Result
 
 from ibkr_etf_rebalancer.app import app
 import ibkr_etf_rebalancer.app as app_module
