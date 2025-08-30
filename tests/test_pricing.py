@@ -12,6 +12,7 @@ def fake_quote_provider() -> FakeQuoteProvider:
         "STALE": Quote(bid=100.0, ask=101.0, ts=now - timedelta(seconds=20), last=100.5),
         "NOBID": Quote(bid=None, ask=101.0, ts=now, last=100.0),
         "NOASK": Quote(bid=100.0, ask=None, ts=now, last=100.0),
+        "NOSIDES": Quote(bid=None, ask=None, ts=now, last=100.0),
     }
     return FakeQuoteProvider(quotes)
 
@@ -25,13 +26,22 @@ def test_quote_staleness(fake_quote_provider: FakeQuoteProvider) -> None:
 
 
 def test_fake_quote_provider_missing_bid(fake_quote_provider: FakeQuoteProvider) -> None:
-    with pytest.raises(ValueError, match="missing bid"):
-        fake_quote_provider.get_quote("NOBID")
+    quote = fake_quote_provider.get_quote("NOBID")
+    assert quote.bid is None
+    assert quote.ask == pytest.approx(101.0)
 
 
 def test_fake_quote_provider_missing_ask(fake_quote_provider: FakeQuoteProvider) -> None:
-    with pytest.raises(ValueError, match="missing ask"):
-        fake_quote_provider.get_quote("NOASK")
+    quote = fake_quote_provider.get_quote("NOASK")
+    assert quote.ask is None
+    assert quote.bid == pytest.approx(100.0)
+
+
+def test_fake_quote_provider_missing_bid_and_ask(
+    fake_quote_provider: FakeQuoteProvider,
+) -> None:
+    with pytest.raises(ValueError, match="missing bid and ask"):
+        fake_quote_provider.get_quote("NOSIDES")
 
 
 def test_mid_raises_when_no_sides() -> None:

@@ -79,10 +79,8 @@ class FakeQuoteProvider:
             msg = f"No quote available for {symbol}"
             raise KeyError(msg)
         quote = self._quotes[symbol]
-        if quote.bid is None:
-            raise ValueError(f"Quote for {symbol} missing bid")
-        if quote.ask is None:
-            raise ValueError(f"Quote for {symbol} missing ask")
+        if quote.bid is None and quote.ask is None:
+            raise ValueError(f"Quote for {symbol} missing bid and ask")
         return quote
 
     def get_price(
