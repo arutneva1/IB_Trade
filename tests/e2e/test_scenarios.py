@@ -224,6 +224,14 @@ def test_scenarios(fixture_path: Path) -> None:
                 else info["symbol"]
             )
             quote = scenario.quotes[key]
+            if fixture_path.stem == "spread_aware_limits":
+                assert info["limit_price"] is not None
+                if info["side"] == "BUY":
+                    assert quote.ask is not None
+                    assert info["limit_price"] == pytest.approx(quote.ask)
+                else:
+                    assert quote.bid is not None
+                    assert info["limit_price"] == pytest.approx(quote.bid)
             if info["sec_type"] == "CASH":
                 if info["limit_price"] is not None:
                     if info["side"] == "BUY":
