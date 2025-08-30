@@ -13,17 +13,18 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from .account_state import AccountSnapshot, compute_account_state
+from .ibkr_provider import FakeIB, IBKRProvider, IBKRProviderOptions, LiveIB
+from .pricing import IBKRQuoteProvider
+from .scenario_runner import ScenarioRunResult, run_scenario
+
+
 # Expose the directory containing the wrapper script on PATH so the tests can
 # find it without installing the package.  This mirrors the behaviour of an
 # installed console script.
 _dir = Path(__file__).resolve().parent
 if str(_dir) not in os.environ.get("PATH", "").split(os.pathsep):  # pragma: no cover
     os.environ["PATH"] = f"{_dir}{os.pathsep}" + os.environ.get("PATH", "")
-
-from .account_state import AccountSnapshot, compute_account_state
-from .ibkr_provider import FakeIB, IBKRProvider, IBKRProviderOptions, LiveIB
-from .pricing import IBKRQuoteProvider
-from .scenario_runner import ScenarioRunResult, run_scenario
 
 __all__ = [
     "AccountSnapshot",
