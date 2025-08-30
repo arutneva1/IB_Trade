@@ -609,4 +609,4 @@ def test_cli_runtime_error_exit_code(tmp_path: Path, monkeypatch: pytest.MonkeyP
 
 def test_cli_unknown_error_exit_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     result = _invoke_with_exception(tmp_path, monkeypatch, UnknownError("oops"))
-    assert result.exit_code == ExitCode.UNKNOWN
+    assert result.exit_code == 5  # ExitCode.UNKNOWN
