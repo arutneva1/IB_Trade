@@ -62,7 +62,7 @@ ib-rebalance rebalance \
 Or run an offline scenario:
 
 ```bash
-ib-rebalance --scenario examples/scenario.yml --output-dir reports
+ib-rebalance scenario --file examples/scenario.yml --output-dir reports
 ```
 
 Display a previously generated report:
@@ -103,11 +103,9 @@ commands. Display the installed version with `ib-rebalance --version`.
 
 Global flags control behaviour: `--report-only`, `--dry-run`,
 `--paper/--no-paper` (paper is the default), `--live`, `--yes`,
-`--log-level`, `--log-json/--log-text`, `--kill-switch PATH` to override the
-default kill switch file, `--output-dir PATH` to choose a report directory,
-`--ask-bid-cap/--no-ask-bid-cap` to toggle the NBBO cap on limit prices, and
-`--scenario PATH` to execute a YAML-defined end-to-end scenario instead of loading
-CSV/INI inputs. Use `--version` to print the installed package version and exit.
+`--log-level`, `--log-json/--log-text`, and `--kill-switch PATH` to override the
+default kill switch file. Use `--version` to print the installed package version
+and exit. Execute YAML-defined end-to-end scenarios via `ib-rebalance scenario`.
 
 To change the NBBO cap from the command line:
 
@@ -167,7 +165,7 @@ End-to-end scenarios exercise the full workflow offline using fake brokers and
 quotes. Run one with:
 
 ```bash
-python -m ibkr_etf_rebalancer.app --scenario tests/e2e/fixtures/no_trade_within_band.yml
+ib-rebalance scenario --file tests/e2e/fixtures/no_trade_within_band.yml
 ```
 
 Reports and an event log are written to the directory configured by
