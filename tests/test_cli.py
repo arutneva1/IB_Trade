@@ -255,6 +255,38 @@ def test_pre_trade_cli_as_of(tmp_path: Path) -> None:
     assert log.exists()
 
 
+@pytest.mark.parametrize("log_json", [False, True])
+def test_pre_trade_cli_log_redaction(tmp_path: Path, log_json: bool) -> None:
+    config, portfolios, positions = _write_basic_files(tmp_path, report_dir=tmp_path)
+
+    args = [
+        "pre-trade",
+        "--config",
+        str(config),
+        "--portfolios",
+        str(portfolios),
+        "--positions",
+        str(positions),
+        "--cash",
+        "USD=0",
+        "--output-dir",
+        str(tmp_path),
+    ]
+    if log_json:
+        args.insert(0, "--log-json")
+
+    with freeze_time("2024-01-01 12:00:00"):
+        result = runner.invoke(app, args)
+
+    assert result.exit_code == 0
+    log = tmp_path / "run_20240101T120000.log"
+    text = log.read_text()
+    assert "account" in text
+    assert "DU123" not in text
+    assert "localhost" not in text
+    assert "7497" not in text
+
+
 @pytest.mark.parametrize(
     "flag",
     ["--report-only", "--dry-run", "--paper", "--live", "--yes", "--kill-switch"],
@@ -341,6 +373,39 @@ def test_rebalance_cli_dry_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     assert result.exit_code == 0
     log = tmp_path / "run_20240101T150000.log"
     assert log.exists()
+
+
+@pytest.mark.parametrize("log_json", [False, True])
+def test_rebalance_cli_log_redaction(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, log_json: bool
+) -> None:
+    config, portfolios = _write_rebalance_files(tmp_path, report_dir=tmp_path)
+    monkeypatch.setattr(app_module, "_connect_ibkr", lambda opts: _fake_ib())
+
+    args = [
+        "--dry-run",
+        "--yes",
+        "rebalance",
+        "--config",
+        str(config),
+        "--portfolios",
+        str(portfolios),
+        "--output-dir",
+        str(tmp_path),
+    ]
+    if log_json:
+        args.insert(0, "--log-json")
+
+    with freeze_time("2024-01-01 15:00:00"):
+        result = runner.invoke(app, args)
+
+    assert result.exit_code == 0
+    log = tmp_path / "run_20240101T150000.log"
+    text = log.read_text()
+    assert "account" in text
+    assert "DU123" not in text
+    assert "localhost" not in text
+    assert "7497" not in text
 
 
 def test_rebalance_cli_as_of(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
