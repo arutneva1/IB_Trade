@@ -3,7 +3,7 @@
 This project automates rebalancing of ETF portfolios via Interactive Brokers. It loads model portfolios, blends them according to configured weights, compares current holdings, and generates orders to bring the account back to target allocations.
 
 > **Warning:** Trading is risky. Use at your own risk. Always test in paper mode and configure a kill switch file before placing live orders.
-> Orders are priced with spread-aware limits to avoid crossing the bid/ask spread.
+> Orders are priced with spread-aware limits to avoid crossing the bid/ask spread. Limit prices also respect a National Best Bid and Offer (NBBO) cap by default: bids never exceed the best ask and offers never drop below the best bid. This behaviour is governed by `[limits].use_ask_bid_cap` and may be toggled per run with `--ask-bid-cap` or `--no-ask-bid-cap`.
 
 ## Project Status
 
@@ -104,9 +104,20 @@ commands. Display the installed version with `ib-rebalance --version`.
 Global flags control behaviour: `--report-only`, `--dry-run`,
 `--paper/--no-paper` (paper is the default), `--live`, `--yes`,
 `--log-level`, `--log-json/--log-text`, `--kill-switch PATH` to override the
-default kill switch file, and `--scenario PATH` to execute a YAML-defined
+default kill switch file, `--ask-bid-cap/--no-ask-bid-cap` to toggle the NBBO
+cap on limit prices, and `--scenario PATH` to execute a YAML-defined
 end-to-end scenario instead of loading CSV/INI inputs. Use `--version` to print the
 installed package version and exit.
+
+To change the NBBO cap from the command line:
+
+```bash
+# disable the cap
+ib-rebalance pre-trade --no-ask-bid-cap ...
+
+# force-enable the cap
+ib-rebalance pre-trade --ask-bid-cap ...
+```
 
 ### Configuration precedence
 
