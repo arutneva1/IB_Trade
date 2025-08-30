@@ -54,6 +54,7 @@ def _parse_order(text: str) -> dict[str, str]:
 
 def _write_basic_files(tmp_path: Path, report_dir: Path | None = None) -> tuple[Path, Path, Path]:
     config = tmp_path / "config.ini"
+    report_dir_line = f"report_dir = {report_dir}\n" if report_dir else ""
     config.write_text(
         "[ibkr]\n"
         "account = DU123\n\n"
@@ -66,8 +67,7 @@ def _write_basic_files(tmp_path: Path, report_dir: Path | None = None) -> tuple[
         "[fx]\n"
         "[limits]\n"
         "[safety]\n"
-        "[io]\n"
-        f"{'report_dir = ' + str(report_dir) + '\n' if report_dir else ''}"
+        "[io]\n" + report_dir_line
     )
 
     portfolios = tmp_path / "portfolios.csv"
@@ -83,6 +83,7 @@ def _write_basic_files(tmp_path: Path, report_dir: Path | None = None) -> tuple[
 
 def _write_rebalance_files(tmp_path: Path, report_dir: Path | None = None) -> tuple[Path, Path]:
     config = tmp_path / "config.ini"
+    report_dir_line = f"report_dir = {report_dir}\n" if report_dir else ""
     config.write_text(
         "[ibkr]\n"
         "account = DU123\n\n"
@@ -101,8 +102,7 @@ def _write_rebalance_files(tmp_path: Path, report_dir: Path | None = None) -> tu
         "min_fx_order_usd = 10\n\n"
         "[limits]\n"
         "[safety]\n"
-        "[io]\n"
-        f"{'report_dir = ' + str(report_dir) + '\n' if report_dir else ''}"
+        "[io]\n" + report_dir_line
     )
 
     portfolios = tmp_path / "portfolios.csv"
