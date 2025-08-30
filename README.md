@@ -104,10 +104,10 @@ commands. Display the installed version with `ib-rebalance --version`.
 Global flags control behaviour: `--report-only`, `--dry-run`,
 `--paper/--no-paper` (paper is the default), `--live`, `--yes`,
 `--log-level`, `--log-json/--log-text`, `--kill-switch PATH` to override the
-default kill switch file, `--ask-bid-cap/--no-ask-bid-cap` to toggle the NBBO
-cap on limit prices, and `--scenario PATH` to execute a YAML-defined
-end-to-end scenario instead of loading CSV/INI inputs. Use `--version` to print the
-installed package version and exit.
+default kill switch file, `--output-dir PATH` to choose a report directory,
+`--ask-bid-cap/--no-ask-bid-cap` to toggle the NBBO cap on limit prices, and
+`--scenario PATH` to execute a YAML-defined end-to-end scenario instead of loading
+CSV/INI inputs. Use `--version` to print the installed package version and exit.
 
 To change the NBBO cap from the command line:
 

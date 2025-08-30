@@ -327,12 +327,15 @@ def test_scenario_flag(tmp_path: Path) -> None:
     fixture = Path(__file__).resolve().parent / "e2e/fixtures/no_trade_within_band.yml"
     scenario_path = tmp_path / "scenario.yml"
     scenario_path.write_text(fixture.read_text().replace("min_order_usd: 0", "min_order_usd: 1e-9"))
+    out_dir = tmp_path / "custom"
     with runner.isolated_filesystem(temp_dir=tmp_path):
-        result = runner.invoke(app, ["--yes", "--scenario", str(scenario_path)])
+        result = runner.invoke(
+            app,
+            ["--yes", "--output-dir", str(out_dir), "--scenario", str(scenario_path)],
+        )
         assert result.exit_code == 0
-        report_dir = Path("reports")
-        csv = report_dir / "pre_trade_report_20240101T100000.csv"
-        md = report_dir / "pre_trade_report_20240101T100000.md"
+        csv = out_dir / "pre_trade_report_20240101T100000.csv"
+        md = out_dir / "pre_trade_report_20240101T100000.md"
         assert csv.exists()
         assert md.exists()
 
