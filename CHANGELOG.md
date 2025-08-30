@@ -5,8 +5,6 @@
 
 ## [0.1.1] - 2025-08-30
 - feat: add `ib-rebalance` CLI entry point via project scripts.
-
-## Phase 8
 - feat(cli): add `rebalance` command for full end-to-end rebalances.
 - feat(package): publish `ib-rebalance` console script for packaging.
 - feat(logging): run-scoped log files with level and JSON format options. [SRS AC7][SRS AC10]
