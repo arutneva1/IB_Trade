@@ -52,26 +52,22 @@ def _parse_order(text: str) -> dict[str, str]:
     return {"symbol": m.group("symbol"), "side": side.group("side") if side else ""}
 
 
-def _write_basic_files(tmp_path: Path) -> tuple[Path, Path, Path]:
+def _write_basic_files(tmp_path: Path, report_dir: Path | None = None) -> tuple[Path, Path, Path]:
     config = tmp_path / "config.ini"
     config.write_text(
-        """
-[ibkr]
-account = DU123
-
-[models]
-SMURF = 0.5
-BADASS = 0.3
-GLTR = 0.2
-
-[rebalance]
-cash_buffer_pct = 0
-
-[fx]
-[limits]
-[safety]
-[io]
-"""
+        "[ibkr]\n"
+        "account = DU123\n\n"
+        "[models]\n"
+        "SMURF = 0.5\n"
+        "BADASS = 0.3\n"
+        "GLTR = 0.2\n\n"
+        "[rebalance]\n"
+        "cash_buffer_pct = 0\n\n"
+        "[fx]\n"
+        "[limits]\n"
+        "[safety]\n"
+        "[io]\n"
+        f"{'report_dir = ' + str(report_dir) + '\n' if report_dir else ''}"
     )
 
     portfolios = tmp_path / "portfolios.csv"
@@ -85,33 +81,28 @@ cash_buffer_pct = 0
     return config, portfolios, positions
 
 
-def _write_rebalance_files(tmp_path: Path) -> tuple[Path, Path]:
+def _write_rebalance_files(tmp_path: Path, report_dir: Path | None = None) -> tuple[Path, Path]:
     config = tmp_path / "config.ini"
     config.write_text(
-        """
-[ibkr]
-account = DU123
-
-[models]
-SMURF = 0.5
-BADASS = 0.3
-GLTR = 0.2
-
-[rebalance]
-cash_buffer_pct = 0
-min_order_usd = 0.01
-
-[fx]
-enabled = true
-base_currency = USD
-funding_currencies = CAD
-wait_for_fill_seconds = 0
-min_fx_order_usd = 10
-
-[limits]
-[safety]
-[io]
-"""
+        "[ibkr]\n"
+        "account = DU123\n\n"
+        "[models]\n"
+        "SMURF = 0.5\n"
+        "BADASS = 0.3\n"
+        "GLTR = 0.2\n\n"
+        "[rebalance]\n"
+        "cash_buffer_pct = 0\n"
+        "min_order_usd = 0.01\n\n"
+        "[fx]\n"
+        "enabled = true\n"
+        "base_currency = USD\n"
+        "funding_currencies = CAD\n"
+        "wait_for_fill_seconds = 0\n"
+        "min_fx_order_usd = 10\n\n"
+        "[limits]\n"
+        "[safety]\n"
+        "[io]\n"
+        f"{'report_dir = ' + str(report_dir) + '\n' if report_dir else ''}"
     )
 
     portfolios = tmp_path / "portfolios.csv"
@@ -154,7 +145,7 @@ def _fake_ib() -> FakeIB:
 
 
 def test_pre_trade_cli(tmp_path: Path) -> None:
-    config, portfolios, positions = _write_basic_files(tmp_path)
+    config, portfolios, positions = _write_basic_files(tmp_path, report_dir=tmp_path)
 
     with freeze_time("2024-01-01 12:00:00"):
         result = runner.invoke(
@@ -179,6 +170,8 @@ def test_pre_trade_cli(tmp_path: Path) -> None:
     md = tmp_path / "pre_trade_report_20240101T120000.md"
     assert csv.exists()
     assert md.exists()
+    log = tmp_path / "run_20240101T120000.log"
+    assert log.exists()
 
 
 @pytest.mark.parametrize(
@@ -244,7 +237,7 @@ def test_scenario_forces_paper(tmp_path: Path, flag: str) -> None:
 
 
 def test_rebalance_cli_dry_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    config, portfolios = _write_rebalance_files(tmp_path)
+    config, portfolios = _write_rebalance_files(tmp_path, report_dir=tmp_path)
     monkeypatch.setattr(app_module, "_connect_ibkr", lambda opts: _fake_ib())
     with freeze_time("2024-01-01 15:00:00"):
         result = runner.invoke(
@@ -262,6 +255,8 @@ def test_rebalance_cli_dry_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
             ],
         )
     assert result.exit_code == 0
+    log = tmp_path / "run_20240101T150000.log"
+    assert log.exists()
 
 
 @pytest.mark.parametrize("flag", ["--no-paper", "--live"])
@@ -310,3 +305,51 @@ def test_rebalance_cli_event_log_order(tmp_path: Path, monkeypatch: pytest.Monke
     placed = [_parse_order(e["order"]) for e in events if e["type"] == "placed"]
     assert [p["symbol"] for p in placed] == ["USD", "BBB", "AAA"]
     assert [p["side"] for p in placed] == ["BUY", "SELL", "BUY"]
+
+
+def test_log_level_toggle(tmp_path: Path) -> None:
+    config, portfolios, positions = _write_basic_files(tmp_path, report_dir=tmp_path)
+
+    with freeze_time("2024-01-01 12:00:00"):
+        result = runner.invoke(
+            app,
+            [
+                "pre-trade",
+                "--config",
+                str(config),
+                "--portfolios",
+                str(portfolios),
+                "--positions",
+                str(positions),
+                "--cash",
+                "USD=0",
+                "--output-dir",
+                str(tmp_path),
+            ],
+        )
+    assert result.exit_code == 0
+    log = tmp_path / "run_20240101T120000.log"
+    assert "CLI options" not in log.read_text()
+
+    with freeze_time("2024-01-01 12:00:01"):
+        result = runner.invoke(
+            app,
+            [
+                "--log-level",
+                "DEBUG",
+                "pre-trade",
+                "--config",
+                str(config),
+                "--portfolios",
+                str(portfolios),
+                "--positions",
+                str(positions),
+                "--cash",
+                "USD=0",
+                "--output-dir",
+                str(tmp_path),
+            ],
+        )
+    assert result.exit_code == 0
+    log2 = tmp_path / "run_20240101T120001.log"
+    assert "CLI options" in log2.read_text()

@@ -40,6 +40,7 @@ import csv
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
+import logging
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Iterable, Any, Mapping, cast
@@ -64,6 +65,7 @@ from .rebalance_engine import plan_rebalance_with_fx
 from .reporting import generate_post_trade_report, generate_pre_trade_report
 from .target_blender import blend_targets
 from .util import from_bps
+from .logging_utils import setup_logging
 
 
 app = typer.Typer(help="Utilities for running pre-trade reports and scenarios")
@@ -78,6 +80,8 @@ class CLIOptions:
     paper: bool = True
     live: bool = False
     yes: bool = False
+    log_level: str = "INFO"
+    log_json: bool = False
 
 
 @app.callback(invoke_without_command=True)
@@ -92,6 +96,12 @@ def main(
     ),
     live: bool = typer.Option(False, "--live", help="Use the live trading environment"),
     yes: bool = typer.Option(False, "--yes", help="Assume yes for all confirmations"),
+    log_level: str = typer.Option("INFO", "--log-level", help="Logging verbosity"),
+    log_json: bool = typer.Option(
+        False,
+        "--log-json/--log-text",
+        help="Write JSON logs instead of plain text",
+    ),
     scenario: Path | None = typer.Option(
         None,
         "--scenario",
@@ -107,6 +117,8 @@ def main(
         paper=paper,
         live=live,
         yes=yes,
+        log_level=log_level,
+        log_json=log_json,
     )
     # Run a pre-canned scenario and exit when requested.
     if scenario is not None:
@@ -192,6 +204,11 @@ def pre_trade(
 
     cfg = load_config(config)
 
+    setup_logging(Path(cfg.io.report_dir), level=options.log_level, json_logs=options.log_json)
+    logger = logging.getLogger(__name__)
+    logger.info("config: %s", json.dumps(cfg.model_dump(), default=str))
+    logger.debug("CLI options: %s", options)
+
     _exec_opts = OrderExecutionOptions(
         report_only=options.report_only,
         dry_run=options.dry_run,
@@ -265,6 +282,11 @@ def rebalance(
 
     options: CLIOptions = ctx.obj if isinstance(ctx.obj, CLIOptions) else CLIOptions()
     cfg = load_config(config)
+
+    setup_logging(Path(cfg.io.report_dir), level=options.log_level, json_logs=options.log_json)
+    logger = logging.getLogger(__name__)
+    logger.info("config: %s", json.dumps(cfg.model_dump(), default=str))
+    logger.debug("CLI options: %s", options)
 
     safety.check_kill_switch(cfg.safety.kill_switch_file)
     safety.ensure_paper_trading(options.paper, options.live)
