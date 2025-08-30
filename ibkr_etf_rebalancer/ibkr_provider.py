@@ -309,6 +309,7 @@ class FakeIB:
         symbol_overrides: Mapping[str, str | Contract] | None = None,
         concurrency_limit: int | None = None,
         pacing_hook: Callable[[int], None] | None = None,
+        fill_fractions: Mapping[str, float] | None = None,
     ) -> None:
         self.options = options or IBKRProviderOptions()
         self._contracts: dict[str, Contract] = dict(contracts or {})
@@ -328,6 +329,9 @@ class FakeIB:
         self._last_ts = datetime.now(timezone.utc)
         self._concurrency_limit = concurrency_limit
         self._pacing_hook = pacing_hook
+        self._fill_fractions: dict[str, float] = {
+            k: v for k, v in (fill_fractions or {}).items() if v is not None
+        }
 
     # ------------------------------------------------------------------
     # state helpers
@@ -479,17 +483,26 @@ class FakeIB:
                 unfilled = True
                 continue
 
+            fraction = self._fill_fractions.get(order.contract.symbol, 1.0)
+            if fraction <= 0:
+                unfilled = True
+                continue
+            qty = order.quantity * fraction
             fill = Fill(
                 contract=order.contract,
                 side=order.side,
-                quantity=order.quantity,
+                quantity=qty,
                 price=price,
                 timestamp=self._timestamp(),
-                order_id=oid,
+                order_id=oid if fraction >= 1.0 else None,
             )
             fills.append(fill)
             self._log_event("filled", oid, fill=fill)
-            self._orders.pop(oid, None)
+            if fraction >= 1.0:
+                self._orders.pop(oid, None)
+            else:
+                remaining = replace(order, quantity=order.quantity - qty)
+                self._orders[oid] = remaining
         if unfilled and timeout is not None:
             raise TimeoutError
         return fills

@@ -101,6 +101,8 @@ _ORDER_RE = re.compile(
 )
 _SIDE_RE = re.compile(r"OrderSide.(?P<side>BUY|SELL)")
 _LIMIT_RE = re.compile(r"limit_price=(?P<price>[0-9.]+)")
+_QTY_RE = re.compile(r"quantity=(?P<qty>[0-9.]+)")
+_PRICE_RE = re.compile(r"price=(?P<price>[0-9.]+)")
 
 
 def _parse_order(text: str) -> dict[str, Any]:
@@ -109,12 +111,31 @@ def _parse_order(text: str) -> dict[str, Any]:
         raise AssertionError(f"cannot parse order: {text}")
     side = _SIDE_RE.search(text)
     limit = _LIMIT_RE.search(text)
+    qty = _QTY_RE.search(text)
     return {
         "symbol": m.group("symbol"),
         "sec_type": m.group("sec_type"),
         "currency": m.group("currency"),
         "side": side.group("side") if side else None,
         "limit_price": float(limit.group("price")) if limit else None,
+        "quantity": float(qty.group("qty")) if qty else None,
+    }
+
+
+def _parse_fill(text: str) -> dict[str, Any]:
+    m = _ORDER_RE.search(text)
+    if not m:
+        raise AssertionError(f"cannot parse fill: {text}")
+    side = _SIDE_RE.search(text)
+    qty = _QTY_RE.search(text)
+    price = _PRICE_RE.search(text)
+    return {
+        "symbol": m.group("symbol"),
+        "sec_type": m.group("sec_type"),
+        "currency": m.group("currency"),
+        "side": side.group("side") if side else None,
+        "quantity": float(qty.group("qty")) if qty else None,
+        "price": float(price.group("price")) if price else None,
     }
 
 
@@ -181,6 +202,13 @@ def test_scenarios(fixture_path: Path) -> None:
             assert any(e["type"] == "canceled" for e in events)
         if fixture_path.stem == "timeout_or_partial":
             assert result2.execution.timed_out
+        if fixture_path.stem == "partial_fill":
+            fills = [e for e in events if e["type"] == "filled"]
+            canceled = [e for e in events if e["type"] == "canceled"]
+            assert fills and canceled
+            fill_info = _parse_fill(fills[0]["fill"])
+            order_info = _parse_order(placed[0]["order"])
+            assert fill_info["quantity"] < order_info["quantity"]
         exec_cap = scenario.config_overrides.get("execution", {}).get("concurrency_cap")
         fake_ib_limit = scenario.config_overrides.get("fake_ib", {}).get("concurrency_limit")
         if exec_cap == 1 and fake_ib_limit == 1:
