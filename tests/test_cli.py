@@ -174,6 +174,37 @@ def test_pre_trade_cli(tmp_path: Path) -> None:
     assert log.exists()
 
 
+def test_pre_trade_cli_as_of(tmp_path: Path) -> None:
+    config, portfolios, positions = _write_basic_files(tmp_path, report_dir=tmp_path)
+
+    result = runner.invoke(
+        app,
+        [
+            "pre-trade",
+            "--config",
+            str(config),
+            "--portfolios",
+            str(portfolios),
+            "--positions",
+            str(positions),
+            "--cash",
+            "USD=0",
+            "--output-dir",
+            str(tmp_path),
+            "--as-of",
+            "2024-02-01T10:30:00",
+        ],
+    )
+
+    assert result.exit_code == 0
+    csv = tmp_path / "pre_trade_report_20240201T103000.csv"
+    md = tmp_path / "pre_trade_report_20240201T103000.md"
+    log = tmp_path / "run_20240201T103000.log"
+    assert csv.exists()
+    assert md.exists()
+    assert log.exists()
+
+
 @pytest.mark.parametrize(
     "flag",
     ["--report-only", "--dry-run", "--paper", "--live", "--yes"],
@@ -256,6 +287,41 @@ def test_rebalance_cli_dry_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
         )
     assert result.exit_code == 0
     log = tmp_path / "run_20240101T150000.log"
+    assert log.exists()
+
+
+def test_rebalance_cli_as_of(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config, portfolios = _write_rebalance_files(tmp_path, report_dir=tmp_path)
+    monkeypatch.setattr(app_module, "_connect_ibkr", lambda opts: _fake_ib())
+    with freeze_time("2024-01-01 15:00:00"):
+        result = runner.invoke(
+            app,
+            [
+                "--dry-run",
+                "--yes",
+                "rebalance",
+                "--config",
+                str(config),
+                "--portfolios",
+                str(portfolios),
+                "--output-dir",
+                str(tmp_path),
+                "--as-of",
+                "2024-02-01T15:00:00",
+            ],
+        )
+    assert result.exit_code == 0
+    pre_csv = tmp_path / "pre_trade_report_20240201T150000.csv"
+    pre_md = tmp_path / "pre_trade_report_20240201T150000.md"
+    post_csv = tmp_path / "post_trade_report_20240201T150000.csv"
+    post_md = tmp_path / "post_trade_report_20240201T150000.md"
+    event_log = tmp_path / "event_log_20240201T150000.json"
+    log = tmp_path / "run_20240201T150000.log"
+    assert pre_csv.exists()
+    assert pre_md.exists()
+    assert post_csv.exists()
+    assert post_md.exists()
+    assert event_log.exists()
     assert log.exists()
 
 

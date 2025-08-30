@@ -33,6 +33,7 @@ def setup_logging(
     *,
     level: str = "INFO",
     json_logs: bool = False,
+    as_of: datetime | None = None,
 ) -> Tuple[Path, str]:
     """Configure global logging.
 
@@ -52,7 +53,12 @@ def setup_logging(
     """
 
     global _RUN_ID
-    _RUN_ID = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    ts = as_of or datetime.now(timezone.utc)
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    else:
+        ts = ts.astimezone(timezone.utc)
+    _RUN_ID = ts.strftime("%Y%m%dT%H%M%S")
     report_dir.mkdir(parents=True, exist_ok=True)
     log_path = report_dir / f"run_{_RUN_ID}.log"
 
