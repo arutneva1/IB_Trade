@@ -158,7 +158,9 @@ def _fake_ib() -> FakeIB:
 
 
 def test_pre_trade_cli(tmp_path: Path) -> None:
-    config, portfolios, positions = _write_basic_files(tmp_path, report_dir=tmp_path)
+    config_dir = tmp_path / "config_reports"
+    out_dir = tmp_path / "cli_reports"
+    config, portfolios, positions = _write_basic_files(tmp_path, report_dir=config_dir)
 
     with freeze_time("2024-01-01 12:00:00"):
         result = runner.invoke(
@@ -174,23 +176,26 @@ def test_pre_trade_cli(tmp_path: Path) -> None:
                 "--cash",
                 "USD=0",
                 "--output-dir",
-                str(tmp_path),
+                str(out_dir),
             ],
         )
 
     assert result.exit_code == 0
-    csv = tmp_path / "pre_trade_report_20240101T120000.csv"
-    md = tmp_path / "pre_trade_report_20240101T120000.md"
+    csv = out_dir / "pre_trade_report_20240101T120000.csv"
+    md = out_dir / "pre_trade_report_20240101T120000.md"
     assert csv.exists()
     assert md.exists()
-    log = tmp_path / "run_20240101T120000.log"
+    log = out_dir / "run_20240101T120000.log"
     assert log.exists()
+    assert not (config_dir / "run_20240101T120000.log").exists()
 
 
 def test_pre_trade_cli_json_logging(tmp_path: Path) -> None:
     """CLI writes JSON formatted logs when --log-json is used."""
 
-    config, portfolios, positions = _write_basic_files(tmp_path, report_dir=tmp_path)
+    config_dir = tmp_path / "config_reports"
+    out_dir = tmp_path / "cli_reports"
+    config, portfolios, positions = _write_basic_files(tmp_path, report_dir=config_dir)
 
     with freeze_time("2024-01-01 12:00:00"):
         result = runner.invoke(
@@ -207,12 +212,12 @@ def test_pre_trade_cli_json_logging(tmp_path: Path) -> None:
                 "--cash",
                 "USD=0",
                 "--output-dir",
-                str(tmp_path),
+                str(out_dir),
             ],
         )
 
     assert result.exit_code == 0
-    log = tmp_path / "run_20240101T120000.log"
+    log = out_dir / "run_20240101T120000.log"
     assert log.exists()
     entries = [json.loads(line) for line in log.read_text().splitlines() if line.strip()]
     assert entries
@@ -223,10 +228,13 @@ def test_pre_trade_cli_json_logging(tmp_path: Path) -> None:
         assert entry["run_id"] == run_id
         # time is ISO formatted and parseable
         datetime.strptime(entry["time"], "%Y-%m-%dT%H:%M:%S%z")
+    assert not (config_dir / "run_20240101T120000.log").exists()
 
 
 def test_pre_trade_cli_as_of(tmp_path: Path) -> None:
-    config, portfolios, positions = _write_basic_files(tmp_path, report_dir=tmp_path)
+    config_dir = tmp_path / "config_reports"
+    out_dir = tmp_path / "cli_reports"
+    config, portfolios, positions = _write_basic_files(tmp_path, report_dir=config_dir)
 
     result = runner.invoke(
         app,
@@ -241,24 +249,27 @@ def test_pre_trade_cli_as_of(tmp_path: Path) -> None:
             "--cash",
             "USD=0",
             "--output-dir",
-            str(tmp_path),
+            str(out_dir),
             "--as-of",
             "2024-02-01T10:30:00",
         ],
     )
 
     assert result.exit_code == 0
-    csv = tmp_path / "pre_trade_report_20240201T103000.csv"
-    md = tmp_path / "pre_trade_report_20240201T103000.md"
-    log = tmp_path / "run_20240201T103000.log"
+    csv = out_dir / "pre_trade_report_20240201T103000.csv"
+    md = out_dir / "pre_trade_report_20240201T103000.md"
+    log = out_dir / "run_20240201T103000.log"
     assert csv.exists()
     assert md.exists()
     assert log.exists()
+    assert not (config_dir / "run_20240201T103000.log").exists()
 
 
 @pytest.mark.parametrize("log_json", [False, True])
 def test_pre_trade_cli_log_redaction(tmp_path: Path, log_json: bool) -> None:
-    config, portfolios, positions = _write_basic_files(tmp_path, report_dir=tmp_path)
+    config_dir = tmp_path / "config_reports"
+    out_dir = tmp_path / "cli_reports"
+    config, portfolios, positions = _write_basic_files(tmp_path, report_dir=config_dir)
 
     args = [
         "pre-trade",
@@ -271,7 +282,7 @@ def test_pre_trade_cli_log_redaction(tmp_path: Path, log_json: bool) -> None:
         "--cash",
         "USD=0",
         "--output-dir",
-        str(tmp_path),
+        str(out_dir),
     ]
     if log_json:
         args.insert(0, "--log-json")
@@ -280,12 +291,13 @@ def test_pre_trade_cli_log_redaction(tmp_path: Path, log_json: bool) -> None:
         result = runner.invoke(app, args)
 
     assert result.exit_code == 0
-    log = tmp_path / "run_20240101T120000.log"
+    log = out_dir / "run_20240101T120000.log"
     text = log.read_text()
     assert "account" in text
     assert "DU123" not in text
     assert "localhost" not in text
     assert "7497" not in text
+    assert not (config_dir / "run_20240101T120000.log").exists()
 
 
 @pytest.mark.parametrize(
@@ -357,7 +369,9 @@ def test_scenario_forces_paper(tmp_path: Path, flag: str) -> None:
 
 
 def test_rebalance_cli_dry_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    config, portfolios = _write_rebalance_files(tmp_path, report_dir=tmp_path)
+    config_dir = tmp_path / "config_reports"
+    out_dir = tmp_path / "cli_reports"
+    config, portfolios = _write_rebalance_files(tmp_path, report_dir=config_dir)
     monkeypatch.setattr(app_module, "_connect_ibkr", lambda opts: _fake_ib())
     with freeze_time("2024-01-01 15:00:00"):
         result = runner.invoke(
@@ -371,19 +385,22 @@ def test_rebalance_cli_dry_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
                 "--portfolios",
                 str(portfolios),
                 "--output-dir",
-                str(tmp_path),
+                str(out_dir),
             ],
         )
     assert result.exit_code == 0
-    log = tmp_path / "run_20240101T150000.log"
+    log = out_dir / "run_20240101T150000.log"
     assert log.exists()
+    assert not (config_dir / "run_20240101T150000.log").exists()
 
 
 @pytest.mark.parametrize("log_json", [False, True])
 def test_rebalance_cli_log_redaction(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, log_json: bool
 ) -> None:
-    config, portfolios = _write_rebalance_files(tmp_path, report_dir=tmp_path)
+    config_dir = tmp_path / "config_reports"
+    out_dir = tmp_path / "cli_reports"
+    config, portfolios = _write_rebalance_files(tmp_path, report_dir=config_dir)
     monkeypatch.setattr(app_module, "_connect_ibkr", lambda opts: _fake_ib())
 
     args = [
@@ -395,7 +412,7 @@ def test_rebalance_cli_log_redaction(
         "--portfolios",
         str(portfolios),
         "--output-dir",
-        str(tmp_path),
+        str(out_dir),
     ]
     if log_json:
         args.insert(0, "--log-json")
@@ -404,16 +421,19 @@ def test_rebalance_cli_log_redaction(
         result = runner.invoke(app, args)
 
     assert result.exit_code == 0
-    log = tmp_path / "run_20240101T150000.log"
+    log = out_dir / "run_20240101T150000.log"
     text = log.read_text()
     assert "account" in text
     assert "DU123" not in text
     assert "localhost" not in text
     assert "7497" not in text
+    assert not (config_dir / "run_20240101T150000.log").exists()
 
 
 def test_rebalance_cli_as_of(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    config, portfolios = _write_rebalance_files(tmp_path, report_dir=tmp_path)
+    config_dir = tmp_path / "config_reports"
+    out_dir = tmp_path / "cli_reports"
+    config, portfolios = _write_rebalance_files(tmp_path, report_dir=config_dir)
     monkeypatch.setattr(app_module, "_connect_ibkr", lambda opts: _fake_ib())
     with freeze_time("2024-01-01 15:00:00"):
         result = runner.invoke(
@@ -427,24 +447,25 @@ def test_rebalance_cli_as_of(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
                 "--portfolios",
                 str(portfolios),
                 "--output-dir",
-                str(tmp_path),
+                str(out_dir),
                 "--as-of",
                 "2024-02-01T15:00:00",
             ],
         )
     assert result.exit_code == 0
-    pre_csv = tmp_path / "pre_trade_report_20240201T150000.csv"
-    pre_md = tmp_path / "pre_trade_report_20240201T150000.md"
-    post_csv = tmp_path / "post_trade_report_20240201T150000.csv"
-    post_md = tmp_path / "post_trade_report_20240201T150000.md"
-    event_log = tmp_path / "event_log_20240201T150000.json"
-    log = tmp_path / "run_20240201T150000.log"
+    pre_csv = out_dir / "pre_trade_report_20240201T150000.csv"
+    pre_md = out_dir / "pre_trade_report_20240201T150000.md"
+    post_csv = out_dir / "post_trade_report_20240201T150000.csv"
+    post_md = out_dir / "post_trade_report_20240201T150000.md"
+    event_log = out_dir / "event_log_20240201T150000.json"
+    log = out_dir / "run_20240201T150000.log"
     assert pre_csv.exists()
     assert pre_md.exists()
     assert post_csv.exists()
     assert post_md.exists()
     assert event_log.exists()
     assert log.exists()
+    assert not (config_dir / "run_20240201T150000.log").exists()
 
 
 def test_rebalance_cli_no_paper_gating(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -674,7 +695,9 @@ def test_rebalance_cli_ask_bid_cap_toggle(tmp_path: Path, monkeypatch: pytest.Mo
 
 
 def test_log_level_toggle(tmp_path: Path) -> None:
-    config, portfolios, positions = _write_basic_files(tmp_path, report_dir=tmp_path)
+    config_dir = tmp_path / "config_reports"
+    out_dir = tmp_path / "cli_reports"
+    config, portfolios, positions = _write_basic_files(tmp_path, report_dir=config_dir)
 
     with freeze_time("2024-01-01 12:00:00"):
         result = runner.invoke(
@@ -690,11 +713,11 @@ def test_log_level_toggle(tmp_path: Path) -> None:
                 "--cash",
                 "USD=0",
                 "--output-dir",
-                str(tmp_path),
+                str(out_dir),
             ],
         )
     assert result.exit_code == 0
-    log = tmp_path / "run_20240101T120000.log"
+    log = out_dir / "run_20240101T120000.log"
     assert "CLI options" not in log.read_text()
 
     with freeze_time("2024-01-01 12:00:01"):
@@ -713,12 +736,13 @@ def test_log_level_toggle(tmp_path: Path) -> None:
                 "--cash",
                 "USD=0",
                 "--output-dir",
-                str(tmp_path),
+                str(out_dir),
             ],
         )
     assert result.exit_code == 0
-    log2 = tmp_path / "run_20240101T120001.log"
+    log2 = out_dir / "run_20240101T120001.log"
     assert "CLI options" in log2.read_text()
+    assert not config_dir.exists()
 
 
 def test_report_cli(tmp_path: Path) -> None:
