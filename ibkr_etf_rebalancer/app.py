@@ -49,6 +49,7 @@ from typing import Iterable, Any, Mapping, cast, Callable, TypeVar
 import typer
 
 from . import safety
+from .errors import ConfigError, SafetyError, RuntimeError, ExitCode
 from .account_state import compute_account_state
 from .config import load_config
 from .ibkr_provider import (
@@ -246,86 +247,95 @@ def pre_trade(
 ) -> None:
     """Generate a pre‑trade report using the supplied inputs."""
 
-    # Access global CLI options for future routing to downstream components.
-    options: CLIOptions = ctx.obj if isinstance(ctx.obj, CLIOptions) else CLIOptions()
-    _ibkr_opts = IBKRProviderOptions(
-        paper=options.paper,
-        live=options.live,
-        dry_run=options.dry_run,
-        kill_switch=str(options.kill_switch) if options.kill_switch else None,
-    )
+    try:
+        # Access global CLI options for future routing to downstream components.
+        options: CLIOptions = ctx.obj if isinstance(ctx.obj, CLIOptions) else CLIOptions()
+        _ibkr_opts = IBKRProviderOptions(
+            paper=options.paper,
+            live=options.live,
+            dry_run=options.dry_run,
+            kill_switch=str(options.kill_switch) if options.kill_switch else None,
+        )
 
-    cfg = load_config(config)
+        cfg = load_config(config)
 
-    as_of_dt = _parse_as_of(as_of)
+        as_of_dt = _parse_as_of(as_of)
 
-    setup_logging(
-        Path(cfg.io.report_dir),
-        level=options.log_level,
-        json_logs=options.log_json,
-        as_of=as_of_dt,
-    )
-    logger = logging.getLogger(__name__)
-    logger.info("config: %s", json.dumps(cfg.model_dump(), default=str))
-    logger.debug("CLI options: %s", options)
+        setup_logging(
+            Path(cfg.io.report_dir),
+            level=options.log_level,
+            json_logs=options.log_json,
+            as_of=as_of_dt,
+        )
+        logger = logging.getLogger(__name__)
+        logger.info("config: %s", json.dumps(cfg.model_dump(), default=str))
+        logger.debug("CLI options: %s", options)
 
-    _exec_opts = OrderExecutionOptions(
-        report_only=options.report_only,
-        dry_run=options.dry_run,
-        yes=options.yes,
-        require_confirm=cfg.safety.require_confirm,
-    )
+        _exec_opts = OrderExecutionOptions(
+            report_only=options.report_only,
+            dry_run=options.dry_run,
+            yes=options.yes,
+            require_confirm=cfg.safety.require_confirm,
+        )
 
-    portfolios_data = load_portfolios(
-        portfolios,
-        allow_margin=cfg.rebalance.allow_margin,
-        max_leverage=cfg.rebalance.max_leverage,
-    )
-    blend = blend_targets(portfolios_data, cfg.models)
+        portfolios_data = load_portfolios(
+            portfolios,
+            allow_margin=cfg.rebalance.allow_margin,
+            max_leverage=cfg.rebalance.max_leverage,
+        )
+        blend = blend_targets(portfolios_data, cfg.models)
 
-    pos: dict[str, float] = {}
-    prices: dict[str, float] = {}
-    with positions.open() as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            symbol = row["symbol"].strip().upper()
-            pos[symbol] = float(row["quantity"])
-            prices[symbol] = float(row["price"])
+        pos: dict[str, float] = {}
+        prices: dict[str, float] = {}
+        with positions.open() as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                symbol = row["symbol"].strip().upper()
+                pos[symbol] = float(row["quantity"])
+                prices[symbol] = float(row["price"])
 
-    cash_balances = _parse_cash(cash)
+        cash_balances = _parse_cash(cash)
 
-    snapshot = compute_account_state(
-        pos, prices, cash_balances, cash_buffer_pct=cfg.rebalance.cash_buffer_pct
-    )
+        snapshot = compute_account_state(
+            pos, prices, cash_balances, cash_buffer_pct=cfg.rebalance.cash_buffer_pct
+        )
 
-    report_dir = output_dir or Path(cfg.io.report_dir)
+        report_dir = output_dir or Path(cfg.io.report_dir)
 
-    result = generate_pre_trade_report(
-        blend.weights,
-        snapshot.weights,
-        prices,
-        snapshot.total_equity,
-        output_dir=report_dir,
-        as_of=as_of_dt,
-        net_liq=snapshot.total_equity,
-        cash_balances=snapshot.cash_by_currency,
-        cash_buffer=(
-            (snapshot.usd_cash * cfg.rebalance.cash_buffer_pct / 100.0)
-            if cfg.rebalance.cash_buffer_pct
-            else None
-        ),
-        min_order=cfg.rebalance.min_order_usd,
-    )
+        result = generate_pre_trade_report(
+            blend.weights,
+            snapshot.weights,
+            prices,
+            snapshot.total_equity,
+            output_dir=report_dir,
+            as_of=as_of_dt,
+            net_liq=snapshot.total_equity,
+            cash_balances=snapshot.cash_by_currency,
+            cash_buffer=(
+                (snapshot.usd_cash * cfg.rebalance.cash_buffer_pct / 100.0)
+                if cfg.rebalance.cash_buffer_pct
+                else None
+            ),
+            min_order=cfg.rebalance.min_order_usd,
+        )
 
-    # ``generate_pre_trade_report`` returns either the DataFrame or a tuple
-    # (df, csv_path, md_path) when output_dir is provided.
-    if isinstance(result, tuple):
-        df, csv_path, md_path = result
-        typer.echo(df.to_string(index=False))
-        typer.echo(f"CSV report written to {csv_path}")
-        typer.echo(f"Markdown report written to {md_path}")
-    else:  # pragma: no cover - defensive
-        typer.echo(result.to_string(index=False))
+        # ``generate_pre_trade_report`` returns either the DataFrame or a tuple
+        # (df, csv_path, md_path) when output_dir is provided.
+        if isinstance(result, tuple):
+            df, csv_path, md_path = result
+            typer.echo(df.to_string(index=False))
+            typer.echo(f"CSV report written to {csv_path}")
+            typer.echo(f"Markdown report written to {md_path}")
+        else:  # pragma: no cover - defensive
+            typer.echo(result.to_string(index=False))
+    except ConfigError:
+        raise typer.Exit(code=int(ExitCode.CONFIG))
+    except SafetyError:
+        raise typer.Exit(code=int(ExitCode.SAFETY))
+    except RuntimeError:
+        raise typer.Exit(code=int(ExitCode.RUNTIME))
+    except Exception:
+        raise typer.Exit(code=int(ExitCode.UNKNOWN))
 
 
 @command("rebalance")
@@ -347,181 +357,190 @@ def rebalance(
 ) -> None:
     """Execute a full rebalance against the configured broker."""
 
-    options: CLIOptions = ctx.obj if isinstance(ctx.obj, CLIOptions) else CLIOptions()
-    cfg = load_config(config)
-    if use_ask_bid_cap is not None:
-        cfg.limits.use_ask_bid_cap = use_ask_bid_cap
+    try:
+        options: CLIOptions = ctx.obj if isinstance(ctx.obj, CLIOptions) else CLIOptions()
+        cfg = load_config(config)
+        if use_ask_bid_cap is not None:
+            cfg.limits.use_ask_bid_cap = use_ask_bid_cap
 
-    as_of_dt = _parse_as_of(as_of)
+        as_of_dt = _parse_as_of(as_of)
 
-    setup_logging(
-        Path(cfg.io.report_dir),
-        level=options.log_level,
-        json_logs=options.log_json,
-        as_of=as_of_dt,
-    )
-    logger = logging.getLogger(__name__)
-    logger.info("config: %s", json.dumps(cfg.model_dump(), default=str))
-    logger.debug("CLI options: %s", options)
-
-    kill = options.kill_switch or Path(cfg.safety.kill_switch_file)
-    safety.check_kill_switch(kill)
-    safety.ensure_paper_trading(options.paper, options.live)
-    if cfg.safety.require_confirm:
-        safety.require_confirmation("Proceed with rebalancing?", options.yes)
-
-    ib_options = IBKRProviderOptions(
-        paper=options.paper,
-        live=options.live,
-        dry_run=options.dry_run,
-        kill_switch=str(kill),
-    )
-    ib = _connect_ibkr(ib_options)
-    quote_provider = IBKRQuoteProvider(ib)
-
-    portfolios_data = load_portfolios(
-        portfolios,
-        allow_margin=cfg.rebalance.allow_margin,
-        max_leverage=cfg.rebalance.max_leverage,
-    )
-    blend = blend_targets(portfolios_data, cfg.models)
-
-    positions: Mapping[str, float] = {
-        p.contract.symbol: p.quantity for p in ib.get_positions() if p.quantity != 0
-    }
-    symbols = set(blend.weights) | set(positions)
-    prices = {
-        sym: quote_provider.get_price(
-            sym, cfg.pricing.price_source, cfg.pricing.fallback_to_snapshot
+        setup_logging(
+            Path(cfg.io.report_dir),
+            level=options.log_level,
+            json_logs=options.log_json,
+            as_of=as_of_dt,
         )
-        for sym in symbols
-    }
-    cash_balances = {
-        av.currency: av.value
-        for av in ib.get_account_values()
-        if av.tag == "CashBalance" and av.currency
-    }
-    snapshot = compute_account_state(
-        positions,
-        prices,
-        cash_balances,
-        cash_buffer_pct=cfg.rebalance.cash_buffer_pct,
-    )
+        logger = logging.getLogger(__name__)
+        logger.info("config: %s", json.dumps(cfg.model_dump(), default=str))
+        logger.debug("CLI options: %s", options)
 
-    report_dir = output_dir or Path(cfg.io.report_dir)
-    as_of_ts = as_of_dt
-    pre_df, pre_csv, pre_md = cast(
-        tuple[Any, Path, Path],
-        generate_pre_trade_report(
-            blend.weights,
-            snapshot.weights,
-            prices,
-            snapshot.total_equity,
-            output_dir=report_dir,
-            as_of=as_of_ts,
-            net_liq=snapshot.total_equity,
-            cash_balances=snapshot.cash_by_currency,
-            cash_buffer=(
-                snapshot.usd_cash * cfg.rebalance.cash_buffer_pct / 100.0
-                if cfg.rebalance.cash_buffer_pct
-                else None
-            ),
-            min_order=cfg.rebalance.min_order_usd,
-        ),
-    )
+        kill = options.kill_switch or Path(cfg.safety.kill_switch_file)
+        safety.check_kill_switch(kill)
+        safety.ensure_paper_trading(options.paper, options.live)
+        if cfg.safety.require_confirm:
+            safety.require_confirmation("Proceed with rebalancing?", options.yes)
 
-    plan, fx_plan = plan_rebalance_with_fx(
-        blend.weights,
-        snapshot.weights,
-        prices,
-        snapshot.total_equity,
-        fx_cfg=cfg.fx,
-        quote_provider=quote_provider,
-        pricing_cfg=cfg.pricing,
-        funding_cash=snapshot.cash_by_currency.get("CAD", 0.0),
-        bands=from_bps(cfg.rebalance.per_holding_band_bps),
-        min_order=cfg.rebalance.min_order_usd,
-        max_leverage=cfg.rebalance.max_leverage,
-        cash_buffer_pct=cfg.rebalance.cash_buffer_pct,
-        maintenance_buffer_pct=cfg.rebalance.maintenance_buffer_pct,
-        allow_fractional=cfg.rebalance.allow_fractional,
-        trigger_mode=cfg.rebalance.trigger_mode,
-        portfolio_total_band_bps=cfg.rebalance.portfolio_total_band_bps,
-        allow_margin=cfg.rebalance.allow_margin,
-    )
-
-    if fx_plan.need_fx:
-        prices[fx_plan.pair.split(".")[0]] = fx_plan.est_rate
-
-    order_quotes = {sym: quote_provider.get_quote(sym) for sym in plan.orders}
-    contracts = {sym: ib.resolve_contract(Contract(symbol=sym)) for sym in plan.orders}
-    order_cfg = SimpleNamespace(**cfg.rebalance.model_dump(), limits=cfg.limits)
-    orders = build_orders(
-        plan.orders,
-        order_quotes,
-        order_cfg,
-        contracts,
-        allow_fractional=cfg.rebalance.allow_fractional,
-        allow_margin=cfg.rebalance.allow_margin,
-        prefer_rth=cfg.rebalance.prefer_rth,
-    )
-    sell_orders = [o for o in orders if o.side is OrderSide.SELL]
-    buy_orders = [o for o in orders if o.side is OrderSide.BUY]
-    fx_orders = []
-    if fx_plan.need_fx:
-        fx_sym, fx_cur = fx_plan.pair.split(".", 1)
-        fx_contract = ib.resolve_contract(
-            Contract(symbol=fx_sym, sec_type="CASH", currency=fx_cur, exchange=fx_plan.route)
-        )
-        fx_orders = [build_fx_order(fx_plan, fx_contract, prefer_rth=cfg.rebalance.prefer_rth)]
-
-    execution = execute_orders(
-        ib,
-        fx_orders=fx_orders,
-        sell_orders=sell_orders,
-        buy_orders=buy_orders,
-        fx_plan=fx_plan,
-        options=OrderExecutionOptions(
-            report_only=options.report_only,
+        ib_options = IBKRProviderOptions(
+            paper=options.paper,
+            live=options.live,
             dry_run=options.dry_run,
-            yes=options.yes,
-            require_confirm=cfg.safety.require_confirm,
-            prefer_rth=cfg.rebalance.prefer_rth,
-        ),
-        max_leverage=cfg.rebalance.max_leverage,
-        allow_margin=cfg.rebalance.allow_margin,
-    )
-    fills: list[Any]
-    limit_prices: Mapping[str, float | None]
-    if isinstance(execution, OrderExecutionResult):
-        fills = execution.fills
-        limit_prices = execution.limit_prices
-    else:
-        fills = []
-        limit_prices = {}
+            kill_switch=str(kill),
+        )
+        ib = _connect_ibkr(ib_options)
+        quote_provider = IBKRQuoteProvider(ib)
 
-    post_df, post_csv, post_md = cast(
-        tuple[Any, Path, Path],
-        generate_post_trade_report(
+        portfolios_data = load_portfolios(
+            portfolios,
+            allow_margin=cfg.rebalance.allow_margin,
+            max_leverage=cfg.rebalance.max_leverage,
+        )
+        blend = blend_targets(portfolios_data, cfg.models)
+
+        positions: Mapping[str, float] = {
+            p.contract.symbol: p.quantity for p in ib.get_positions() if p.quantity != 0
+        }
+        symbols = set(blend.weights) | set(positions)
+        prices = {
+            sym: quote_provider.get_price(
+                sym, cfg.pricing.price_source, cfg.pricing.fallback_to_snapshot
+            )
+            for sym in symbols
+        }
+        cash_balances = {
+            av.currency: av.value
+            for av in ib.get_account_values()
+            if av.tag == "CashBalance" and av.currency
+        }
+        snapshot = compute_account_state(
+            positions,
+            prices,
+            cash_balances,
+            cash_buffer_pct=cfg.rebalance.cash_buffer_pct,
+        )
+
+        report_dir = output_dir or Path(cfg.io.report_dir)
+        as_of_ts = as_of_dt
+        pre_df, pre_csv, pre_md = cast(
+            tuple[Any, Path, Path],
+            generate_pre_trade_report(
+                blend.weights,
+                snapshot.weights,
+                prices,
+                snapshot.total_equity,
+                output_dir=report_dir,
+                as_of=as_of_ts,
+                net_liq=snapshot.total_equity,
+                cash_balances=snapshot.cash_by_currency,
+                cash_buffer=(
+                    snapshot.usd_cash * cfg.rebalance.cash_buffer_pct / 100.0
+                    if cfg.rebalance.cash_buffer_pct
+                    else None
+                ),
+                min_order=cfg.rebalance.min_order_usd,
+            ),
+        )
+
+        plan, fx_plan = plan_rebalance_with_fx(
             blend.weights,
             snapshot.weights,
             prices,
             snapshot.total_equity,
-            fills,
-            limit_prices,
-            output_dir=report_dir,
-            as_of=as_of_ts,
-        ),
-    )
+            fx_cfg=cfg.fx,
+            quote_provider=quote_provider,
+            pricing_cfg=cfg.pricing,
+            funding_cash=snapshot.cash_by_currency.get("CAD", 0.0),
+            bands=from_bps(cfg.rebalance.per_holding_band_bps),
+            min_order=cfg.rebalance.min_order_usd,
+            max_leverage=cfg.rebalance.max_leverage,
+            cash_buffer_pct=cfg.rebalance.cash_buffer_pct,
+            maintenance_buffer_pct=cfg.rebalance.maintenance_buffer_pct,
+            allow_fractional=cfg.rebalance.allow_fractional,
+            trigger_mode=cfg.rebalance.trigger_mode,
+            portfolio_total_band_bps=cfg.rebalance.portfolio_total_band_bps,
+            allow_margin=cfg.rebalance.allow_margin,
+        )
 
-    event_log_path = report_dir / f"event_log_{as_of_ts.strftime('%Y%m%dT%H%M%S')}.json"
-    event_log_path.write_text(json.dumps(list(ib.event_log), default=str, indent=2))
+        if fx_plan.need_fx:
+            prices[fx_plan.pair.split(".")[0]] = fx_plan.est_rate
 
-    typer.echo(f"Pre-trade CSV report written to {pre_csv}")
-    typer.echo(f"Pre-trade Markdown report written to {pre_md}")
-    typer.echo(f"Post-trade CSV report written to {post_csv}")
-    typer.echo(f"Post-trade Markdown report written to {post_md}")
-    typer.echo(f"Event log written to {event_log_path}")
+        order_quotes = {sym: quote_provider.get_quote(sym) for sym in plan.orders}
+        contracts = {sym: ib.resolve_contract(Contract(symbol=sym)) for sym in plan.orders}
+        order_cfg = SimpleNamespace(**cfg.rebalance.model_dump(), limits=cfg.limits)
+        orders = build_orders(
+            plan.orders,
+            order_quotes,
+            order_cfg,
+            contracts,
+            allow_fractional=cfg.rebalance.allow_fractional,
+            allow_margin=cfg.rebalance.allow_margin,
+            prefer_rth=cfg.rebalance.prefer_rth,
+        )
+        sell_orders = [o for o in orders if o.side is OrderSide.SELL]
+        buy_orders = [o for o in orders if o.side is OrderSide.BUY]
+        fx_orders = []
+        if fx_plan.need_fx:
+            fx_sym, fx_cur = fx_plan.pair.split(".", 1)
+            fx_contract = ib.resolve_contract(
+                Contract(symbol=fx_sym, sec_type="CASH", currency=fx_cur, exchange=fx_plan.route)
+            )
+            fx_orders = [build_fx_order(fx_plan, fx_contract, prefer_rth=cfg.rebalance.prefer_rth)]
+
+        execution = execute_orders(
+            ib,
+            fx_orders=fx_orders,
+            sell_orders=sell_orders,
+            buy_orders=buy_orders,
+            fx_plan=fx_plan,
+            options=OrderExecutionOptions(
+                report_only=options.report_only,
+                dry_run=options.dry_run,
+                yes=options.yes,
+                require_confirm=cfg.safety.require_confirm,
+                prefer_rth=cfg.rebalance.prefer_rth,
+            ),
+            max_leverage=cfg.rebalance.max_leverage,
+            allow_margin=cfg.rebalance.allow_margin,
+        )
+        fills: list[Any]
+        limit_prices: Mapping[str, float | None]
+        if isinstance(execution, OrderExecutionResult):
+            fills = execution.fills
+            limit_prices = execution.limit_prices
+        else:
+            fills = []
+            limit_prices = {}
+
+        post_df, post_csv, post_md = cast(
+            tuple[Any, Path, Path],
+            generate_post_trade_report(
+                blend.weights,
+                snapshot.weights,
+                prices,
+                snapshot.total_equity,
+                fills,
+                limit_prices,
+                output_dir=report_dir,
+                as_of=as_of_ts,
+            ),
+        )
+
+        event_log_path = report_dir / f"event_log_{as_of_ts.strftime('%Y%m%dT%H%M%S')}.json"
+        event_log_path.write_text(json.dumps(list(ib.event_log), default=str, indent=2))
+
+        typer.echo(f"Pre-trade CSV report written to {pre_csv}")
+        typer.echo(f"Pre-trade Markdown report written to {pre_md}")
+        typer.echo(f"Post-trade CSV report written to {post_csv}")
+        typer.echo(f"Post-trade Markdown report written to {post_md}")
+        typer.echo(f"Event log written to {event_log_path}")
+    except ConfigError:
+        raise typer.Exit(code=int(ExitCode.CONFIG))
+    except SafetyError:
+        raise typer.Exit(code=int(ExitCode.SAFETY))
+    except RuntimeError:
+        raise typer.Exit(code=int(ExitCode.RUNTIME))
+    except Exception:
+        raise typer.Exit(code=int(ExitCode.UNKNOWN))
 
 
 if __name__ == "__main__":  # pragma: no cover
