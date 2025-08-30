@@ -16,14 +16,17 @@ from zoneinfo import ZoneInfo
 from .errors import SafetyError
 
 
-def check_kill_switch(path: str | Path | None) -> None:
-    """Abort if a *kill switch* file exists."""
+def check_kill_switch(path: str | Path | None, live: bool = False) -> None:
+    """Validate the state of the *kill switch* file."""
 
-    if path is None:
-        return
-    kill_switch = Path(path).expanduser()
-    if kill_switch.exists():
-        raise SafetyError(f"kill switch engaged: {kill_switch}")
+    kill_switch = Path(path).expanduser() if path is not None else None
+
+    if live:
+        if kill_switch is None or not kill_switch.exists():
+            raise SafetyError(f"kill switch file missing: {kill_switch}")
+    else:
+        if kill_switch is not None and kill_switch.exists():
+            raise SafetyError(f"kill switch engaged: {kill_switch}")
 
 
 def ensure_paper_trading(paper: bool, live: bool) -> None:

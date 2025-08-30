@@ -174,8 +174,9 @@ def execute_orders(
     logger = logging.getLogger(__name__)
     options = options or OrderExecutionOptions()
 
-    safety.check_kill_switch(ib.options.kill_switch)
-    safety.ensure_paper_trading(ib.options.paper, ib.options.live)
+    safety.check_kill_switch(ib.options.kill_switch, live=ib.options.live)
+    if not ib.options.live:
+        safety.ensure_paper_trading(ib.options.paper, ib.options.live)
     safety.ensure_regular_trading_hours(datetime.now(timezone.utc), options.prefer_rth)
     if options.require_confirm:
         safety.require_confirmation("Proceed with order placement?", options.yes)
