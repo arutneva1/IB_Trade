@@ -44,7 +44,7 @@ import logging
 import importlib.metadata
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Iterable, Any, Mapping, cast
+from typing import Iterable, Any, Mapping, cast, Callable, TypeVar
 
 import typer
 
@@ -71,6 +71,14 @@ from .logging_utils import setup_logging
 
 app = typer.Typer(help="Utilities for running pre-trade reports and scenarios")
 
+# ``typer.Typer`` provides decorators that are not fully typed which causes mypy
+# to treat any decorated functions as untyped. Casting the ``callback`` and
+# ``command`` attributes to typed callables keeps the functions they decorate
+# within the type-checking world.
+F = TypeVar("F", bound=Callable[..., Any])
+callback = cast(Callable[..., Callable[[F], F]], app.callback)
+command = cast(Callable[..., Callable[[F], F]], app.command)
+
 
 def _version_callback(value: bool) -> None:
     """Print the package version and exit."""
@@ -93,7 +101,7 @@ class CLIOptions:
     kill_switch: Path | None = None
 
 
-@app.callback(invoke_without_command=True)
+@callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
     version: bool = typer.Option(
@@ -215,7 +223,7 @@ def _parse_as_of(value: str | None) -> datetime:
     return dt.astimezone(timezone.utc)
 
 
-@app.command("pre-trade")
+@command("pre-trade")
 def pre_trade(
     ctx: typer.Context,
     config: Path = typer.Option(..., exists=True, readable=True, help="Path to INI config file"),
@@ -320,7 +328,7 @@ def pre_trade(
         typer.echo(result.to_string(index=False))
 
 
-@app.command("rebalance")
+@command("rebalance")
 def rebalance(
     ctx: typer.Context,
     config: Path = typer.Option(..., exists=True, readable=True, help="Path to INI config file"),
