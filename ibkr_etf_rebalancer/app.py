@@ -174,6 +174,20 @@ def _parse_cash(values: Iterable[str]) -> dict[str, float]:
     return cash
 
 
+def _parse_as_of(value: str | None) -> datetime:
+    """Parse an ISO formatted datetime string in UTC."""
+
+    if value is None:
+        return datetime.now(timezone.utc)
+    try:
+        dt = datetime.fromisoformat(value)
+    except ValueError as exc:  # pragma: no cover - defensive
+        raise typer.BadParameter("Invalid datetime format") from exc
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 @app.command("pre-trade")
 def pre_trade(
     ctx: typer.Context,
@@ -193,6 +207,7 @@ def pre_trade(
         "-c",
         help="Cash balance as CUR=AMOUNT, e.g. --cash USD=1000. Can be repeated.",
     ),
+    as_of: str | None = typer.Option(None, "--as-of", help="Timestamp for report/log names"),
 ) -> None:
     """Generate a pre‑trade report using the supplied inputs."""
 
@@ -204,7 +219,14 @@ def pre_trade(
 
     cfg = load_config(config)
 
-    setup_logging(Path(cfg.io.report_dir), level=options.log_level, json_logs=options.log_json)
+    as_of_dt = _parse_as_of(as_of)
+
+    setup_logging(
+        Path(cfg.io.report_dir),
+        level=options.log_level,
+        json_logs=options.log_json,
+        as_of=as_of_dt,
+    )
     logger = logging.getLogger(__name__)
     logger.info("config: %s", json.dumps(cfg.model_dump(), default=str))
     logger.debug("CLI options: %s", options)
@@ -246,6 +268,7 @@ def pre_trade(
         prices,
         snapshot.total_equity,
         output_dir=report_dir,
+        as_of=as_of_dt,
         net_liq=snapshot.total_equity,
         cash_balances=snapshot.cash_by_currency,
         cash_buffer=(
@@ -277,13 +300,21 @@ def rebalance(
     output_dir: Path | None = typer.Option(
         None, "--output-dir", "-o", help="Directory for generated reports"
     ),
+    as_of: str | None = typer.Option(None, "--as-of", help="Timestamp for report/log names"),
 ) -> None:
     """Execute a full rebalance against the configured broker."""
 
     options: CLIOptions = ctx.obj if isinstance(ctx.obj, CLIOptions) else CLIOptions()
     cfg = load_config(config)
 
-    setup_logging(Path(cfg.io.report_dir), level=options.log_level, json_logs=options.log_json)
+    as_of_dt = _parse_as_of(as_of)
+
+    setup_logging(
+        Path(cfg.io.report_dir),
+        level=options.log_level,
+        json_logs=options.log_json,
+        as_of=as_of_dt,
+    )
     logger = logging.getLogger(__name__)
     logger.info("config: %s", json.dumps(cfg.model_dump(), default=str))
     logger.debug("CLI options: %s", options)
@@ -332,7 +363,7 @@ def rebalance(
     )
 
     report_dir = output_dir or Path(cfg.io.report_dir)
-    as_of = datetime.now(timezone.utc)
+    as_of_ts = as_of_dt
     pre_df, pre_csv, pre_md = cast(
         tuple[Any, Path, Path],
         generate_pre_trade_report(
@@ -341,7 +372,7 @@ def rebalance(
             prices,
             snapshot.total_equity,
             output_dir=report_dir,
-            as_of=as_of,
+            as_of=as_of_ts,
             net_liq=snapshot.total_equity,
             cash_balances=snapshot.cash_by_currency,
             cash_buffer=(
@@ -433,11 +464,11 @@ def rebalance(
             fills,
             limit_prices,
             output_dir=report_dir,
-            as_of=as_of,
+            as_of=as_of_ts,
         ),
     )
 
-    event_log_path = report_dir / f"event_log_{as_of.strftime('%Y%m%dT%H%M%S')}.json"
+    event_log_path = report_dir / f"event_log_{as_of_ts.strftime('%Y%m%dT%H%M%S')}.json"
     event_log_path.write_text(json.dumps(list(ib.event_log), default=str, indent=2))
 
     typer.echo(f"Pre-trade CSV report written to {pre_csv}")
