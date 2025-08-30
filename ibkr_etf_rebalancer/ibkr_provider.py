@@ -488,6 +488,8 @@ class FakeIB:
                 unfilled = True
                 continue
             qty = order.quantity * fraction
+            if fraction >= 1.0 and isinstance(qty, float) and qty.is_integer():
+                qty = int(qty)
             fill = Fill(
                 contract=order.contract,
                 side=order.side,
@@ -501,7 +503,8 @@ class FakeIB:
             if fraction >= 1.0:
                 self._orders.pop(oid, None)
             else:
-                remaining = replace(order, quantity=order.quantity - qty)
+                remaining_qty = order.quantity - qty
+                remaining = replace(order, quantity=remaining_qty)
                 self._orders[oid] = remaining
         if unfilled and timeout is not None:
             raise TimeoutError
