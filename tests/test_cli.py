@@ -378,9 +378,7 @@ def test_rebalance_cli_as_of(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     assert log.exists()
 
 
-def test_rebalance_cli_no_paper_gating(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_rebalance_cli_no_paper_gating(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config, portfolios = _write_rebalance_files(tmp_path)
     monkeypatch.setattr(app_module, "_connect_ibkr", lambda opts: _fake_ib())
     with freeze_time("2024-01-01 15:00:00"):
@@ -401,9 +399,7 @@ def test_rebalance_cli_no_paper_gating(
     assert result.exit_code != 0
 
 
-def test_rebalance_cli_live_success(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_rebalance_cli_live_success(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config, portfolios = _write_rebalance_files(tmp_path, report_dir=tmp_path, paper_only=False)
     kill = tmp_path / "KILL_SWITCH"
     kill.write_text("go")
@@ -436,9 +432,7 @@ def test_rebalance_cli_live_success(
     assert result.exit_code == 0
 
 
-def test_rebalance_cli_live_requires_yes(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_rebalance_cli_live_requires_yes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config, portfolios = _write_rebalance_files(tmp_path, paper_only=False)
     kill = tmp_path / "KILL_SWITCH"
     kill.write_text("go")
