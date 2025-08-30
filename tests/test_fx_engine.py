@@ -1,9 +1,9 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 
 import pytest
 
 from ibkr_etf_rebalancer.config import FXConfig, PricingConfig
-from ibkr_etf_rebalancer.fx_engine import plan_fx_if_needed
+from ibkr_etf_rebalancer.fx_engine import plan_fx_if_needed, _is_fx_market_open
 from ibkr_etf_rebalancer.rebalance_engine import plan_rebalance_with_fx
 from ibkr_etf_rebalancer.pricing import Quote
 from ibkr_etf_rebalancer.util import from_bps
@@ -322,6 +322,39 @@ def test_prefer_market_hours_blocks_before_sunday_open(
         fx_quote=fresh_quote,
         cfg=cfg,
         now=sunday,
+    )
+    assert plan.need_fx is False
+    assert "outside market hours" in plan.reason
+
+
+def test_is_fx_market_open_handles_dst_boundary() -> None:
+    # July is in daylight saving time for New York. Market opens at 21:00 UTC.
+    before_open = datetime(2024, 7, 7, 20, 59, tzinfo=timezone.utc)
+    after_open = datetime(2024, 7, 7, 21, 1, tzinfo=timezone.utc)
+    assert _is_fx_market_open(before_open) is False
+    assert _is_fx_market_open(after_open) is True
+
+
+def test_is_fx_market_open_blocks_holidays() -> None:
+    holiday = date(2024, 1, 1)
+    ts = datetime(2024, 1, 1, 12, tzinfo=timezone.utc)
+    assert _is_fx_market_open(ts, holidays=[holiday]) is False
+    ts_next = datetime(2024, 1, 2, 12, tzinfo=timezone.utc)
+    assert _is_fx_market_open(ts_next, holidays=[holiday]) is True
+
+
+def test_prefer_market_hours_blocks_holiday(fresh_quote: Quote, fx_cfg: FXConfig) -> None:
+    cfg = fx_cfg.model_copy(
+        update={"prefer_market_hours": True, "market_holidays": [date(2024, 1, 1)]}
+    )
+    new_year = datetime(2024, 1, 1, 12, tzinfo=timezone.utc)
+    plan = plan_fx_if_needed(
+        usd_needed=5_000,
+        usd_cash=0,
+        funding_cash=20_000,
+        fx_quote=fresh_quote,
+        cfg=cfg,
+        now=new_year,
     )
     assert plan.need_fx is False
     assert "outside market hours" in plan.reason
